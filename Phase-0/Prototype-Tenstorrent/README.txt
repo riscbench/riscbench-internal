@@ -27,3 +27,7 @@ Steps to interpret data
 2. For DRAM related programs, you can extract data by runnning analysis.py (inside fm_loopback, fm_read, fm_write). This will generate a summary_results.csv which can be used to plot performance
 
 3. For MM program, you can extract data by running "Bucketized performance generator.py" which generates a csv file with the bucketized performance.
+
+
+Contact: 
+Projjal Gupta (projjalgupta@ufl.edu)
