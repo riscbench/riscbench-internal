@@ -2,6 +2,8 @@
 
 This document captures the intended technical alignment for RISCBench Phase 1 and Phase 2 development. It is meant to serve as a stable reference for contributors, interns, and collaborators so work remains coherent with the roadmap and research intent.
 
+![RISCBench phase flow: Phase-0 → Phase-1 → Phase-2](../Phase-1/riscbench_phase_flow.svg)
+
 ---
 
 ## Project context
