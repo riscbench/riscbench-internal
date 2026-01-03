@@ -104,3 +104,21 @@ Any Phase-2 contribution must demonstrate compatibility with the Phase-1 engine 
 Phase-1 exists to make SIT reusable **without semantic drift**.
 
 If a change improves convenience but weakens semantic alignment with Phase-0, the change must be rejected.
+
+
+# Phase-1 Deliverables  
+**SIT Engine Core – Engineering Execution Table**
+
+| S/N | Deliverable | Description | What Ships | Done-When |
+|---|---|---|---|---|
+| 1 | SIT Engine core | Central computation engine encoding the formal SIT definition with residency-gated accumulation, independent of hardware or simulator | Hardware-agnostic SIT Engine | Identical behavior to Phase-0 under equivalent inputs |
+| 2 | Time and windowing | Canonical monotonic time model and fixed-window slicing used consistently across platforms | Configurable fixed-window implementation | Partial-window overlap handled correctly and tested |
+| 3 | Residency model | Unified representation of residency intervals and residency-conditioned states | Canonical residency intervals and classifiers | SIT never accumulates outside residency |
+| 4 | Trace ingestion API | Clean contract separating platform parsing from engine logic | Normalized ingest schema and adapter interface | Engine consumes only normalized events |
+| 5 | Baseline adapter | Reference adapter used to validate end-to-end correctness | One validated ingest adapter | Ingest → SIT → export works deterministically |
+| 6 | Output schema v1 | Stable, versioned, machine-readable representation of SIT results and metadata | Versioned schema (parquet / json) | Schema frozen and documented |
+| 7 | Validation suite | Semantic correctness enforcement via golden traces and invariants | Tests and invariant checks | CI detects semantic regressions |
+| 8 | Reference datasets | Minimal pinned datasets for correctness and regression | Versioned dataset bundle | Dataset linked to engine version |
+| 9 | CLI pipeline | Developer-facing workflow for running the engine | ingest → classify → export CLI | Deterministic runs with manifests |
+| 10 | Documentation | Formal definition, generalization note, and README | Phase-1 README + GENERALIZATION.md | New contributor can implement without tribal knowledge |
+| 11 | CI hooks | Entry points for regression and invariant checks | CI integration stubs | PRs fail on semantic drift |
