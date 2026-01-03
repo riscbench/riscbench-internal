@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg width="1000" height="260" viewBox="0 0 1000 260" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    .title { font: 18px sans-serif; font-weight: 700; fill: #111; }
+    .label { font: 14px sans-serif; fill: #111; }
+    .small { font: 12px sans-serif; fill: #222; }
+    .box { fill: #ffffff; stroke: #111; stroke-width: 2; rx: 14; }
+    .arrow { stroke: #111; stroke-width: 2.5; fill: none; marker-end: url(#arrowhead); }
+    .tag { font: 12px sans-serif; fill: #111; }
+  </style>
+
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="8" refX="9" refY="4" orient="auto">
+      <polygon points="0,0 10,4 0,8" fill="#111"/>
+    </marker>
+  </defs>
+
+  <text x="500" y="34" text-anchor="middle" class="title">RISCBench phase flow. Phase-0 → Phase-1 → Phase-2</text>
+
+  <!-- Phase 0 box -->
+  <rect x="70" y="70" width="260" height="140" class="box"/>
+  <text x="200" y="102" text-anchor="middle" class="label">Phase-0</text>
+  <text x="200" y="126" text-anchor="middle" class="small">Tenstorrent Wormhole testbed</text>
+  <text x="200" y="150" text-anchor="middle" class="small">Semantic anchor for SIT</text>
+  <text x="200" y="174" text-anchor="middle" class="small">Defines residency-gated windows</text>
+  <text x="200" y="198" text-anchor="middle" class="small">Reference correctness behavior</text>
+
+  <!-- Phase 1 box -->
+  <rect x="370" y="70" width="260" height="140" class="box"/>
+  <text x="500" y="102" text-anchor="middle" class="label">Phase-1</text>
+  <text x="500" y="126" text-anchor="middle" class="small">Hardware-agnostic SIT Engine</text>
+  <text x="500" y="150" text-anchor="middle" class="small">Ingest API and adapters</text>
+  <text x="500" y="174" text-anchor="middle" class="small">Versioned output schema</text>
+  <text x="500" y="198" text-anchor="middle" class="small">Golden traces and invariants</text>
+
+  <!-- Phase 2 box -->
+  <rect x="670" y="70" width="260" height="140" class="box"/>
+  <text x="800" y="102" text-anchor="middle" class="label">Phase-2</text>
+  <text x="800" y="126" text-anchor="middle" class="small">Simulator integrations</text>
+  <text x="800" y="150" text-anchor="middle" class="small">Spike → QEMU → gem5</text>
+  <text x="800" y="174" text-anchor="middle" class="small">Parameter sweeps</text>
+  <text x="800" y="198" text-anchor="middle" class="small">CI regression gating</text>
+
+  <!-- Arrows -->
+  <path d="M330 140 L370 140" class="arrow"/>
+  <path d="M630 140 L670 140" class="arrow"/>
+
+  <!-- Captions under arrows -->
+  <text x="350" y="232" text-anchor="middle" class="tag">Generalize mechanisms, preserve meaning</text>
+  <text x="650" y="232" text-anchor="middle" class="tag">Adapters call Phase-1 engine, no second engine</text>
+</svg>
