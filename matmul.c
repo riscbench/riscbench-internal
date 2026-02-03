@@ -1,12 +1,31 @@
 // SPDX-License-Identifier: Apache-2.0
-// DRAM -> input CB -> compute -> output CB -> DRAM
-// Underflow/Overflow semantic markers for baseline adapters (perf/spike/rtl).
+// Workload: DRAM -> input circular buffer -> compute -> output circular buffer -> DRAM
+// Emits raw residency timeline trace events with flags for bottleneck detection.
+//
+// Build:
+//   gcc -O2 -g -pthread matmul.c -o matmul
+//
+// Run (balanced):
+//   ./matmul --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 \
+//            --trace results/balanced.trace
+//
+// Run (force UNDERFLOW: slow reader):
+//   ./matmul --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --reader-sleep-ns 2000 \
+//            --trace results/underflow.trace
+//
+// Run (force OVERFLOW: slow writer):
+//   ./matmul --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --writer-sleep-ns 5000 \
+//            --trace results/overflow.trace
+//
+// Trace format: ts_us=<timestamp> thread=<tid> event=<EVENT> [flags=<FLAGS>] [key=value ...]
+// Events: THREAD_START, THREAD_END, COMPUTE_WORK, INPUT_UNDERFLOW_DETECTED, OUTPUT_OVERFLOW_DETECTED
 
 #define _GNU_SOURCE
 #include <errno.h>
 #include <inttypes.h>
 #include <pthread.h>
 #include <sched.h>
+#include <stdarg.h>
 #include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
@@ -23,14 +42,19 @@ static inline void ns_sleep(long ns) {
     nanosleep(&ts, NULL);
 }
 
-// ------------ ring buffer (SPSC) ------------
-// Single-producer single-consumer ring (lock-free with atomics)
-// We use two separate rings:
-//  - input ring: reader -> compute
-//  - output ring: compute -> writer
+static inline uint64_t now_us(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t)ts.tv_sec * 1000000ULL + (uint64_t)(ts.tv_nsec / 1000ULL);
+}
 
+// ------------ ring buffer (SPSC) ------------
+// Single-producer single-consumer ring (lock-free with atomics).
+// Used for:
+//  - input ring: reader -> compute (tile payloads)
+//  - output ring: compute -> writer (one float per tile)
 typedef struct {
-    uint8_t* buf;         // contiguous storage: capacity * item_bytes
+    uint8_t* buf;         // capacity * item_bytes
     size_t capacity;      // number of items
     size_t item_bytes;    // bytes per item
     _Atomic size_t head;  // consumer index
@@ -44,9 +68,9 @@ static int ring_init(ring_t* r, size_t capacity, size_t item_bytes) {
     atomic_store(&r->tail, 0);
 
     size_t bytes = capacity * item_bytes;
-    // aligned_alloc requires size multiple of alignment
     size_t align = 64;
     size_t padded = (bytes + align - 1) & ~(align - 1);
+
     r->buf = (uint8_t*)aligned_alloc(align, padded);
     if (!r->buf) return -1;
     memset(r->buf, 0, padded);
@@ -58,37 +82,35 @@ static void ring_free(ring_t* r) {
     r->buf = NULL;
 }
 
-// Returns pointers to slot for producer/consumer
 static inline uint8_t* ring_slot(ring_t* r, size_t idx) {
     return r->buf + (idx % r->capacity) * r->item_bytes;
 }
 
-// full if (tail - head) == capacity
-static inline bool ring_full(ring_t* r, size_t head, size_t tail) {
+// full if (tail - head) >= capacity
+static inline bool ring_full(const ring_t* r, size_t head, size_t tail) {
     return (tail - head) >= r->capacity;
 }
 
-// empty if head == tail
 static inline bool ring_empty(size_t head, size_t tail) {
     return head == tail;
 }
 
-// ------------ workload params ------------
+// ------------ workload context ------------
 
 typedef struct {
     // "DRAM" arrays
-    float* A;
-    float* B;
-    float* C;
+    float* A;  // tiles * tile_elems
+    float* B;  // tile_elems (reused)
+    float* C;  // tiles outputs (one float per tile)
 
-    size_t tile_elems;     // elements per tile (like 32x32)
-    size_t total_tiles;    // how many tiles to process
+    size_t tile_elems;   // elements per tile (default 1024 = 32x32)
+    size_t total_tiles;  // number of tiles to process
 
-    ring_t in_ring;
-    ring_t out_ring;
+    ring_t in_ring;      // input CB (tile payloads)
+    ring_t out_ring;     // output CB (one float per tile)
 
-    long reader_sleep_ns;  // slow down reader -> causes underflow
-    long writer_sleep_ns;  // slow down writer -> causes overflow
+    long reader_sleep_ns;  // slow reader -> underflow
+    long writer_sleep_ns;  // slow writer -> overflow
 
     _Atomic size_t tiles_read;
     _Atomic size_t tiles_done;
@@ -98,31 +120,30 @@ typedef struct {
     _Atomic uint64_t output_overflow;
 
     _Atomic bool stop;
+
+    // residency trace
+    FILE* trace_fp;       // optional raw trace file
+    pthread_mutex_t trace_lock;  // serialize trace writes
 } ctx_t;
 
-// ------------ reader thread: DRAM -> input CB ------------
+// ------------ reader: DRAM -> input CB ------------
 
 static void* reader_thread(void* arg) {
     ctx_t* c = (ctx_t*)arg;
 
     for (size_t t = 0; t < c->total_tiles; t++) {
-        // wait for free space in input ring
         while (1) {
             size_t head = atomic_load_explicit(&c->in_ring.head, memory_order_acquire);
             size_t tail = atomic_load_explicit(&c->in_ring.tail, memory_order_acquire);
+
             if (!ring_full(&c->in_ring, head, tail)) {
-                // claim slot at tail
                 uint8_t* dst = ring_slot(&c->in_ring, tail);
-                // copy tile from "DRAM"
-                memcpy(dst, (uint8_t*)(c->A + t * c->tile_elems),
-                       c->tile_elems * sizeof(float));
-                // publish
+                memcpy(dst, (uint8_t*)(c->A + t * c->tile_elems), c->tile_elems * sizeof(float));
                 atomic_store_explicit(&c->in_ring.tail, tail + 1, memory_order_release);
                 atomic_fetch_add(&c->tiles_read, 1);
                 break;
             } else {
-                // input CB full: reader backpressure (not counted as overflow; overflow is output-side)
-                // yield to reduce busy-wait harm
+                // input CB full: backpressure on reader; not counted as overflow (overflow is output-side)
                 sched_yield();
             }
         }
@@ -133,65 +154,98 @@ static void* reader_thread(void* arg) {
     return NULL;
 }
 
-// ------------ compute thread: input CB -> compute -> output CB ------------
+// ------------ trace emission helper ------------
+
+static void emit_trace(ctx_t* c, int thread_id, const char* event, const char* fmt, ...) {
+    if (!c->trace_fp) return;
+
+    pthread_mutex_lock(&c->trace_lock);
+    uint64_t ts = now_us();
+    fprintf(c->trace_fp, "ts_us=%" PRIu64 " thread=%d event=%s ", ts, thread_id, event);
+    if (fmt) {
+        va_list ap;
+        va_start(ap, fmt);
+        vfprintf(c->trace_fp, fmt, ap);
+        va_end(ap);
+    }
+    fprintf(c->trace_fp, "\n");
+    fflush(c->trace_fp);
+    pthread_mutex_unlock(&c->trace_lock);
+}
+
+// ------------ compute: input CB -> compute -> output CB ------------
+
+
 
 static void* compute_thread(void* arg) {
     ctx_t* c = (ctx_t*)arg;
 
-    // simple compute: for each tile, do a dot-like MAC against B (same B region reused)
-    // This is intentional: creates memory + compute mixture.
+    emit_trace(c, 1, "THREAD_START", "");
+
     for (size_t t = 0; t < c->total_tiles; t++) {
-        // pop from input ring
         float* in_tile = NULL;
+
+        // pop input tile
         while (1) {
             size_t head = atomic_load_explicit(&c->in_ring.head, memory_order_acquire);
             size_t tail = atomic_load_explicit(&c->in_ring.tail, memory_order_acquire);
+
             if (!ring_empty(head, tail)) {
                 in_tile = (float*)ring_slot(&c->in_ring, head);
-                // consume
                 atomic_store_explicit(&c->in_ring.head, head + 1, memory_order_release);
                 break;
             } else {
-                // INPUT UNDERFLOW: compute wants work but input CB empty
-                atomic_fetch_add(&c->input_underflow, 1);
+                // INPUT UNDERFLOW: compute wants input but input CB empty
+                atomic_fetch_add_explicit(&c->input_underflow, 1, memory_order_relaxed);
+                emit_trace(c, 1, "INPUT_UNDERFLOW_DETECTED", "uf_count=%" PRIu64,
+                          atomic_load_explicit(&c->input_underflow, memory_order_acquire));
                 sched_yield();
             }
         }
 
-        // compute into a local tile buffer (avoid writing directly to out ring while computing)
-        // keep it stack-friendly by limiting tile size in practice
-        size_t n = c->tile_elems;
+        // compute (MAC fold into scalar per tile)
         float acc = 0.0f;
-        // MAC against B slice (reused), and fold into one scalar per tile to keep output small
-        // This is "compute" work; you can replace with heavier kernels if needed.
+        size_t n = c->tile_elems;
         for (size_t i = 0; i < n; i++) {
             acc += in_tile[i] * c->B[i];
         }
 
-        // push to output ring (one float per tile output)
+        // push output
         while (1) {
             size_t head = atomic_load_explicit(&c->out_ring.head, memory_order_acquire);
             size_t tail = atomic_load_explicit(&c->out_ring.tail, memory_order_acquire);
+
             if (!ring_full(&c->out_ring, head, tail)) {
                 float* out_slot = (float*)ring_slot(&c->out_ring, tail);
                 *out_slot = acc;
                 atomic_store_explicit(&c->out_ring.tail, tail + 1, memory_order_release);
-                atomic_fetch_add(&c->tiles_done, 1);
+
+                atomic_fetch_add_explicit(&c->tiles_done, 1, memory_order_relaxed);
+
+                // emit compute work event
+                size_t done = atomic_load_explicit(&c->tiles_done, memory_order_acquire);
+                emit_trace(c, 1, "COMPUTE_WORK", "tiles_done=%zu uf=%" PRIu64 " of=%" PRIu64,
+                          done,
+                          atomic_load_explicit(&c->input_underflow, memory_order_acquire),
+                          atomic_load_explicit(&c->output_overflow, memory_order_acquire));
                 break;
             } else {
-                // OUTPUT OVERFLOW: compute produced output but output CB is full (writer too slow)
-                atomic_fetch_add(&c->output_overflow, 1);
+                // OUTPUT OVERFLOW: compute produced output but output CB is full
+                atomic_fetch_add_explicit(&c->output_overflow, 1, memory_order_relaxed);
+                emit_trace(c, 1, "OUTPUT_OVERFLOW_DETECTED", "of_count=%" PRIu64,
+                          atomic_load_explicit(&c->output_overflow, memory_order_acquire));
                 sched_yield();
             }
         }
     }
 
-    // signal writer to stop once it drains
-    atomic_store(&c->stop, true);
+    // signal writer to stop once drained
+    atomic_store_explicit(&c->stop, true, memory_order_release);
+    emit_trace(c, 1, "THREAD_END", "");
     return NULL;
 }
 
-// ------------ writer thread: output CB -> DRAM ------------
+// ------------ writer: output CB -> DRAM ------------
 
 static void* writer_thread(void* arg) {
     ctx_t* c = (ctx_t*)arg;
@@ -202,43 +256,52 @@ static void* writer_thread(void* arg) {
         size_t tail = atomic_load_explicit(&c->out_ring.tail, memory_order_acquire);
 
         if (!ring_empty(head, tail)) {
-            float* out_tile = (float*)ring_slot(&c->out_ring, head);
-            // write to "DRAM" output
-            c->C[written] = *out_tile;
+            float* out_item = (float*)ring_slot(&c->out_ring, head);
+            c->C[written] = *out_item;
             written++;
 
             atomic_store_explicit(&c->out_ring.head, head + 1, memory_order_release);
-            atomic_fetch_add(&c->tiles_written, 1);
+            atomic_fetch_add_explicit(&c->tiles_written, 1, memory_order_relaxed);
 
             ns_sleep(c->writer_sleep_ns);
         } else {
-            if (atomic_load(&c->stop) && atomic_load(&c->tiles_written) >= atomic_load(&c->tiles_done)) {
-                break;
-            }
+            bool stop = atomic_load_explicit(&c->stop, memory_order_acquire);
+            size_t td = atomic_load_explicit(&c->tiles_done, memory_order_acquire);
+            size_t tw = atomic_load_explicit(&c->tiles_written, memory_order_acquire);
+
+            if (stop && tw >= td) break;
             sched_yield();
         }
     }
     return NULL;
 }
 
-// ------------ main ------------
+// ------------ CLI / main ------------
 
 static void usage(const char* prog) {
     fprintf(stderr,
-        "Usage: %s --tile-elems N --tiles T --in-depth D --out-depth D2 [--reader-sleep-ns X] [--writer-sleep-ns Y]\n"
-        "Example (balanced): %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2\n"
-        "Example (force underflow): %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --reader-sleep-ns 2000\n"
-        "Example (force overflow): %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --writer-sleep-ns 5000\n",
+        "Usage:\n"
+        "  %s --tile-elems N --tiles T --in-depth D --out-depth D2 [--reader-sleep-ns X] [--writer-sleep-ns Y]\n"
+        "     [--trace PATH]\n\n"
+        "Examples:\n"
+        "  Balanced:\n"
+        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --trace balanced.trace\n"
+        "  Force UNDERFLOW:\n"
+        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --reader-sleep-ns 2000 --trace uf.trace\n"
+        "  Force OVERFLOW:\n"
+        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --writer-sleep-ns 5000 --trace of.trace\n",
         prog, prog, prog, prog);
 }
 
 int main(int argc, char** argv) {
-    size_t tile_elems = 1024;   // 32x32 default
+    size_t tile_elems = 1024;
     size_t tiles = 50000;
     size_t in_depth = 2;
     size_t out_depth = 2;
     long reader_sleep_ns = 0;
     long writer_sleep_ns = 0;
+
+    const char* trace_path = NULL;
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--tile-elems") && i + 1 < argc) tile_elems = (size_t)strtoull(argv[++i], NULL, 10);
@@ -247,6 +310,7 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--out-depth") && i + 1 < argc) out_depth = (size_t)strtoull(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--reader-sleep-ns") && i + 1 < argc) reader_sleep_ns = strtol(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--writer-sleep-ns") && i + 1 < argc) writer_sleep_ns = strtol(argv[++i], NULL, 10);
+        else if (!strcmp(argv[i], "--trace") && i + 1 < argc) trace_path = argv[++i];
         else {
             usage(argv[0]);
             return 2;
@@ -259,27 +323,36 @@ int main(int argc, char** argv) {
     c.total_tiles = tiles;
     c.reader_sleep_ns = reader_sleep_ns;
     c.writer_sleep_ns = writer_sleep_ns;
+    c.trace_fp = NULL;
     atomic_store(&c.stop, false);
+    pthread_mutex_init(&c.trace_lock, NULL);
 
-    // DRAM-like arrays: A has tiles*tile_elems, B has tile_elems, C has tiles outputs
+    // Allocate DRAM-like arrays:
+    // A: tiles * tile_elems
+    // B: tile_elems (reused each tile)
+    // C: tiles (one float per tile)
     size_t a_elems = tiles * tile_elems;
     size_t b_elems = tile_elems;
     size_t c_elems = tiles;
 
-    c.A = (float*)aligned_alloc(64, ((a_elems * sizeof(float) + 63) / 64) * 64);
-    c.B = (float*)aligned_alloc(64, ((b_elems * sizeof(float) + 63) / 64) * 64);
-    c.C = (float*)aligned_alloc(64, ((c_elems * sizeof(float) + 63) / 64) * 64);
+    size_t align = 64;
+    size_t a_bytes = ((a_elems * sizeof(float) + align - 1) / align) * align;
+    size_t b_bytes = ((b_elems * sizeof(float) + align - 1) / align) * align;
+    size_t c_bytes = ((c_elems * sizeof(float) + align - 1) / align) * align;
+
+    c.A = (float*)aligned_alloc(align, a_bytes);
+    c.B = (float*)aligned_alloc(align, b_bytes);
+    c.C = (float*)aligned_alloc(align, c_bytes);
+
     if (!c.A || !c.B || !c.C) {
         fprintf(stderr, "alloc failed\n");
         return 1;
     }
 
-    // init A,B
     for (size_t i = 0; i < a_elems; i++) c.A[i] = (float)((i % 97) * 0.01);
     for (size_t i = 0; i < b_elems; i++) c.B[i] = (float)(((i % 89) + 1) * 0.02);
     memset(c.C, 0, c_elems * sizeof(float));
 
-    // rings
     if (ring_init(&c.in_ring, in_depth, tile_elems * sizeof(float)) != 0) {
         fprintf(stderr, "input ring init failed\n");
         return 1;
@@ -287,6 +360,14 @@ int main(int argc, char** argv) {
     if (ring_init(&c.out_ring, out_depth, sizeof(float)) != 0) {
         fprintf(stderr, "output ring init failed\n");
         return 1;
+    }
+
+    if (trace_path) {
+        c.trace_fp = fopen(trace_path, "w");
+        if (!c.trace_fp) {
+            perror("fopen trace");
+            return 1;
+        }
     }
 
     pthread_t tr, tc, tw;
@@ -298,19 +379,23 @@ int main(int argc, char** argv) {
     pthread_join(tc, NULL);
     pthread_join(tw, NULL);
 
-    uint64_t uf = atomic_load(&c.input_underflow);
-    uint64_t of = atomic_load(&c.output_overflow);
+    uint64_t uf = atomic_load_explicit(&c.input_underflow, memory_order_acquire);
+    uint64_t of = atomic_load_explicit(&c.output_overflow, memory_order_acquire);
 
-    // prevent dead-code elimination
+    // prevent dead-code elimination: checksum some outputs
     double checksum = 0.0;
-    for (size_t i = 0; i < (c_elems < 1024 ? c_elems : 1024); i++) checksum += c.C[i];
+    size_t lim = (c_elems < 1024 ? c_elems : 1024);
+    for (size_t i = 0; i < lim; i++) checksum += c.C[i];
 
     printf("tiles=%zu tile_elems=%zu in_depth=%zu out_depth=%zu\n", tiles, tile_elems, in_depth, out_depth);
     printf("tiles_read=%zu tiles_done=%zu tiles_written=%zu\n",
-           atomic_load(&c.tiles_read), atomic_load(&c.tiles_done), atomic_load(&c.tiles_written));
+           atomic_load_explicit(&c.tiles_read, memory_order_acquire),
+           atomic_load_explicit(&c.tiles_done, memory_order_acquire),
+           atomic_load_explicit(&c.tiles_written, memory_order_acquire));
     printf("input_underflow=%" PRIu64 " output_overflow=%" PRIu64 "\n", uf, of);
     printf("checksum=%f\n", checksum);
 
+    if (c.trace_fp) fclose(c.trace_fp);
     ring_free(&c.in_ring);
     ring_free(&c.out_ring);
     free(c.A); free(c.B); free(c.C);
