@@ -79,10 +79,21 @@ def write_workload(build_dir: Path, workload: str, size: str) -> Path:
 
 def main():
     ap = argparse.ArgumentParser(prog="riscvbench")
-    ap.add_argument("--target", required=True, choices=["spike"])
-    ap.add_argument("--workload", required=True, choices=sorted(WORKLOADS))
+    ap.add_argument("--target", required=True, choices=["spike", "cpu"])
+    ap.add_argument("--workload", required=True, choices=sorted(WORKLOADS | {"matmul", "matmul_multicore"}))
     ap.add_argument("--workload_size", required=True, choices=sorted(SIZES))
     ap.add_argument("--time_us", required=True, type=float)
+
+    # Matmul/workload-specific args (for --target cpu)
+    ap.add_argument("--tile-elems", type=int, default=1024)
+    ap.add_argument("--tiles", type=int, default=50000)
+    ap.add_argument("--compute-threads", type=int, default=1, help="Number of parallel compute threads (for matmul_multicore)")
+    ap.add_argument("--in-depth", type=int, default=2)
+    ap.add_argument("--out-depth", type=int, default=2)
+    ap.add_argument("--reader-sleep-ns", type=int, default=0)
+    ap.add_argument("--writer-sleep-ns", type=int, default=0)
+    ap.add_argument("--underflow", action="store_true", help="Enable reader slowdown to cause underflow")
+    ap.add_argument("--overflow", action="store_true", help="Enable writer slowdown to cause overflow")
 
     # Spike plumbing
     ap.add_argument("--isa", default="RV64IMACV")
@@ -93,18 +104,12 @@ def main():
 
     args = ap.parse_args()
 
-    ensure_tool("spike")
-    ensure_tool("sit-engine")
-    ensure_tool("riscv64-unknown-elf-gcc")
+    # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
     repo = Path.cwd()
-    pk = Path(args.pk)
-    if not pk.exists():
-        raise SystemExit(f"pk not found: {pk}")
 
-    adapter_py = repo / "adapters" / "spike_adapter.py"
-    if not adapter_py.exists():
-        raise SystemExit(f"missing adapter: {adapter_py}")
+    adapter_spike = repo / "adapters" / "spike_adapter.py"
+    adapter_cpu = repo / "adapters" / "cpu_adapter.py"
 
     # Run directory contract
     run_dir = repo / "runs" / args.target / args.workload / args.workload_size
@@ -116,52 +121,153 @@ def main():
     traces_dir.mkdir(parents=True, exist_ok=True)
     inputs_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1) build workload
-    cpath = write_workload(build_dir, args.workload, args.workload_size)
-    binpath = build_dir / args.workload
-    sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
+    # Target-specific handling
+    if args.target == "spike":
+        ensure_tool("spike")
+        ensure_tool("riscv64-unknown-elf-gcc")
 
-    # 2) run spike -> trace
-    trace_path = traces_dir / "spike.trace"
-    if args.trace_lines_max > 0:
-        sh(
-            f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {args.trace_lines_max} > {trace_path}",
-            cwd=run_dir,
-        )
-    else:
-        sh(f"spike -l --isa={args.isa} {pk} {binpath} 2> {trace_path}", cwd=run_dir)
+        pk = Path(args.pk)
+        if not pk.exists():
+            raise SystemExit(f"pk not found: {pk}")
 
-    if not trace_path.exists() or trace_path.stat().st_size == 0:
-        raise SystemExit(f"Spike trace empty: {trace_path}")
+        adapter_py = adapter_spike
+        if not adapter_py.exists():
+            raise SystemExit(f"missing adapter: {adapter_py}")
 
-    # 3) platform adaptor: trace -> baseline CSVs
-    sh([
-        "python3", str(adapter_py),
-        "--spike-trace", str(trace_path),
-        "--out-dir", str(inputs_dir),
-        "--inst-us", str(args.inst_us),
-        "--resident-pc-ge", str(args.resident_pc_ge),
-    ], cwd=repo)
+        # 1) build workload
+        cpath = write_workload(build_dir, args.workload, args.workload_size)
+        binpath = build_dir / args.workload
+        sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
-    state_csv = inputs_dir / "state_intervals.csv"
-    resid_csv = inputs_dir / "residency_intervals.csv"
-    if not state_csv.exists():
-        raise SystemExit(f"Missing: {state_csv}")
-    if not resid_csv.exists():
-        raise SystemExit(f"Missing: {resid_csv}")
+        # 2) run spike -> trace
+        trace_path = traces_dir / "spike.trace"
+        if args.trace_lines_max > 0:
+            sh(
+                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {args.trace_lines_max} > {trace_path}",
+                cwd=run_dir,
+            )
+        else:
+            sh(f"spike -l --isa={args.isa} {pk} {binpath} 2> {trace_path}", cwd=run_dir)
 
-    # 4) sit-engine pipeline (your phase1 CLI)
-    sh(["sit-engine", "ingest",
+        if not trace_path.exists() or trace_path.stat().st_size == 0:
+            raise SystemExit(f"Spike trace empty: {trace_path}")
+
+        # 3) platform adaptor: spike trace -> baseline CSVs
+        sh([
+            "python3", str(adapter_py),
+            "--spike-trace", str(trace_path),
+            "--out-dir", str(inputs_dir),
+            "--inst-us", str(args.inst_us),
+            "--resident-pc-ge", str(args.resident_pc_ge),
+        ], cwd=repo)
+
+        state_csv = inputs_dir / "state_intervals.csv"
+        resid_csv = inputs_dir / "residency_intervals.csv"
+        if not state_csv.exists():
+            raise SystemExit(f"Missing: {state_csv}")
+        if not resid_csv.exists():
+            raise SystemExit(f"Missing: {resid_csv}")
+
+    elif args.target == "cpu":
+        # Local matmul/matmul_multicore workload
+        adapter_py = adapter_cpu
+        if not adapter_py.exists():
+            raise SystemExit(f"missing adapter: {adapter_py}")
+
+        # Determine matmul parameters
+        reader_sleep = args.reader_sleep_ns
+        writer_sleep = args.writer_sleep_ns
+        if args.underflow:
+            reader_sleep = max(reader_sleep, 2000)
+        if args.overflow:
+            writer_sleep = max(writer_sleep, 5000)
+
+        # 1) Select and build workload
+        if args.workload == "matmul_multicore":
+            src_name = "matmul_multicore.c"
+            bin_name = "matmul_multicore"
+        else:
+            src_name = "matmul.c"
+            bin_name = "matmul"
+        
+        workload_src = repo.parent / src_name
+        if not workload_src.exists():
+            raise SystemExit(f"{src_name} not found: {workload_src}")
+        
+        binpath = build_dir / bin_name
+        sh(["gcc", "-O2", "-g", "-pthread", str(workload_src), "-o", str(binpath)], cwd=repo)
+
+        # 2) run matmul/matmul_multicore -> raw trace
+        trace_path = traces_dir / f"{bin_name}.trace"
+        # pick sensible tile counts for workload sizes unless user provided explicit tiles
+        size_tiles = {"tiny": 10, "small": 100, "med": 1000, "large": 5000}
+        tiles_count = args.tiles if args.tiles != 50000 else size_tiles.get(args.workload_size, args.tiles)
+
+        # Scale ring depths for multicore variant
+        in_depth_final = args.in_depth
+        out_depth_final = args.out_depth
+        if args.workload == "matmul_multicore":
+            in_depth_final = max(args.in_depth, args.compute_threads)
+            out_depth_final = max(args.out_depth, args.compute_threads)
+
+        run_cmd = [str(binpath),
+               "--tile-elems", str(args.tile_elems),
+               "--tiles", str(tiles_count),
+               "--in-depth", str(in_depth_final),
+               "--out-depth", str(out_depth_final),
+               "--trace", str(trace_path)]
+        
+        # Add compute-threads for multicore variant
+        if args.workload == "matmul_multicore":
+            run_cmd += ["--compute-threads", str(args.compute_threads)]
+        
+        if reader_sleep:
+            run_cmd += ["--reader-sleep-ns", str(reader_sleep)]
+        if writer_sleep:
+            run_cmd += ["--writer-sleep-ns", str(writer_sleep)]
+
+        sh(run_cmd, cwd=repo)
+
+        if not trace_path.exists() or trace_path.stat().st_size == 0:
+            raise SystemExit(f"Matmul trace empty: {trace_path}")
+
+        # 3) ingest raw trace via Phase-1 CLI (format cpu) into run_dir
+        sh(["python3", str(Path(__file__).resolve().parent / "cli.py"),
+            "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir)
+            ], cwd=repo)
+
+        # move normalized outputs into inputs_dir expected layout
+        normalized_trace = run_dir / "trace.csv"
+        normalized_resid = run_dir / "residency.csv"
+        if not normalized_trace.exists():
+            raise SystemExit(f"Normalized trace not found: {normalized_trace}")
+        inputs_dir.mkdir(parents=True, exist_ok=True)
+        (inputs_dir / "state_intervals.csv").write_bytes(normalized_trace.read_bytes())
+        if normalized_resid.exists():
+            (inputs_dir / "residency_intervals.csv").write_bytes(normalized_resid.read_bytes())
+        else:
+            # create empty residency to satisfy downstream (engine will handle missing)
+            (inputs_dir / "residency_intervals.csv").write_text("start_us,end_us,core,resident\n")
+        # set state/resid paths for downstream
+        state_csv = inputs_dir / "state_intervals.csv"
+        resid_csv = inputs_dir / "residency_intervals.csv"
+
+    # 4) Use local Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
+    cli_py = Path(__file__).resolve().parent / "cli.py"
+
+    sh(["python3", str(cli_py), "ingest",
         "--trace", str(state_csv),
         "--format", "baseline",
         "--out", str(run_dir)], cwd=repo)
 
-    sh(["sit-engine", "classify",
-        "--in", str(run_dir),
-        "--window-us", str(args.time_us),
-        "--residency", str(resid_csv)], cwd=repo)
+    cls_cmd = ["python3", str(cli_py), "classify",
+               "--in", str(run_dir),
+               "--window-us", str(args.time_us)]
+    if resid_csv.exists():
+        cls_cmd += ["--residency", str(resid_csv)]
+    sh(cls_cmd, cwd=repo)
 
-    sh(["sit-engine", "export",
+    sh(["python3", str(cli_py), "export",
         "--in", str(run_dir),
         "--schema", "v1",
         "--format", "csv"], cwd=repo)

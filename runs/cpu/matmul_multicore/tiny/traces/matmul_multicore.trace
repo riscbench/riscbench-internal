@@ -1,0 +1,18 @@
+ts_us=40201891243 thread=1 event=THREAD_START 
+ts_us=40201891370 thread=1 event=COMPUTE_WORK tiles_done=1 uf=0 of=0
+ts_us=40201891379 thread=1 event=THREAD_START 
+ts_us=40201891421 thread=1 event=COMPUTE_WORK tiles_done=3 uf=0 of=0
+ts_us=40201891430 thread=1 event=COMPUTE_WORK tiles_done=4 uf=0 of=0
+ts_us=40201891435 thread=1 event=THREAD_START 
+ts_us=40201891468 thread=1 event=COMPUTE_WORK tiles_done=6 uf=0 of=0
+ts_us=40201891475 thread=1 event=THREAD_START 
+ts_us=40201891512 thread=1 event=COMPUTE_WORK tiles_done=8 uf=0 of=0
+ts_us=40201891535 thread=1 event=COMPUTE_WORK tiles_done=9 uf=0 of=0
+ts_us=40201891542 thread=1 event=COMPUTE_WORK tiles_done=10 uf=0 of=0
+ts_us=40201891545 thread=1 event=THREAD_END 
+ts_us=40201891562 thread=1 event=COMPUTE_WORK tiles_done=2 uf=0 of=0
+ts_us=40201891587 thread=1 event=THREAD_END 
+ts_us=40201891616 thread=1 event=COMPUTE_WORK tiles_done=5 uf=0 of=0
+ts_us=40201891640 thread=1 event=THREAD_END 
+ts_us=40201891653 thread=1 event=COMPUTE_WORK tiles_done=7 uf=0 of=0
+ts_us=40201891661 thread=1 event=THREAD_END 

@@ -1,0 +1,723 @@
+ts_us=41241747580 thread=1 event=THREAD_START 
+ts_us=41241747745 thread=1 event=COMPUTE_WORK tiles_done=1 uf=0 of=0
+ts_us=41241747769 thread=1 event=COMPUTE_WORK tiles_done=2 uf=0 of=0
+ts_us=41241747778 thread=1 event=COMPUTE_WORK tiles_done=3 uf=0 of=0
+ts_us=41241747785 thread=1 event=THREAD_START 
+ts_us=41241747843 thread=1 event=COMPUTE_WORK tiles_done=5 uf=0 of=0
+ts_us=41241747861 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=1
+ts_us=41241747865 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=2
+ts_us=41241747872 thread=1 event=COMPUTE_WORK tiles_done=6 uf=2 of=0
+ts_us=41241747875 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=3
+ts_us=41241747879 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=4
+ts_us=41241747891 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=5
+ts_us=41241747894 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=6
+ts_us=41241747898 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=7
+ts_us=41241747901 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=8
+ts_us=41241747912 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=9
+ts_us=41241747917 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=10
+ts_us=41241747932 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=11
+ts_us=41241747935 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=12
+ts_us=41241747942 thread=1 event=COMPUTE_WORK tiles_done=7 uf=12 of=0
+ts_us=41241747945 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=13
+ts_us=41241747956 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=14
+ts_us=41241747959 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=15
+ts_us=41241747963 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=16
+ts_us=41241747966 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=17
+ts_us=41241747987 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=18
+ts_us=41241747991 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=19
+ts_us=41241747995 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=20
+ts_us=41241748076 thread=1 event=COMPUTE_WORK tiles_done=8 uf=20 of=0
+ts_us=41241748080 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=21
+ts_us=41241748084 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=22
+ts_us=41241748091 thread=1 event=COMPUTE_WORK tiles_done=4 uf=0 of=0
+ts_us=41241748126 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=23
+ts_us=41241748133 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=24
+ts_us=41241748137 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=25
+ts_us=41241748141 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=26
+ts_us=41241748147 thread=1 event=THREAD_START 
+ts_us=41241748174 thread=1 event=THREAD_START 
+ts_us=41241748199 thread=1 event=COMPUTE_WORK tiles_done=9 uf=22 of=0
+ts_us=41241748209 thread=1 event=COMPUTE_WORK tiles_done=10 uf=26 of=0
+ts_us=41241748219 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=27
+ts_us=41241748227 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=29
+ts_us=41241748237 thread=1 event=COMPUTE_WORK tiles_done=11 uf=28 of=0
+ts_us=41241748245 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=31
+ts_us=41241748256 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=30
+ts_us=41241748264 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=28
+ts_us=41241748274 thread=1 event=COMPUTE_WORK tiles_done=12 uf=33 of=0
+ts_us=41241748284 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=33
+ts_us=41241748300 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=36
+ts_us=41241748304 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=34
+ts_us=41241748315 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=38
+ts_us=41241748317 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=39
+ts_us=41241748320 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=40
+ts_us=41241748322 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=41
+ts_us=41241748327 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=35
+ts_us=41241748339 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=42
+ts_us=41241748346 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=43
+ts_us=41241748349 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=32
+ts_us=41241748366 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=45
+ts_us=41241748369 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=46
+ts_us=41241748373 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=47
+ts_us=41241748426 thread=1 event=COMPUTE_WORK tiles_done=13 uf=41 of=0
+ts_us=41241748435 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=48
+ts_us=41241748437 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=49
+ts_us=41241748440 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=50
+ts_us=41241748442 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=51
+ts_us=41241748454 thread=1 event=COMPUTE_WORK tiles_done=15 uf=51 of=0
+ts_us=41241748456 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=52
+ts_us=41241748458 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=53
+ts_us=41241748466 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=54
+ts_us=41241748468 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=55
+ts_us=41241748471 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=56
+ts_us=41241748477 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=57
+ts_us=41241748479 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=58
+ts_us=41241748481 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=59
+ts_us=41241748483 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=60
+ts_us=41241748492 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=61
+ts_us=41241748494 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=62
+ts_us=41241748497 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=63
+ts_us=41241748499 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=64
+ts_us=41241748502 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=37
+ts_us=41241748525 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=65
+ts_us=41241748530 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=66
+ts_us=41241748534 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=44
+ts_us=41241748544 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=67
+ts_us=41241748552 thread=1 event=COMPUTE_WORK tiles_done=14 uf=47 of=0
+ts_us=41241748560 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=69
+ts_us=41241748571 thread=1 event=COMPUTE_WORK tiles_done=17 uf=69 of=0
+ts_us=41241748581 thread=1 event=COMPUTE_WORK tiles_done=16 uf=64 of=0
+ts_us=41241748587 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=71
+ts_us=41241748592 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=72
+ts_us=41241748595 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=68
+ts_us=41241748601 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=73
+ts_us=41241748606 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=75
+ts_us=41241748616 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=76
+ts_us=41241748622 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=70
+ts_us=41241748630 thread=1 event=COMPUTE_WORK tiles_done=18 uf=77 of=0
+ts_us=41241748640 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=78
+ts_us=41241748643 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=74
+ts_us=41241748647 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=77
+ts_us=41241748653 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=81
+ts_us=41241748657 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=82
+ts_us=41241748660 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=80
+ts_us=41241748668 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=84
+ts_us=41241748673 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=86
+ts_us=41241748676 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=83
+ts_us=41241748684 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=87
+ts_us=41241748688 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=85
+ts_us=41241748693 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=88
+ts_us=41241748702 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=89
+ts_us=41241748708 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=79
+ts_us=41241748720 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=90
+ts_us=41241748727 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=92
+ts_us=41241748737 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=91
+ts_us=41241748746 thread=1 event=COMPUTE_WORK tiles_done=19 uf=87 of=0
+ts_us=41241748750 thread=1 event=COMPUTE_WORK tiles_done=20 uf=93 of=0
+ts_us=41241748767 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=96
+ts_us=41241748771 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=97
+ts_us=41241748786 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=98
+ts_us=41241748827 thread=1 event=COMPUTE_WORK tiles_done=21 uf=98 of=0
+ts_us=41241748840 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=99
+ts_us=41241748844 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=94
+ts_us=41241748856 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=101
+ts_us=41241748858 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=102
+ts_us=41241748864 thread=1 event=COMPUTE_WORK tiles_done=22 uf=102 of=0
+ts_us=41241748866 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=103
+ts_us=41241748869 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=104
+ts_us=41241748879 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=105
+ts_us=41241748882 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=106
+ts_us=41241748893 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=107
+ts_us=41241748895 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=108
+ts_us=41241748897 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=109
+ts_us=41241748900 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=110
+ts_us=41241748903 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=100
+ts_us=41241748927 thread=1 event=COMPUTE_WORK tiles_done=23 uf=111 of=0
+ts_us=41241748932 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=112
+ts_us=41241748944 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=113
+ts_us=41241748948 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=114
+ts_us=41241748961 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=115
+ts_us=41241748965 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=116
+ts_us=41241748997 thread=1 event=COMPUTE_WORK tiles_done=24 uf=116 of=0
+ts_us=41241749010 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=117
+ts_us=41241749015 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=118
+ts_us=41241749027 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=119
+ts_us=41241749032 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=120
+ts_us=41241749044 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=121
+ts_us=41241749053 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=93
+ts_us=41241749074 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=122
+ts_us=41241749077 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=111
+ts_us=41241749084 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=123
+ts_us=41241749088 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=95
+ts_us=41241749099 thread=1 event=COMPUTE_WORK tiles_done=25 uf=121 of=0
+ts_us=41241749110 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=124
+ts_us=41241749121 thread=1 event=COMPUTE_WORK tiles_done=26 uf=126 of=0
+ts_us=41241749129 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=126
+ts_us=41241749137 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=128
+ts_us=41241749149 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=127
+ts_us=41241749157 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=125
+ts_us=41241749162 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=131
+ts_us=41241749167 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=129
+ts_us=41241749177 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=130
+ts_us=41241749194 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=134
+ts_us=41241749199 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=135
+ts_us=41241749203 thread=1 event=COMPUTE_WORK tiles_done=27 uf=132 of=0
+ts_us=41241749218 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=137
+ts_us=41241749222 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=138
+ts_us=41241749234 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=132
+ts_us=41241749244 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=139
+ts_us=41241749247 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=140
+ts_us=41241749249 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=141
+ts_us=41241749250 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=142
+ts_us=41241749253 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=136
+ts_us=41241749263 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=133
+ts_us=41241749270 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=144
+ts_us=41241749277 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=145
+ts_us=41241749297 thread=1 event=COMPUTE_WORK tiles_done=29 uf=146 of=0
+ts_us=41241749301 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=146
+ts_us=41241749333 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=148
+ts_us=41241749337 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=143
+ts_us=41241749356 thread=1 event=COMPUTE_WORK tiles_done=30 uf=149 of=0
+ts_us=41241749364 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=150
+ts_us=41241749367 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=151
+ts_us=41241749370 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=152
+ts_us=41241749382 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=153
+ts_us=41241749385 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=154
+ts_us=41241749388 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=155
+ts_us=41241749391 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=149
+ts_us=41241749401 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=147
+ts_us=41241749416 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=157
+ts_us=41241749420 thread=1 event=COMPUTE_WORK tiles_done=28 uf=138 of=0
+ts_us=41241749433 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=159
+ts_us=41241749437 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=160
+ts_us=41241749446 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=161
+ts_us=41241749450 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=162
+ts_us=41241749462 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=163
+ts_us=41241749466 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=164
+ts_us=41241749473 thread=1 event=COMPUTE_WORK tiles_done=31 uf=158 of=0
+ts_us=41241749493 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=165
+ts_us=41241749499 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=166
+ts_us=41241749512 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=167
+ts_us=41241749516 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=168
+ts_us=41241749535 thread=1 event=COMPUTE_WORK tiles_done=33 uf=168 of=0
+ts_us=41241749547 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=169
+ts_us=41241749552 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=170
+ts_us=41241749556 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=156
+ts_us=41241749564 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=171
+ts_us=41241749572 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=172
+ts_us=41241749579 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=173
+ts_us=41241749589 thread=1 event=COMPUTE_WORK tiles_done=32 uf=164 of=0
+ts_us=41241749601 thread=1 event=COMPUTE_WORK tiles_done=34 uf=174 of=0
+ts_us=41241749610 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=158
+ts_us=41241749618 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=176
+ts_us=41241749630 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=175
+ts_us=41241749641 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=174
+ts_us=41241749650 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=177
+ts_us=41241749659 thread=1 event=COMPUTE_WORK tiles_done=35 uf=179 of=0
+ts_us=41241749668 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=179
+ts_us=41241749675 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=180
+ts_us=41241749682 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=182
+ts_us=41241749687 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=183
+ts_us=41241749697 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=185
+ts_us=41241749701 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=186
+ts_us=41241749704 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=184
+ts_us=41241749715 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=187
+ts_us=41241749718 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=181
+ts_us=41241749724 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=188
+ts_us=41241749733 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=189
+ts_us=41241749737 thread=1 event=COMPUTE_WORK tiles_done=36 uf=187 of=0
+ts_us=41241749743 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=191
+ts_us=41241749748 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=192
+ts_us=41241749752 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=193
+ts_us=41241749759 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=178
+ts_us=41241749784 thread=1 event=COMPUTE_WORK tiles_done=37 uf=195 of=0
+ts_us=41241749797 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=196
+ts_us=41241749823 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=197
+ts_us=41241749829 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=194
+ts_us=41241749845 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=198
+ts_us=41241749848 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=199
+ts_us=41241749851 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=200
+ts_us=41241749860 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=201
+ts_us=41241749863 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=202
+ts_us=41241749876 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=203
+ts_us=41241749879 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=204
+ts_us=41241749882 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=205
+ts_us=41241749896 thread=1 event=COMPUTE_WORK tiles_done=39 uf=205 of=0
+ts_us=41241749900 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=190
+ts_us=41241749912 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=207
+ts_us=41241749916 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=208
+ts_us=41241749928 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=209
+ts_us=41241749931 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=210
+ts_us=41241749935 thread=1 event=COMPUTE_WORK tiles_done=38 uf=197 of=0
+ts_us=41241749959 thread=1 event=COMPUTE_WORK tiles_done=40 uf=211 of=0
+ts_us=41241749981 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=212
+ts_us=41241749987 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=195
+ts_us=41241749996 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=213
+ts_us=41241750005 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=211
+ts_us=41241750019 thread=1 event=COMPUTE_WORK tiles_done=41 uf=214 of=0
+ts_us=41241750035 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=216
+ts_us=41241750040 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=217
+ts_us=41241750053 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=218
+ts_us=41241750058 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=219
+ts_us=41241750062 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=215
+ts_us=41241750079 thread=1 event=COMPUTE_WORK tiles_done=42 uf=220 of=0
+ts_us=41241750088 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=221
+ts_us=41241750092 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=222
+ts_us=41241750104 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=223
+ts_us=41241750107 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=224
+ts_us=41241750111 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=220
+ts_us=41241750133 thread=1 event=COMPUTE_WORK tiles_done=43 uf=225 of=0
+ts_us=41241750146 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=226
+ts_us=41241750150 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=227
+ts_us=41241750163 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=228
+ts_us=41241750167 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=229
+ts_us=41241750171 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=230
+ts_us=41241750175 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=225
+ts_us=41241750192 thread=1 event=COMPUTE_WORK tiles_done=44 uf=231 of=0
+ts_us=41241750202 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=232
+ts_us=41241750205 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=233
+ts_us=41241750219 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=234
+ts_us=41241750222 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=235
+ts_us=41241750226 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=231
+ts_us=41241750244 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=237
+ts_us=41241750251 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=206
+ts_us=41241750269 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=238
+ts_us=41241750273 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=239
+ts_us=41241750283 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=240
+ts_us=41241750286 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=241
+ts_us=41241750289 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=242
+ts_us=41241750300 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=243
+ts_us=41241750303 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=244
+ts_us=41241750307 thread=1 event=COMPUTE_WORK tiles_done=45 uf=237 of=0
+ts_us=41241750324 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=245
+ts_us=41241750348 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=246
+ts_us=41241750352 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=247
+ts_us=41241750356 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=236
+ts_us=41241750374 thread=1 event=COMPUTE_WORK tiles_done=46 uf=244 of=0
+ts_us=41241750385 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=249
+ts_us=41241750389 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=250
+ts_us=41241750400 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=251
+ts_us=41241750403 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=252
+ts_us=41241750406 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=253
+ts_us=41241750416 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=254
+ts_us=41241750419 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=255
+ts_us=41241750423 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=256
+ts_us=41241750435 thread=1 event=COMPUTE_WORK tiles_done=48 uf=256 of=0
+ts_us=41241750446 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=257
+ts_us=41241750450 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=258
+ts_us=41241750453 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=259
+ts_us=41241750462 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=260
+ts_us=41241750465 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=261
+ts_us=41241750468 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=262
+ts_us=41241750476 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=263
+ts_us=41241750480 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=264
+ts_us=41241750496 thread=1 event=COMPUTE_WORK tiles_done=49 uf=264 of=0
+ts_us=41241750501 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=248
+ts_us=41241750513 thread=1 event=COMPUTE_WORK tiles_done=47 uf=248 of=0
+ts_us=41241750522 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=266
+ts_us=41241750531 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=265
+ts_us=41241750542 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=268
+ts_us=41241750549 thread=1 event=COMPUTE_WORK tiles_done=50 uf=268 of=0
+ts_us=41241750562 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=270
+ts_us=41241750566 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=271
+ts_us=41241750575 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=272
+ts_us=41241750579 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=273
+ts_us=41241750582 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=274
+ts_us=41241750594 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=275
+ts_us=41241750598 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=276
+ts_us=41241750601 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=269
+ts_us=41241750622 thread=1 event=COMPUTE_WORK tiles_done=51 uf=277 of=0
+ts_us=41241750628 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=214
+ts_us=41241750643 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=279
+ts_us=41241750657 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=280
+ts_us=41241750660 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=281
+ts_us=41241750675 thread=1 event=COMPUTE_WORK tiles_done=52 uf=281 of=0
+ts_us=41241750684 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=282
+ts_us=41241750688 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=277
+ts_us=41241750696 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=283
+ts_us=41241750702 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=285
+ts_us=41241750705 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=267
+ts_us=41241750715 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=286
+ts_us=41241750718 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=287
+ts_us=41241750720 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=288
+ts_us=41241750725 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=284
+ts_us=41241750733 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=289
+ts_us=41241750738 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=290
+ts_us=41241750745 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=278
+ts_us=41241750763 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=293
+ts_us=41241750768 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=294
+ts_us=41241750772 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=295
+ts_us=41241750799 thread=1 event=COMPUTE_WORK tiles_done=54 uf=295 of=0
+ts_us=41241750812 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=296
+ts_us=41241750817 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=291
+ts_us=41241750828 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=298
+ts_us=41241750830 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=299
+ts_us=41241750832 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=300
+ts_us=41241750835 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=301
+ts_us=41241750842 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=302
+ts_us=41241750844 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=303
+ts_us=41241750846 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=304
+ts_us=41241750859 thread=1 event=COMPUTE_WORK tiles_done=55 uf=304 of=0
+ts_us=41241750861 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=305
+ts_us=41241750864 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=297
+ts_us=41241750875 thread=1 event=COMPUTE_WORK tiles_done=53 uf=289 of=0
+ts_us=41241750889 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=292
+ts_us=41241750904 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=309
+ts_us=41241750909 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=310
+ts_us=41241750922 thread=1 event=COMPUTE_WORK tiles_done=56 uf=310 of=0
+ts_us=41241750926 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=308
+ts_us=41241750932 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=311
+ts_us=41241750939 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=312
+ts_us=41241750946 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=314
+ts_us=41241750953 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=313
+ts_us=41241750958 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=306
+ts_us=41241750966 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=316
+ts_us=41241750984 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=318
+ts_us=41241750989 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=319
+ts_us=41241750991 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=317
+ts_us=41241750996 thread=1 event=COMPUTE_WORK tiles_done=57 uf=319 of=0
+ts_us=41241751003 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=320
+ts_us=41241751006 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=321
+ts_us=41241751008 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=323
+ts_us=41241751014 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=307
+ts_us=41241751034 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=325
+ts_us=41241751038 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=326
+ts_us=41241751050 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=327
+ts_us=41241751059 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=324
+ts_us=41241751074 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=328
+ts_us=41241751083 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=329
+ts_us=41241751087 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=330
+ts_us=41241751100 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=331
+ts_us=41241751103 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=332
+ts_us=41241751118 thread=1 event=COMPUTE_WORK tiles_done=59 uf=332 of=0
+ts_us=41241751129 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=333
+ts_us=41241751133 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=334
+ts_us=41241751145 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=335
+ts_us=41241751149 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=336
+ts_us=41241751152 thread=1 event=COMPUTE_WORK tiles_done=58 uf=327 of=0
+ts_us=41241751161 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=323
+ts_us=41241751168 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=338
+ts_us=41241751175 thread=1 event=COMPUTE_WORK tiles_done=60 uf=338 of=0
+ts_us=41241751183 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=340
+ts_us=41241751185 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=341
+ts_us=41241751187 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=342
+ts_us=41241751189 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=315
+ts_us=41241751205 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=344
+ts_us=41241751209 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=345
+ts_us=41241751213 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=339
+ts_us=41241751248 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=343
+ts_us=41241751259 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=347
+ts_us=41241751261 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=348
+ts_us=41241751263 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=349
+ts_us=41241751270 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=350
+ts_us=41241751272 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=351
+ts_us=41241751275 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=352
+ts_us=41241751277 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=353
+ts_us=41241751286 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=354
+ts_us=41241751288 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=355
+ts_us=41241751294 thread=1 event=COMPUTE_WORK tiles_done=61 uf=346 of=0
+ts_us=41241751312 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=356
+ts_us=41241751317 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=357
+ts_us=41241751329 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=358
+ts_us=41241751333 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=359
+ts_us=41241751337 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=360
+ts_us=41241751353 thread=1 event=COMPUTE_WORK tiles_done=62 uf=355 of=0
+ts_us=41241751364 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=361
+ts_us=41241751367 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=362
+ts_us=41241751369 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=363
+ts_us=41241751376 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=364
+ts_us=41241751378 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=365
+ts_us=41241751381 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=366
+ts_us=41241751383 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=367
+ts_us=41241751393 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=368
+ts_us=41241751395 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=369
+ts_us=41241751397 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=370
+ts_us=41241751400 thread=1 event=COMPUTE_WORK tiles_done=63 uf=360 of=0
+ts_us=41241751423 thread=1 event=COMPUTE_WORK tiles_done=64 uf=371 of=0
+ts_us=41241751435 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=372
+ts_us=41241751439 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=373
+ts_us=41241751444 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=374
+ts_us=41241751456 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=375
+ts_us=41241751461 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=376
+ts_us=41241751480 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=346
+ts_us=41241751496 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=377
+ts_us=41241751500 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=378
+ts_us=41241751504 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=337
+ts_us=41241751510 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=379
+ts_us=41241751519 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=380
+ts_us=41241751526 thread=1 event=COMPUTE_WORK tiles_done=65 uf=376 of=0
+ts_us=41241751535 thread=1 event=COMPUTE_WORK tiles_done=66 uf=381 of=0
+ts_us=41241751543 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=382
+ts_us=41241751552 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=381
+ts_us=41241751559 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=384
+ts_us=41241751567 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=385
+ts_us=41241751575 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=386
+ts_us=41241751584 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=383
+ts_us=41241751597 thread=1 event=COMPUTE_WORK tiles_done=67 uf=387 of=0
+ts_us=41241751614 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=389
+ts_us=41241751618 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=390
+ts_us=41241751622 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=391
+ts_us=41241751635 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=392
+ts_us=41241751639 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=393
+ts_us=41241751657 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=371
+ts_us=41241751668 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=394
+ts_us=41241751670 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=395
+ts_us=41241751690 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=396
+ts_us=41241751692 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=397
+ts_us=41241751695 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=398
+ts_us=41241751697 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=387
+ts_us=41241751703 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=399
+ts_us=41241751707 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=400
+ts_us=41241751710 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=401
+ts_us=41241751716 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=388
+ts_us=41241751724 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=402
+ts_us=41241751730 thread=1 event=COMPUTE_WORK tiles_done=69 uf=401 of=0
+ts_us=41241751734 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=404
+ts_us=41241751739 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=405
+ts_us=41241751749 thread=1 event=COMPUTE_WORK tiles_done=68 uf=393 of=0
+ts_us=41241751773 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=406
+ts_us=41241751784 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=408
+ts_us=41241751786 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=409
+ts_us=41241751789 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=410
+ts_us=41241751795 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=411
+ts_us=41241751797 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=412
+ts_us=41241751799 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=413
+ts_us=41241751802 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=414
+ts_us=41241751804 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=415
+ts_us=41241751806 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=403
+ts_us=41241751813 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=416
+ts_us=41241751816 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=417
+ts_us=41241751821 thread=1 event=COMPUTE_WORK tiles_done=70 uf=407 of=0
+ts_us=41241751829 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=418
+ts_us=41241751842 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=419
+ts_us=41241751846 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=407
+ts_us=41241751855 thread=1 event=COMPUTE_WORK tiles_done=71 uf=420 of=0
+ts_us=41241751864 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=420
+ts_us=41241751871 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=423
+ts_us=41241751880 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=422
+ts_us=41241751891 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=421
+ts_us=41241751895 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=425
+ts_us=41241751900 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=426
+ts_us=41241751905 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=427
+ts_us=41241751911 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=429
+ts_us=41241751913 thread=1 event=COMPUTE_WORK tiles_done=72 uf=424 of=0
+ts_us=41241751925 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=430
+ts_us=41241751930 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=431
+ts_us=41241751934 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=424
+ts_us=41241751939 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=433
+ts_us=41241751943 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=434
+ts_us=41241751946 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=432
+ts_us=41241751956 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=435
+ts_us=41241751963 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=436
+ts_us=41241751984 thread=1 event=COMPUTE_WORK tiles_done=73 uf=435 of=0
+ts_us=41241751994 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=438
+ts_us=41241752037 thread=1 event=COMPUTE_WORK tiles_done=74 uf=439 of=0
+ts_us=41241752052 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=440
+ts_us=41241752056 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=441
+ts_us=41241752060 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=442
+ts_us=41241752073 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=443
+ts_us=41241752078 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=444
+ts_us=41241752082 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=428
+ts_us=41241752094 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=439
+ts_us=41241752102 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=445
+ts_us=41241752128 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=447
+ts_us=41241752132 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=448
+ts_us=41241752141 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=449
+ts_us=41241752144 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=450
+ts_us=41241752148 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=437
+ts_us=41241752169 thread=1 event=COMPUTE_WORK tiles_done=76 uf=451 of=0
+ts_us=41241752173 thread=1 event=COMPUTE_WORK tiles_done=75 uf=444 of=0
+ts_us=41241752183 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=446
+ts_us=41241752192 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=453
+ts_us=41241752207 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=452
+ts_us=41241752215 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=454
+ts_us=41241752225 thread=1 event=COMPUTE_WORK tiles_done=77 uf=455 of=0
+ts_us=41241752232 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=455
+ts_us=41241752250 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=458
+ts_us=41241752254 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=459
+ts_us=41241752267 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=460
+ts_us=41241752272 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=461
+ts_us=41241752276 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=457
+ts_us=41241752284 thread=1 event=COMPUTE_WORK tiles_done=78 uf=461 of=0
+ts_us=41241752292 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=456
+ts_us=41241752299 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=463
+ts_us=41241752307 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=451
+ts_us=41241752316 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=465
+ts_us=41241752331 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=462
+ts_us=41241752348 thread=1 event=COMPUTE_WORK tiles_done=79 uf=467 of=0
+ts_us=41241752352 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=466
+ts_us=41241752360 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=468
+ts_us=41241752365 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=464
+ts_us=41241752368 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=470
+ts_us=41241752373 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=469
+ts_us=41241752380 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=467
+ts_us=41241752390 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=471
+ts_us=41241752398 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=474
+ts_us=41241752407 thread=1 event=COMPUTE_WORK tiles_done=80 uf=474 of=0
+ts_us=41241752416 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=475
+ts_us=41241752424 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=473
+ts_us=41241752432 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=477
+ts_us=41241752439 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=472
+ts_us=41241752448 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=479
+ts_us=41241752454 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=478
+ts_us=41241752463 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=480
+ts_us=41241752481 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=482
+ts_us=41241752493 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=483
+ts_us=41241752498 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=484
+ts_us=41241752511 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=485
+ts_us=41241752515 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=486
+ts_us=41241752520 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=476
+ts_us=41241752536 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=481
+ts_us=41241752544 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=488
+ts_us=41241752547 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=489
+ts_us=41241752549 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=490
+ts_us=41241752558 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=491
+ts_us=41241752560 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=492
+ts_us=41241752562 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=493
+ts_us=41241752565 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=494
+ts_us=41241752572 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=495
+ts_us=41241752574 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=496
+ts_us=41241752576 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=497
+ts_us=41241752593 thread=1 event=COMPUTE_WORK tiles_done=83 uf=497 of=0
+ts_us=41241752602 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=498
+ts_us=41241752604 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=499
+ts_us=41241752606 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=500
+ts_us=41241752608 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=501
+ts_us=41241752610 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=502
+ts_us=41241752614 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=487
+ts_us=41241752638 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=504
+ts_us=41241752643 thread=1 event=COMPUTE_WORK tiles_done=81 uf=481 of=0
+ts_us=41241752662 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=503
+ts_us=41241752670 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=506
+ts_us=41241752673 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=507
+ts_us=41241752675 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=508
+ts_us=41241752677 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=509
+ts_us=41241752686 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=510
+ts_us=41241752688 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=511
+ts_us=41241752690 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=512
+ts_us=41241752692 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=513
+ts_us=41241752694 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=514
+ts_us=41241752696 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=505
+ts_us=41241752722 thread=1 event=COMPUTE_WORK tiles_done=85 uf=515 of=0
+ts_us=41241752736 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=516
+ts_us=41241752741 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=517
+ts_us=41241752745 thread=1 event=COMPUTE_WORK tiles_done=82 uf=487 of=0
+ts_us=41241752760 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=519
+ts_us=41241752774 thread=1 event=COMPUTE_WORK tiles_done=86 uf=519 of=0
+ts_us=41241752787 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=520
+ts_us=41241752791 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=521
+ts_us=41241752794 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=518
+ts_us=41241752813 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=523
+ts_us=41241752816 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=515
+ts_us=41241752828 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=525
+ts_us=41241752830 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=526
+ts_us=41241752832 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=527
+ts_us=41241752842 thread=1 event=COMPUTE_WORK tiles_done=87 uf=527 of=0
+ts_us=41241752844 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=528
+ts_us=41241752846 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=529
+ts_us=41241752854 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=530
+ts_us=41241752856 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=531
+ts_us=41241752859 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=532
+ts_us=41241752861 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=533
+ts_us=41241752864 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=524
+ts_us=41241752873 thread=1 event=COMPUTE_WORK tiles_done=84 uf=505 of=0
+ts_us=41241752891 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=522
+ts_us=41241752908 thread=1 event=COMPUTE_WORK tiles_done=88 uf=536 of=0
+ts_us=41241752918 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=537
+ts_us=41241752922 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=538
+ts_us=41241752931 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=539
+ts_us=41241752944 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=540
+ts_us=41241752947 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=541
+ts_us=41241752951 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=535
+ts_us=41241752986 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=536
+ts_us=41241753001 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=543
+ts_us=41241753004 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=534
+ts_us=41241753010 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=544
+ts_us=41241753016 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=545
+ts_us=41241753023 thread=1 event=COMPUTE_WORK tiles_done=89 uf=542 of=0
+ts_us=41241753060 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=547
+ts_us=41241753065 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=548
+ts_us=41241753069 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=542
+ts_us=41241753087 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=546
+ts_us=41241753095 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=550
+ts_us=41241753098 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=551
+ts_us=41241753100 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=552
+ts_us=41241753113 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=553
+ts_us=41241753117 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=554
+ts_us=41241753128 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=555
+ts_us=41241753132 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=556
+ts_us=41241753136 thread=1 event=COMPUTE_WORK tiles_done=91 uf=549 of=0
+ts_us=41241753141 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=557
+ts_us=41241753146 thread=1 event=COMPUTE_WORK tiles_done=90 uf=546 of=0
+ts_us=41241753156 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=549
+ts_us=41241753176 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=560
+ts_us=41241753180 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=561
+ts_us=41241753185 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=558
+ts_us=41241753193 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=562
+ts_us=41241753201 thread=1 event=COMPUTE_WORK tiles_done=92 uf=557 of=0
+ts_us=41241753211 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=564
+ts_us=41241753214 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=565
+ts_us=41241753216 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=559
+ts_us=41241753227 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=567
+ts_us=41241753240 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=568
+ts_us=41241753244 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=569
+ts_us=41241753248 thread=1 event=COMPUTE_WORK tiles_done=93 uf=566 of=0
+ts_us=41241753264 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=563
+ts_us=41241753281 thread=1 event=COMPUTE_WORK tiles_done=94 uf=571 of=0
+ts_us=41241753293 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=572
+ts_us=41241753297 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=573
+ts_us=41241753302 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=571
+ts_us=41241753309 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=566
+ts_us=41241753319 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=575
+ts_us=41241753326 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=570
+ts_us=41241753338 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=576
+ts_us=41241753345 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=578
+ts_us=41241753349 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=577
+ts_us=41241753354 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=579
+ts_us=41241753357 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=580
+ts_us=41241753359 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=581
+ts_us=41241753364 thread=1 event=COMPUTE_WORK tiles_done=95 uf=577 of=0
+ts_us=41241753380 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=584
+ts_us=41241753384 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=583
+ts_us=41241753398 thread=1 event=COMPUTE_WORK tiles_done=96 uf=585 of=0
+ts_us=41241753400 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=586
+ts_us=41241753406 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=587
+ts_us=41241753409 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=588
+ts_us=41241753411 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=589
+ts_us=41241753419 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=590
+ts_us=41241753422 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=591
+ts_us=41241753424 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=592
+ts_us=41241753426 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=593
+ts_us=41241753429 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=585
+ts_us=41241753441 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=574
+ts_us=41241753452 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=582
+ts_us=41241753459 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=594
+ts_us=41241753465 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=596
+ts_us=41241753475 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=595
+ts_us=41241753485 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=597
+ts_us=41241753495 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=599
+ts_us=41241753503 thread=1 event=COMPUTE_WORK tiles_done=97 uf=595 of=0
+ts_us=41241753513 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=601
+ts_us=41241753522 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=598
+ts_us=41241753531 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=602
+ts_us=41241753539 thread=1 event=COMPUTE_WORK tiles_done=98 uf=601 of=0
+ts_us=41241753548 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=604
+ts_us=41241753557 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=600
+ts_us=41241753567 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=603
+ts_us=41241753573 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=607
+ts_us=41241753577 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=608
+ts_us=41241753585 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=606
+ts_us=41241753601 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=610
+ts_us=41241753606 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=611
+ts_us=41241753610 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=605
+ts_us=41241753624 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=613
+ts_us=41241753633 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=614
+ts_us=41241753637 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=615
+ts_us=41241753653 thread=1 event=COMPUTE_WORK tiles_done=100 uf=615 of=0
+ts_us=41241753657 thread=1 event=THREAD_END 
+ts_us=41241753669 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=609
+ts_us=41241753678 thread=1 event=THREAD_END 
+ts_us=41241753683 thread=1 event=COMPUTE_WORK tiles_done=99 uf=609 of=0
+ts_us=41241753697 thread=1 event=THREAD_END 
+ts_us=41241753708 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=612
+ts_us=41241753731 thread=1 event=THREAD_END 

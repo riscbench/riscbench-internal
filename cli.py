@@ -24,11 +24,13 @@ def ensure_dir(p: Path):
 def cmd_ingest(args) -> int:
     """
     Phase-1 ingest (baseline adapter):
-      - Parse normalized CSV trace (baseline format)
+      - CPU adapter parses raw trace format
+      - Baseline adapter validates via ingest_api
+      - Save normalized trace to CSV
       - Record run manifest
-      - Print CLI stats in the desired style
+      - Print CLI stats
     """
-    import pandas as pd
+    from adapters.baseline_adapter import BaselineAdapter
 
     outdir = Path(args.out)
     ensure_dir(outdir)
@@ -38,12 +40,24 @@ def cmd_ingest(args) -> int:
         print(f"trace not found: {trace_path}")
         return 2
 
-    # Baseline ingest parses CSV (Spike/gem5 adapters come later)
-    df = pd.read_csv(trace_path)
+    # Determine trace format
+    trace_format = "raw" if args.format == "cpu" else "csv"
+    
+    # Baseline adapter handles both CSV and raw (via CPU adapter)
+    try:
+        adapter = BaselineAdapter(str(trace_path), trace_format=trace_format)
+        df = adapter.load_state_intervals()
+    except Exception as e:
+        print(f"adapter error: {e}")
+        return 2
 
     if "core" not in df.columns:
         print("trace missing required column: core")
         return 2
+
+    # Save normalized trace as CSV for engine
+    normalized_trace = outdir / "trace.csv"
+    df.to_csv(normalized_trace, index=False)
 
     cores = sorted(df["core"].unique().tolist())
     n_events = int(len(df))
@@ -58,11 +72,33 @@ def cmd_ingest(args) -> int:
     core_str = "core" if n_cores == 1 else "cores"
 
     manifest = {
-        "trace": str(trace_path),
+        "trace": str(normalized_trace),
+        "original_trace": str(trace_path),
         "format": args.format,
         "events": n_events,
         "cores": cores,
     }
+
+    # If CPU/raw format, try to derive and save residency intervals
+    if trace_format == "raw":
+        try:
+            resid_df = adapter.load_residency_intervals()
+            if resid_df is not None and len(resid_df) > 0:
+                resid_path = outdir / "residency.csv"
+                resid_df.to_csv(resid_path, index=False)
+                manifest["residency"] = str(resid_path)
+        except Exception:
+            # Non-fatal: continue without residency
+            pass
+
+    # If baseline CSV ingest, check for sibling residency files to include
+    if trace_format == "csv":
+        trace_dir = trace_path.parent
+        candidates = [trace_dir / "residency.csv", trace_dir / "residency_intervals.csv", trace_dir / "inputs" / "residency_intervals.csv"]
+        for c in candidates:
+            if c.exists():
+                manifest["residency"] = str(c)
+                break
     (outdir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
 
     blank()
@@ -88,14 +124,7 @@ def cmd_classify(args) -> int:
 
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     trace = manifest["trace"]
-
-    # Resolve engine path robustly (works after pip install -e .)
-    engine_py = (Path(__file__).resolve().parent / "sit_engine_phase1.py")
-    if not engine_py.exists():
-        print("engine file not found:", engine_py)
-        return 2
-
-    # Resolve residency path if provided
+    # Use residency from manifest if user didn't pass one
     residency_path = None
     if args.residency is not None:
         rp = Path(args.residency).resolve()
@@ -103,6 +132,18 @@ def cmd_classify(args) -> int:
             print("residency file not found:", rp)
             return 2
         residency_path = str(rp)
+    else:
+        # fallback to manifest entry if present
+        if "residency" in manifest:
+            residency_path = manifest.get("residency")
+
+    # Resolve engine path robustly (works after pip install -e .)
+    engine_py = (Path(__file__).resolve().parent / "sit_engine_phase1.py")
+    if not engine_py.exists():
+        print("engine file not found:", engine_py)
+        return 2
+
+    # residency_path already set above
 
     # Pretty header (matches your target)
     blank()
@@ -206,7 +247,7 @@ def main():
 
     p_ing = sub.add_parser("ingest")
     p_ing.add_argument("--trace", required=True)
-    p_ing.add_argument("--format", default="baseline", choices=["baseline"])
+    p_ing.add_argument("--format", default="baseline", choices=["baseline", "cpu"])
     p_ing.add_argument("--out", required=True)
     p_ing.set_defaults(fn=cmd_ingest)
 

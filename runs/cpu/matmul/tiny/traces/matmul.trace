@@ -1,0 +1,124 @@
+ts_us=39416554191 thread=1 event=THREAD_START 
+ts_us=39416554301 thread=1 event=COMPUTE_WORK tiles_done=1 uf=0 of=0
+ts_us=39416554309 thread=1 event=COMPUTE_WORK tiles_done=2 uf=0 of=0
+ts_us=39416554316 thread=1 event=COMPUTE_WORK tiles_done=3 uf=0 of=0
+ts_us=39416554318 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=1
+ts_us=39416554324 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=2
+ts_us=39416554327 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=3
+ts_us=39416554330 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=4
+ts_us=39416554334 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=5
+ts_us=39416554337 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=6
+ts_us=39416554340 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=7
+ts_us=39416554344 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=8
+ts_us=39416554347 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=9
+ts_us=39416554350 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=10
+ts_us=39416554354 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=11
+ts_us=39416554357 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=12
+ts_us=39416554361 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=13
+ts_us=39416554368 thread=1 event=COMPUTE_WORK tiles_done=4 uf=13 of=0
+ts_us=39416554371 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=14
+ts_us=39416554374 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=15
+ts_us=39416554377 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=16
+ts_us=39416554381 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=17
+ts_us=39416554384 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=18
+ts_us=39416554387 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=19
+ts_us=39416554390 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=20
+ts_us=39416554394 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=21
+ts_us=39416554397 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=22
+ts_us=39416554400 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=23
+ts_us=39416554404 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=24
+ts_us=39416554407 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=25
+ts_us=39416554411 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=26
+ts_us=39416554414 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=27
+ts_us=39416554417 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=28
+ts_us=39416554421 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=29
+ts_us=39416554424 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=30
+ts_us=39416554428 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=31
+ts_us=39416554435 thread=1 event=COMPUTE_WORK tiles_done=5 uf=31 of=0
+ts_us=39416554438 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=32
+ts_us=39416554441 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=33
+ts_us=39416554445 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=34
+ts_us=39416554448 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=35
+ts_us=39416554451 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=36
+ts_us=39416554455 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=37
+ts_us=39416554458 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=38
+ts_us=39416554461 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=39
+ts_us=39416554465 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=40
+ts_us=39416554468 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=41
+ts_us=39416554471 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=42
+ts_us=39416554475 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=43
+ts_us=39416554479 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=44
+ts_us=39416554482 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=45
+ts_us=39416554485 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=46
+ts_us=39416554489 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=47
+ts_us=39416554492 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=48
+ts_us=39416554499 thread=1 event=COMPUTE_WORK tiles_done=6 uf=48 of=0
+ts_us=39416554503 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=49
+ts_us=39416554506 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=50
+ts_us=39416554509 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=51
+ts_us=39416554513 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=52
+ts_us=39416554516 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=53
+ts_us=39416554529 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=54
+ts_us=39416554533 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=55
+ts_us=39416554536 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=56
+ts_us=39416554539 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=57
+ts_us=39416554543 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=58
+ts_us=39416554546 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=59
+ts_us=39416554550 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=60
+ts_us=39416554553 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=61
+ts_us=39416554560 thread=1 event=COMPUTE_WORK tiles_done=7 uf=61 of=0
+ts_us=39416554563 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=62
+ts_us=39416554567 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=63
+ts_us=39416554570 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=64
+ts_us=39416554573 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=65
+ts_us=39416554577 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=66
+ts_us=39416554580 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=67
+ts_us=39416554584 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=68
+ts_us=39416554587 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=69
+ts_us=39416554590 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=70
+ts_us=39416554594 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=71
+ts_us=39416554597 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=72
+ts_us=39416554601 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=73
+ts_us=39416554604 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=74
+ts_us=39416554607 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=75
+ts_us=39416554611 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=76
+ts_us=39416554614 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=77
+ts_us=39416554635 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=78
+ts_us=39416554639 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=79
+ts_us=39416554643 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=80
+ts_us=39416554646 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=81
+ts_us=39416554649 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=82
+ts_us=39416554656 thread=1 event=COMPUTE_WORK tiles_done=8 uf=82 of=0
+ts_us=39416554660 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=83
+ts_us=39416554663 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=84
+ts_us=39416554666 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=85
+ts_us=39416554670 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=86
+ts_us=39416554674 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=87
+ts_us=39416554677 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=88
+ts_us=39416554680 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=89
+ts_us=39416554684 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=90
+ts_us=39416554687 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=91
+ts_us=39416554690 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=92
+ts_us=39416554693 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=93
+ts_us=39416554697 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=94
+ts_us=39416554700 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=95
+ts_us=39416554703 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=96
+ts_us=39416554707 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=97
+ts_us=39416554710 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=98
+ts_us=39416554718 thread=1 event=COMPUTE_WORK tiles_done=9 uf=98 of=0
+ts_us=39416554721 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=99
+ts_us=39416554724 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=100
+ts_us=39416554727 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=101
+ts_us=39416554732 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=102
+ts_us=39416554735 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=103
+ts_us=39416554739 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=104
+ts_us=39416554742 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=105
+ts_us=39416554746 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=106
+ts_us=39416554749 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=107
+ts_us=39416554753 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=108
+ts_us=39416554765 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=109
+ts_us=39416554769 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=110
+ts_us=39416554773 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=111
+ts_us=39416554776 thread=1 event=INPUT_UNDERFLOW_DETECTED uf_count=112
+ts_us=39416554783 thread=1 event=COMPUTE_WORK tiles_done=10 uf=112 of=0
+ts_us=39416554786 thread=1 event=THREAD_END 
