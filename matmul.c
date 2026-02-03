@@ -95,16 +95,29 @@ static inline bool ring_empty(size_t head, size_t tail) {
     return head == tail;
 }
 
-// ------------ workload context ------------
+// ------------ workload types ------------
+
+typedef enum {
+    WORKLOAD_MAC,         // Multiply-accumulate (default) - compute + memory mix
+    WORKLOAD_ALU,         // Pure ALU operations (add, multiply, shift)
+    WORKLOAD_BRANCH,      // Branch-heavy (if/else, loop control)
+    WORKLOAD_DRAM_READ,   // Memory read-heavy
+    WORKLOAD_DRAM_WRITE   // Memory write-heavy
+} workload_type_t;
+
+// ------------ workload context -----------
 
 typedef struct {
     // "DRAM" arrays
     float* A;  // tiles * tile_elems
     float* B;  // tile_elems (reused)
     float* C;  // tiles outputs (one float per tile)
+    float* D;  // auxiliary array for DRAM workloads
 
     size_t tile_elems;   // elements per tile (default 1024 = 32x32)
     size_t total_tiles;  // number of tiles to process
+
+    workload_type_t workload_type;  // which workload to run
 
     ring_t in_ring;      // input CB (tile payloads)
     ring_t out_ring;     // output CB (one float per tile)
@@ -173,6 +186,76 @@ static void emit_trace(ctx_t* c, int thread_id, const char* event, const char* f
     pthread_mutex_unlock(&c->trace_lock);
 }
 
+// ------------ compute kernels (different workload types) ------------
+
+// MAC: Multiply-Accumulate (mixed compute + memory)
+static inline float kernel_mac(float* in_tile, float* reused_vec, size_t n) {
+    float acc = 0.0f;
+    for (size_t i = 0; i < n; i++) {
+        acc += in_tile[i] * reused_vec[i];
+    }
+    return acc;
+}
+
+// ALU: Pure arithmetic operations (no memory access after load)
+static inline float kernel_alu(float* in_tile, size_t n) {
+    float acc = 0.0f;
+    for (size_t i = 0; i < n; i++) {
+        float val = in_tile[i];
+        // Pure ALU: add, multiply, shift operations
+        val = val + 1.5f;
+        val = val * 2.3f;
+        val = val - 0.7f;
+        acc += val;
+    }
+    return acc;
+}
+
+// BRANCH: Branch-heavy (if/else conditions)
+static inline float kernel_branch(float* in_tile, size_t n) {
+    float acc = 0.0f;
+    for (size_t i = 0; i < n; i++) {
+        float val = in_tile[i];
+        // High branch prediction misses
+        if (val > 0.5f) {
+            if (val > 1.5f) {
+                acc += val * 2.0f;
+            } else {
+                acc += val + 1.0f;
+            }
+        } else {
+            if (val < -0.5f) {
+                acc += val * -1.5f;
+            } else {
+                acc += val - 1.0f;
+            }
+        }
+    }
+    return acc;
+}
+
+// DRAM_READ: Memory read-heavy (extra reads)
+static inline float kernel_dram_read(float* in_tile, float* aux_array, size_t n) {
+    float acc = 0.0f;
+    for (size_t i = 0; i < n; i++) {
+        // Extra memory reads from aux_array
+        float val = in_tile[i] + aux_array[i] + aux_array[(i+1) % n];
+        acc += val;
+    }
+    return acc;
+}
+
+// DRAM_WRITE: Memory write-heavy (extra writes)
+static inline float kernel_dram_write(float* in_tile, float* aux_array, size_t n) {
+    float acc = 0.0f;
+    for (size_t i = 0; i < n; i++) {
+        // Extra memory writes to aux_array
+        aux_array[i] = in_tile[i] * 2.0f;
+        acc += aux_array[i];
+    }
+    return acc;
+}
+
 // ------------ compute: input CB -> compute -> output CB ------------
 
 
@@ -203,11 +286,26 @@ static void* compute_thread(void* arg) {
             }
         }
 
-        // compute (MAC fold into scalar per tile)
+        // compute (dispatch based on workload type)
         float acc = 0.0f;
         size_t n = c->tile_elems;
-        for (size_t i = 0; i < n; i++) {
-            acc += in_tile[i] * c->B[i];
+        
+        switch (c->workload_type) {
+            case WORKLOAD_MAC:
+                acc = kernel_mac(in_tile, c->B, n);
+                break;
+            case WORKLOAD_ALU:
+                acc = kernel_alu(in_tile, n);
+                break;
+            case WORKLOAD_BRANCH:
+                acc = kernel_branch(in_tile, n);
+                break;
+            case WORKLOAD_DRAM_READ:
+                acc = kernel_dram_read(in_tile, c->D, n);
+                break;
+            case WORKLOAD_DRAM_WRITE:
+                acc = kernel_dram_write(in_tile, c->D, n);
+                break;
         }
 
         // push output
@@ -281,15 +379,24 @@ static void* writer_thread(void* arg) {
 static void usage(const char* prog) {
     fprintf(stderr,
         "Usage:\n"
-        "  %s --tile-elems N --tiles T --in-depth D --out-depth D2 [--reader-sleep-ns X] [--writer-sleep-ns Y]\n"
-        "     [--trace PATH]\n\n"
+        "  %s --tile-elems N --tiles T --in-depth D --out-depth D2 [OPTIONS]\n\n"
+        "Options:\n"
+        "  --reader-sleep-ns X      Nanoseconds reader sleeps per tile (inject underflow)\n"
+        "  --writer-sleep-ns Y      Nanoseconds writer sleeps per tile (inject overflow)\n"
+        "  --trace PATH             Write raw trace events to file\n"
+        "  --workload TYPE          Compute workload type (default: mac)\n"
+        "                           - mac:        Multiply-accumulate (mixed compute+memory)\n"
+        "                           - alu:        Pure ALU operations\n"
+        "                           - branch:     Branch-heavy (if/else)\n"
+        "                           - dram_read:  Memory read-heavy\n"
+        "                           - dram_write: Memory write-heavy\n\n"
         "Examples:\n"
-        "  Balanced:\n"
-        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --trace balanced.trace\n"
-        "  Force UNDERFLOW:\n"
-        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --reader-sleep-ns 2000 --trace uf.trace\n"
-        "  Force OVERFLOW:\n"
-        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --writer-sleep-ns 5000 --trace of.trace\n",
+        "  MAC workload balanced:\n"
+        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --workload mac\n"
+        "  ALU workload with underflow:\n"
+        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --workload alu --reader-sleep-ns 2000\n"
+        "  DRAM_READ workload with trace:\n"
+        "    %s --tile-elems 1024 --tiles 50000 --in-depth 2 --out-depth 2 --workload dram_read --trace results/dram_read.trace\n",
         prog, prog, prog, prog);
 }
 
@@ -300,8 +407,8 @@ int main(int argc, char** argv) {
     size_t out_depth = 2;
     long reader_sleep_ns = 0;
     long writer_sleep_ns = 0;
-
     const char* trace_path = NULL;
+    workload_type_t workload_type = WORKLOAD_MAC;
 
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--tile-elems") && i + 1 < argc) tile_elems = (size_t)strtoull(argv[++i], NULL, 10);
@@ -311,6 +418,19 @@ int main(int argc, char** argv) {
         else if (!strcmp(argv[i], "--reader-sleep-ns") && i + 1 < argc) reader_sleep_ns = strtol(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--writer-sleep-ns") && i + 1 < argc) writer_sleep_ns = strtol(argv[++i], NULL, 10);
         else if (!strcmp(argv[i], "--trace") && i + 1 < argc) trace_path = argv[++i];
+        else if (!strcmp(argv[i], "--workload") && i + 1 < argc) {
+            const char* wl = argv[++i];
+            if (!strcmp(wl, "mac")) workload_type = WORKLOAD_MAC;
+            else if (!strcmp(wl, "alu")) workload_type = WORKLOAD_ALU;
+            else if (!strcmp(wl, "branch")) workload_type = WORKLOAD_BRANCH;
+            else if (!strcmp(wl, "dram_read")) workload_type = WORKLOAD_DRAM_READ;
+            else if (!strcmp(wl, "dram_write")) workload_type = WORKLOAD_DRAM_WRITE;
+            else {
+                fprintf(stderr, "Unknown workload type: %s\n", wl);
+                usage(argv[0]);
+                return 2;
+            }
+        }
         else {
             usage(argv[0]);
             return 2;
@@ -321,6 +441,7 @@ int main(int argc, char** argv) {
     memset(&c, 0, sizeof(c));
     c.tile_elems = tile_elems;
     c.total_tiles = tiles;
+    c.workload_type = workload_type;
     c.reader_sleep_ns = reader_sleep_ns;
     c.writer_sleep_ns = writer_sleep_ns;
     c.trace_fp = NULL;
@@ -328,29 +449,34 @@ int main(int argc, char** argv) {
     pthread_mutex_init(&c.trace_lock, NULL);
 
     // Allocate DRAM-like arrays:
-    // A: tiles * tile_elems
+    // A: tiles * tile_elems (input)
     // B: tile_elems (reused each tile)
-    // C: tiles (one float per tile)
+    // C: tiles (one float per tile, output)
+    // D: tile_elems (auxiliary for DRAM workloads)
     size_t a_elems = tiles * tile_elems;
     size_t b_elems = tile_elems;
     size_t c_elems = tiles;
+    size_t d_elems = tile_elems;
 
     size_t align = 64;
     size_t a_bytes = ((a_elems * sizeof(float) + align - 1) / align) * align;
     size_t b_bytes = ((b_elems * sizeof(float) + align - 1) / align) * align;
     size_t c_bytes = ((c_elems * sizeof(float) + align - 1) / align) * align;
+    size_t d_bytes = ((d_elems * sizeof(float) + align - 1) / align) * align;
 
     c.A = (float*)aligned_alloc(align, a_bytes);
     c.B = (float*)aligned_alloc(align, b_bytes);
     c.C = (float*)aligned_alloc(align, c_bytes);
+    c.D = (float*)aligned_alloc(align, d_bytes);
 
-    if (!c.A || !c.B || !c.C) {
+    if (!c.A || !c.B || !c.C || !c.D) {
         fprintf(stderr, "alloc failed\n");
         return 1;
     }
 
     for (size_t i = 0; i < a_elems; i++) c.A[i] = (float)((i % 97) * 0.01);
     for (size_t i = 0; i < b_elems; i++) c.B[i] = (float)(((i % 89) + 1) * 0.02);
+    for (size_t i = 0; i < d_elems; i++) c.D[i] = (float)(((i % 73) + 1) * 0.03);
     memset(c.C, 0, c_elems * sizeof(float));
 
     if (ring_init(&c.in_ring, in_depth, tile_elems * sizeof(float)) != 0) {
@@ -398,6 +524,6 @@ int main(int argc, char** argv) {
     if (c.trace_fp) fclose(c.trace_fp);
     ring_free(&c.in_ring);
     ring_free(&c.out_ring);
-    free(c.A); free(c.B); free(c.C);
+    free(c.A); free(c.B); free(c.C); free(c.D);
     return 0;
 }
