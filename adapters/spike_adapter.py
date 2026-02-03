@@ -1,0 +1,189 @@
+# adapters/spike_platform_adapter.py
+from __future__ import annotations
+
+from dataclasses import dataclass
+from typing import Dict, Iterable, List, Optional, Tuple
+import os
+import re
+import pandas as pd
+
+from ingest.ingest_api import validate_state_df, validate_resid_df
+
+# Example spike -l line:
+# core   0: 0x0000000080000214 (0x00000413) li      s0, 0
+SPIKE_LINE_RE = re.compile(
+    r"^\s*core\s+(?P<core>\d+):\s+0x(?P<pc>[0-9a-fA-F]+)\s+\(0x(?P<insn>[0-9a-fA-F]+)\)\s+(?P<mnemonic>\S+)"
+)
+
+# Very simple heuristic: treat memory ops as "stall" else "active"
+MEM_MNEMONICS_PREFIX = (
+    "lb", "lbu", "lh", "lhu", "lw", "lwu", "ld",
+    "sb", "sh", "sw", "sd",
+    "flw", "fld", "fsw", "fsd",
+)
+
+@dataclass
+class SpikeParseConfig:
+    inst_us: float = 1.0
+    # Residency heuristic: PCs in DRAM/PK region typically start at 0x8000_0000
+    resident_pc_ge: int = 0x8000_0000
+
+
+class SpikePlatformAdapter:
+    """
+    Platform adapter (Spike) -> emits baseline CSVs that BaselineAdapter can read.
+
+    Output CSV schemas are exactly what ingest_api.validate_* expects:
+      state: start_us,end_us,core,state
+      resid: start_us,end_us,core[,resident]
+    """
+
+    def __init__(self, spike_trace_path: str, cfg: Optional[SpikeParseConfig] = None):
+        self.spike_trace_path = spike_trace_path
+        self.cfg = cfg or SpikeParseConfig()
+
+    def _iter_events(self) -> Iterable[Tuple[int, int, str]]:
+        """
+        Yield (core, pc_int, mnemonic) per instruction line.
+        """
+        with open(self.spike_trace_path, "r", errors="ignore") as f:
+            for line in f:
+                m = SPIKE_LINE_RE.match(line)
+                if not m:
+                    continue
+                core = int(m.group("core"))
+                pc = int(m.group("pc"), 16)
+                mnemonic = m.group("mnemonic")
+                yield core, pc, mnemonic
+
+    def build_state_intervals(self) -> pd.DataFrame:
+        """
+        Convert instruction stream into per-core state intervals.
+        Timebase: instruction index * inst_us.
+        """
+        inst_us = float(self.cfg.inst_us)
+
+        t_by_core: Dict[int, float] = {}
+        rows: List[Dict] = []
+
+        for core, _pc, mnemonic in self._iter_events():
+            t0 = t_by_core.get(core, 0.0)
+            t1 = t0 + inst_us
+            t_by_core[core] = t1
+
+            state = "stall" if mnemonic.startswith(MEM_MNEMONICS_PREFIX) else "active"
+            rows.append({"start_us": t0, "end_us": t1, "core": core, "state": state})
+
+        df = pd.DataFrame(rows)
+        if len(df) == 0:
+            # produce an empty-but-valid dataframe shape
+            df = pd.DataFrame(columns=["start_us", "end_us", "core", "state"])
+
+        # Optional: compress adjacent same-state intervals for smaller CSV
+        df = self._merge_adjacent_state(df)
+
+        return validate_state_df(df)
+
+    def _merge_adjacent_state(self, df: pd.DataFrame) -> pd.DataFrame:
+        if df.empty:
+            return df
+        df = df.sort_values(["core", "start_us"]).reset_index(drop=True)
+
+        out = []
+        cur = df.iloc[0].to_dict()
+        for i in range(1, len(df)):
+            r = df.iloc[i].to_dict()
+            if r["core"] == cur["core"] and r["state"] == cur["state"] and abs(r["start_us"] - cur["end_us"]) < 1e-9:
+                cur["end_us"] = r["end_us"]
+            else:
+                out.append(cur)
+                cur = r
+        out.append(cur)
+        return pd.DataFrame(out)
+
+    def build_residency_intervals(self) -> pd.DataFrame:
+        """
+        Create residency intervals.
+        Heuristic: resident == (pc >= resident_pc_ge).
+        Emits only resident segments (engine treats missing windows as non-resident).
+        """
+        inst_us = float(self.cfg.inst_us)
+        thresh = int(self.cfg.resident_pc_ge)
+
+        t_by_core: Dict[int, float] = {}
+        # Track contiguous resident segments per core
+        open_seg: Dict[int, Optional[float]] = {}  # core -> start_us if currently resident
+
+        rows: List[Dict] = []
+
+        for core, pc, _mnemonic in self._iter_events():
+            t0 = t_by_core.get(core, 0.0)
+            t1 = t0 + inst_us
+            t_by_core[core] = t1
+
+            is_res = pc >= thresh
+
+            if is_res and open_seg.get(core) is None:
+                open_seg[core] = t0
+            if (not is_res) and open_seg.get(core) is not None:
+                rs = float(open_seg[core])
+                re = t0
+                if re > rs:
+                    rows.append({"start_us": rs, "end_us": re, "core": core})
+                open_seg[core] = None
+
+        # close any open segments at end
+        for core, rs in open_seg.items():
+            if rs is None:
+                continue
+            end_t = t_by_core.get(core, rs)
+            if end_t > rs:
+                rows.append({"start_us": float(rs), "end_us": float(end_t), "core": int(core)})
+
+        rdf = pd.DataFrame(rows)
+        if len(rdf) == 0:
+            rdf = pd.DataFrame(columns=["start_us", "end_us", "core"])
+
+        return validate_resid_df(rdf)
+
+    def export_baseline_csvs(self, out_dir: str) -> Tuple[str, str]:
+        """
+        Writes:
+          out_dir/state_intervals.csv
+          out_dir/residency_intervals.csv
+        Returns (state_path, resid_path)
+        """
+        os.makedirs(out_dir, exist_ok=True)
+
+        state_df = self.build_state_intervals()
+        resid_df = self.build_residency_intervals()
+
+        state_path = os.path.join(out_dir, "state_intervals.csv")
+        resid_path = os.path.join(out_dir, "residency_intervals.csv")
+
+        state_df.to_csv(state_path, index=False)
+        resid_df.to_csv(resid_path, index=False)
+
+        return state_path, resid_path
+
+
+def main():
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--spike-trace", required=True, help="Spike -l log file (text)")
+    ap.add_argument("--out-dir", required=True, help="Directory to write baseline CSVs")
+    ap.add_argument("--inst-us", type=float, default=1.0, help="Time per instruction (us) for synthetic timeline")
+    ap.add_argument("--resident-pc-ge", type=lambda x: int(x, 0), default=0x80000000, help="Residency PC threshold (int or hex)")
+    args = ap.parse_args()
+
+    cfg = SpikeParseConfig(inst_us=args.inst_us, resident_pc_ge=args.resident_pc_ge)
+    ad = SpikePlatformAdapter(args.spike_trace, cfg=cfg)
+    s_path, r_path = ad.export_baseline_csvs(args.out_dir)
+
+    print("✓ wrote:", s_path)
+    print("✓ wrote:", r_path)
+
+
+if __name__ == "__main__":
+    main()

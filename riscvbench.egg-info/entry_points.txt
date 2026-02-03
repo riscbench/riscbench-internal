@@ -1,0 +1,2 @@
+[console_scripts]
+riscvbench = riscvbench:main
