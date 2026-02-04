@@ -309,6 +309,8 @@ def main():
             # pick sensible tile counts for workload sizes unless user provided explicit tiles
             size_tiles = {"tiny": 10, "small": 100, "med": 1000, "large": 5000}
             tiles_count = args.tiles if args.tiles != 50000 else size_tiles.get(args.workload_size, args.tiles)
+            if args.tiles == 50000 and events_max is not None and events_max > 0:
+                tiles_count = events_max
 
             # Scale ring depths for multicore variant
             in_depth_final = args.in_depth
@@ -376,7 +378,15 @@ def main():
             inputs_dir.mkdir(parents=True, exist_ok=True)
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
-            state_csv.write_text("start_us,end_us,core,state\n0.0,{:.3f},0,active\n".format(duration_us))
+            depth_total = max(1, args.in_depth + args.out_depth)
+            active_us = duration_us * (args.in_depth / depth_total)
+            idle_us = max(0.0, duration_us - active_us)
+            lines = ["start_us,end_us,core,state"]
+            if active_us > 0:
+                lines.append("0.0,{:.3f},0,active".format(active_us))
+            if idle_us > 0:
+                lines.append("{:.3f},{:.3f},0,idle".format(active_us, duration_us))
+            state_csv.write_text("\n".join(lines) + "\n")
             resid_csv.write_text("start_us,end_us,core,resident\n0.0,{:.3f},0,1\n".format(duration_us))
         else:
             raise SystemExit(f"cpu target does not support workload: {args.workload}")
@@ -401,9 +411,12 @@ def main():
 
     cls_cmd = [sys.executable, str(cli_py), "classify",
                "--in", str(run_dir),
-               "--window-us", str(args.time_us)]
+               "--window-us", str(args.time_us),
+               "--expected-work-rate", str(args.expected_work_rate)]
     if resid_csv.exists():
         cls_cmd += ["--residency", str(resid_csv)]
+    if args.debug_sit:
+        cls_cmd += ["--debug-sit"]
     sh(cls_cmd, cwd=repo)
 
     sh([sys.executable, str(cli_py), "export",

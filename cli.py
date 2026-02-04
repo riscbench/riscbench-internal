@@ -173,6 +173,10 @@ def cmd_classify(args) -> int:
     ]
     if residency_path:
         cmd += ["--residency", residency_path]
+    if args.expected_work_rate is not None:
+        cmd += ["--expected-work-rate", str(args.expected_work_rate)]
+    if args.debug_sit:
+        cmd += ["--debug-sit"]
 
     p = subprocess.run(cmd)
     if p.returncode != 0:
@@ -263,6 +267,8 @@ def main():
     p_cls.add_argument("--in", dest="in_dir", required=True)
     p_cls.add_argument("--window-us", type=float, default=256.0)
     p_cls.add_argument("--residency", default=None)
+    p_cls.add_argument("--expected-work-rate", type=float, default=None)
+    p_cls.add_argument("--debug-sit", action="store_true")
     p_cls.set_defaults(fn=cmd_classify)
 
     p_exp = sub.add_parser("export")

@@ -30,6 +30,7 @@ class CPUAdapter:
         self.trace_path = Path(trace_path)
         self.max_events = max_events if max_events and max_events > 0 else None
         self._events = self._parse_raw_events()
+        self._idle_gap_us = 5.0
     
     def _parse_raw_events(self) -> List[Dict[str, Any]]:
         """Parse raw trace format: ts_us=X thread=Y event=Z key=val ..."""
@@ -76,6 +77,12 @@ class CPUAdapter:
             for i, ev in enumerate(events):
                 ts = float(ev['ts_us'])
                 next_ts = float(events[i + 1]['ts_us']) if i + 1 < len(events) else ts + 1000
+                gap_us = max(0.0, next_ts - ts)
+                tiles_done = float(ev.get("tiles_done", ev.get("tiles", 0.0)) or 0.0)
+                next_tiles_done = tiles_done
+                if i + 1 < len(events):
+                    next_tiles_done = float(events[i + 1].get("tiles_done", events[i + 1].get("tiles", tiles_done)) or tiles_done)
+                work_done = max(0.0, next_tiles_done - tiles_done)
                 
                 event_type = ev.get('event', '')
                 
@@ -86,25 +93,31 @@ class CPUAdapter:
                     state = 'stall'
                 else:
                     state = 'active'
-                
-                intervals.append({
-                    'start_us': ts,
-                    'end_us': next_ts,
-                    'core': thread_id - 1,  # thread 1 -> core 0
-                    'state': state,
-                })
-                
-                # If gap between this event and next > threshold, mark as idle overhead
-                if i + 1 < len(events):
-                    gap_us = next_ts - ts
-                    # Gaps > 5µs likely indicate spin/yield periods (overhead, treat as idle)
-                    if gap_us > 5.0 and event_type not in ('THREAD_START', 'THREAD_END'):
-                        intervals.append({
-                            'start_us': ts,
-                            'end_us': next_ts,
-                            'core': thread_id - 1,
-                            'state': 'idle',  # overhead/spin wait
-                        })
+
+                interval_end = next_ts
+                interval_start = ts
+                idle_start = None
+                if gap_us > self._idle_gap_us and event_type not in ('THREAD_START', 'THREAD_END'):
+                    interval_end = ts + self._idle_gap_us
+                    idle_start = interval_end
+
+                if interval_end > interval_start:
+                    intervals.append({
+                        'start_us': interval_start,
+                        'end_us': interval_end,
+                        'core': thread_id - 1,  # thread 1 -> core 0
+                        'state': state,
+                        'work_done': work_done if state == 'active' else 0.0,
+                    })
+
+                if idle_start is not None and next_ts > idle_start:
+                    intervals.append({
+                        'start_us': idle_start,
+                        'end_us': next_ts,
+                        'core': thread_id - 1,
+                        'state': 'idle',  # overhead/spin wait
+                        'work_done': 0.0,
+                    })
         
         df = pd.DataFrame(intervals)
         if len(df) == 0:
