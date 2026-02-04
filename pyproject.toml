@@ -14,7 +14,7 @@ riscvbench = "riscvbench:main"
 
 [tool.setuptools]
 # Explicit packaging (no auto discovery)
-py-modules = ["riscvbench", "sit_engine_phase1"]
+py-modules = ["riscvbench", "cli", "sit_engine_phase1"]
 
 [tool.setuptools.packages.find]
 # Only include actual code packages
