@@ -43,19 +43,15 @@ int main(int argc, char **argv) {
 
   double ts = 0.0;
   int thread_id = 1;
-  double step_us = (double)tile_elems / 64.0;
-  if (step_us < 1.0) {
-    step_us = 1.0;
-  }
 
   fprintf(f, "ts_us=%.3f thread=%d event=THREAD_START\n", ts, thread_id);
   ts += 1.0;
 
   int emit_tiles = tiles < 500 ? tiles : 500;
   for (int i = 0; i < emit_tiles; i++) {
-    fprintf(f, "ts_us=%.3f thread=%d event=COMPUTE_WORK tile=%d elems=%d tiles_done=%d\n",
-            ts, thread_id, i, tile_elems, i + 1);
-    ts += step_us;
+    fprintf(f, "ts_us=%.3f thread=%d event=COMPUTE_WORK tile=%d elems=%d\n",
+            ts, thread_id, i, tile_elems);
+    ts += 1.0;
   }
 
   if (reader_sleep > 0) {
