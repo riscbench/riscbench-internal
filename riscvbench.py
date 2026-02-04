@@ -120,12 +120,12 @@ int main() {
 """,
 }
 
-def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None, check: bool = True) -> None:
+def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
         p = subprocess.run(cmd, cwd=cwd, shell=True, env=env)
     else:
         p = subprocess.run(cmd, cwd=cwd, env=env)
-    if check and p.returncode != 0:
+    if p.returncode != 0:
         raise SystemExit(f"Command failed: {cmd}")
 
 def ensure_tool(name: str):
@@ -139,15 +139,12 @@ def write_workload(build_dir: Path, workload: str, size: str) -> Path:
     cpath.write_text(code)
     return cpath
 
-def find_repo_root(start_dir: Path | None = None) -> Path:
-    cwd = (start_dir or Path.cwd()).resolve()
-    for candidate in [cwd, *cwd.parents]:
+def find_repo_root() -> Path:
+    candidates = [Path.cwd(), Path(__file__).resolve().parent, Path.cwd().parent]
+    for candidate in candidates:
         if (candidate / "cli.py").exists() and (candidate / "adapters").is_dir():
             return candidate
-    module_dir = Path(__file__).resolve().parent
-    if (module_dir / "cli.py").exists() and (module_dir / "adapters").is_dir():
-        return module_dir
-    return cwd
+    return Path(__file__).resolve().parent
 
 
 def main():
@@ -184,13 +181,6 @@ def main():
     ap.add_argument("--resident_pc_ge", default="0x80000000")
     ap.add_argument("--trace_lines_max", type=int, default=200000)
     ap.add_argument("--events-max", type=int, default=None, help="Max events to parse for both spike and cpu (0 for no limit)")
-    ap.add_argument(
-        "--repo",
-        default=None,
-        help="Path to Phase-1 repo (overrides auto-detection; can also set RISCVBENCH_REPO)",
-    )
-    ap.add_argument("--expected-work-rate", type=float, default=1.0, help="Expected work per us for SIT normalization")
-    ap.add_argument("--debug-sit", action="store_true", help="Print raw SIT components before normalization")
 
     args = ap.parse_args()
     if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
@@ -202,15 +192,8 @@ def main():
 
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
-    repo_override = args.repo or os.environ.get("RISCVBENCH_REPO")
-    if repo_override:
-        repo = Path(repo_override).resolve()
-        if not (repo / "cli.py").exists():
-            raise SystemExit(f"repo missing cli.py: {repo}")
-        if not (repo / "adapters").is_dir():
-            raise SystemExit(f"repo missing adapters/: {repo}")
-    else:
-        repo = find_repo_root()
+    repo = find_repo_root()
+    repo = Path(__file__).resolve().parent
 
     adapter_spike = repo / "adapters" / "spike_adapter.py"
     adapter_cpu = repo / "adapters" / "cpu_adapter.py"
@@ -426,14 +409,13 @@ def main():
         "--format", "baseline",
         "--out", str(run_dir)], cwd=repo)
 
-    expected_work_rate = getattr(args, "expected_work_rate", 1.0)
     cls_cmd = [sys.executable, str(cli_py), "classify",
                "--in", str(run_dir),
                "--window-us", str(args.time_us),
-               "--expected-work-rate", str(expected_work_rate)]
+               "--expected-work-rate", str(args.expected_work_rate)]
     if resid_csv.exists():
         cls_cmd += ["--residency", str(resid_csv)]
-    if getattr(args, "debug_sit", False):
+    if args.debug_sit:
         cls_cmd += ["--debug-sit"]
     sh(cls_cmd, cwd=repo)
 
