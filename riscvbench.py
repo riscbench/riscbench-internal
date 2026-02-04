@@ -140,14 +140,11 @@ def write_workload(build_dir: Path, workload: str, size: str) -> Path:
     return cpath
 
 def find_repo_root() -> Path:
-    cwd = Path.cwd().resolve()
-    for candidate in [cwd, *cwd.parents]:
+    candidates = [Path.cwd(), Path(__file__).resolve().parent, Path.cwd().parent]
+    for candidate in candidates:
         if (candidate / "cli.py").exists() and (candidate / "adapters").is_dir():
             return candidate
-    module_dir = Path(__file__).resolve().parent
-    if (module_dir / "cli.py").exists() and (module_dir / "adapters").is_dir():
-        return module_dir
-    return cwd
+    return Path(__file__).resolve().parent
 
 
 def main():
@@ -196,6 +193,7 @@ def main():
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
     repo = find_repo_root()
+    repo = Path(__file__).resolve().parent
 
     adapter_spike = repo / "adapters" / "spike_adapter.py"
     adapter_cpu = repo / "adapters" / "cpu_adapter.py"
