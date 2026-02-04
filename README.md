@@ -115,5 +115,14 @@ by emitting a single active interval based on wall time.
   pip install -e .
   ```
 - `riscvbench` supports `--cores` (alias for `--compute-threads`) and `--events-max` (cap events for both Spike and CPU parsing). Use `riscvbench --help` after reinstalling to confirm the flags.
+- If `riscvbench --help` still shows old flags after reinstalling, verify which module is being loaded and reinstall in the same venv:
+  ```bash
+  which riscvbench
+  python -c "import riscvbench,inspect; print(riscvbench.__file__)"
+  pip uninstall -y riscvbench
+  pip install -e .
+  hash -r
+  ```
+- Editable installs rely on the `-e` flag. A command like `pip install e .` installs a package literally named `e` and does not install this repo.
 - Baseline adapter uses CSV only as a Phase-1 deterministic reference.
 - Future phases can add new adapters without changing the engine contract.
