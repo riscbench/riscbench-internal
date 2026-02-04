@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import shutil
 import subprocess
@@ -183,7 +184,7 @@ def main():
 
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
-    repo = Path.cwd()
+    repo = Path(__file__).resolve().parent
 
     adapter_spike = repo / "adapters" / "spike_adapter.py"
     adapter_cpu = repo / "adapters" / "cpu_adapter.py"
@@ -216,7 +217,7 @@ def main():
 
         # 1) build workload
         if args.workload == "matmul_multicore":
-            workload_src = repo.parent / "matmul_multicore.c"
+            workload_src = repo / "matmul_multicore.c"
             if not workload_src.exists():
                 raise SystemExit(f"matmul_multicore.c not found: {workload_src}")
             binpath = build_dir / "matmul_multicore"
@@ -287,7 +288,7 @@ def main():
                 src_name = "matmul.c"
                 bin_name = "matmul"
             
-            workload_src = repo.parent / src_name
+            workload_src = repo / src_name
             if not workload_src.exists():
                 raise SystemExit(f"{src_name} not found: {workload_src}")
             
@@ -371,8 +372,18 @@ def main():
         else:
             raise SystemExit(f"cpu target does not support workload: {args.workload}")
 
-    # 4) Use local Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
-    cli_py = Path(__file__).resolve().parent / "cli.py"
+    # 4) Use Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
+    cli_spec = importlib.util.find_spec("cli")
+    if cli_spec is not None and cli_spec.origin is not None:
+        cli_py = Path(cli_spec.origin)
+    else:
+        cli_py = Path(__file__).resolve().parent / "cli.py"
+        if not cli_py.exists():
+            repo_cli = repo / "cli.py"
+            if repo_cli.exists():
+                cli_py = repo_cli
+            else:
+                raise SystemExit("cli.py not found; reinstall riscvbench or run from the repo root")
 
     sh([sys.executable, str(cli_py), "ingest",
         "--trace", str(state_csv),
