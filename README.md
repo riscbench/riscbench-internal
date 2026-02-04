@@ -107,5 +107,28 @@ marker to match the CPU-style residency CSV schema. The CPU target supports `mat
 by emitting a single active interval based on wall time.
 
 ## Notes
+- `riscvbench` requires Python 3.9+ (see `pyproject.toml`). If you use a venv, make sure it is created with Python 3.9+ and upgrade `pip` before installing editable builds:
+  ```bash
+  python3.9 -m venv .venv
+  source .venv/bin/activate
+  pip install --upgrade pip setuptools wheel
+  pip install -e .
+  ```
+- `riscvbench` supports `--cores` (alias for `--compute-threads`) and `--events-max` (cap events for both Spike and CPU parsing). Use `riscvbench --help` after reinstalling to confirm the flags.
+- If `riscvbench --help` still shows old flags after reinstalling, verify which module is being loaded and reinstall in the same venv:
+  ```bash
+  which riscvbench
+  python -c "import riscvbench,inspect; print(riscvbench.__file__)"
+  pip uninstall -y riscvbench
+  pip install -e .
+  hash -r
+  ```
+- Editable installs rely on the `-e` flag. A command like `pip install e .` installs a package literally named `e` and does not install this repo.
 - Baseline adapter uses CSV only as a Phase-1 deterministic reference.
 - Future phases can add new adapters without changing the engine contract.
+
+### SIT normalization + debug
+SIT is computed per resident window. If the input trace includes `work_done` (e.g., tiles completed), the engine normalizes
+per-window work rate against `--expected-work-rate` (default `1.0` work/us). Otherwise it falls back to the active fraction
+within resident time. Use `--debug-sit` (or `riscvbench --debug-sit`) to print raw components such as `resident_us`,
+`idle_us`, `stall_us`, work totals, expected work rate, and min/mean/max of raw vs clamped SIT values.
