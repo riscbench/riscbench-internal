@@ -76,6 +76,8 @@ def main():
     ap.add_argument("--residency", default=None, help="Residency input (baseline adapter reads CSV)")
     ap.add_argument("--window-us", type=float, default=256.0, help="Window size in microseconds")
     ap.add_argument("--out-prefix", default="sit_out", help="Output prefix (CSV + JSON)")
+    ap.add_argument("--expected-work-rate", type=float, default=1.0, help="Expected work per us for normalization")
+    ap.add_argument("--debug-sit", action="store_true", help="Print raw SIT components before normalization")
     args = ap.parse_args()
 
     window_us = float(args.window_us)
@@ -108,6 +110,8 @@ def main():
 
     # state_us per (core, window), gated by residency if present
     state_acc: Dict[Tuple[int, int], Dict[str, float]] = {}
+    work_acc: Dict[Tuple[int, int], float] = {}
+    work_enabled = "work_done" in df.columns
     for row in df.itertuples(index=False):
         start = float(row.start_us)
         end = float(row.end_us)
@@ -130,6 +134,11 @@ def main():
                 if key not in state_acc:
                     state_acc[key] = {"active_us": 0.0, "stall_us": 0.0, "idle_us": 0.0}
                 state_acc[key][f"{state}_us"] += overlap
+                if work_enabled:
+                    duration = max(0.0, end - start)
+                    if duration > 0:
+                        work_rate = float(getattr(row, "work_done", 0.0)) / duration
+                        work_acc[key] = work_acc.get(key, 0.0) + (work_rate * overlap)
 
     # Union of keys to output
     all_keys = set(state_acc.keys())
@@ -137,6 +146,12 @@ def main():
         all_keys |= set(resident_acc.keys())
 
     records = []
+    debug_sit_raw: List[float] = []
+    debug_sit_clamped: List[float] = []
+    total_active_us = 0.0
+    total_stall_us = 0.0
+    total_idle_us = 0.0
+    total_resident_us = 0.0
     for (core, wid) in sorted(all_keys, key=lambda x: (x[0], x[1])):
         w_start = wid * window_us
         w_end = (wid + 1) * window_us
@@ -148,6 +163,7 @@ def main():
         active = float(d["active_us"])
         stall = float(d["stall_us"])
         idle = float(d["idle_us"])
+        work_done = work_acc.get((core, wid), 0.0) if work_enabled else float("nan")
 
         if resident_us > 0:
             denom = resident_us  # normalize by resident time
@@ -160,12 +176,16 @@ def main():
             stall_f = stall / total
             idle_f = idle / total
 
-            sit = active_f  # toy SIT
-            sit = max(0.0, min(1.0, sit))
+            if work_enabled and args.expected_work_rate > 0:
+                sit_raw = (work_done / denom) / float(args.expected_work_rate)
+            else:
+                sit_raw = active_f  # fallback
+            sit = max(0.0, min(1.0, sit_raw))
         else:
             active_f = float("nan")
             stall_f = float("nan")
             idle_f = float("nan")
+            sit_raw = float("nan")
             sit = float("nan")
 
         records.append({
@@ -181,6 +201,15 @@ def main():
             "idle_frac": idle_f,
             "sit": sit,
         })
+        if is_resident_window == 1:
+            total_active_us += active
+            total_stall_us += stall
+            total_idle_us += idle
+            total_resident_us += resident_us
+            if not math.isnan(sit_raw):
+                debug_sit_raw.append(float(sit_raw))
+            if not math.isnan(sit):
+                debug_sit_clamped.append(float(sit))
 
     out = pd.DataFrame.from_records(records).sort_values(["core", "window_id"]).reset_index(drop=True)
 
@@ -200,6 +229,7 @@ def main():
         "residency_stall_avg": float(resident_out["stall_frac"].mean()) if len(resident_out) else float("nan"),
         "residency_active_avg": float(resident_out["active_frac"].mean()) if len(resident_out) else float("nan"),
         "used_residency_file": bool(args.residency is not None),
+        "expected_work_rate": float(args.expected_work_rate),
     }
 
     csv_path = f"{args.out_prefix}_windows.csv"
@@ -210,6 +240,20 @@ def main():
 
     print("✓ windows written:", csv_path)
     print("✓ summary written:", json_path)
+    if args.debug_sit:
+        total_us = total_active_us + total_stall_us + total_idle_us
+        print("---- debug sit ----")
+        print(f"total_us={total_us:.3f} resident_us={total_resident_us:.3f} idle_us={total_idle_us:.3f} stall_us={total_stall_us:.3f}")
+        print(f"windows_total={len(out)} windows_good={len(resident_out)}")
+        if work_enabled:
+            print(f"work_done={float(np.nansum([work_acc.get(k, 0.0) for k in work_acc])):.3f}")
+        else:
+            print("work_done=nan")
+        print(f"expected_work_rate={float(args.expected_work_rate):.6f}")
+        if debug_sit_raw:
+            print(f"sit_raw min/mean/max={np.min(debug_sit_raw):.6f}/{np.mean(debug_sit_raw):.6f}/{np.max(debug_sit_raw):.6f}")
+        if debug_sit_clamped:
+            print(f"sit_clamped min/mean/max={np.min(debug_sit_clamped):.6f}/{np.mean(debug_sit_clamped):.6f}/{np.max(debug_sit_clamped):.6f}")
 
 
 if __name__ == "__main__":
