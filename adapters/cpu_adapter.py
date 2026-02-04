@@ -26,8 +26,9 @@ class CPUAdapter:
       - resid_df: Residency DataFrame with columns [start_us, end_us, core, resident]
     """
     
-    def __init__(self, trace_path: str):
+    def __init__(self, trace_path: str, max_events: Optional[int] = None):
         self.trace_path = Path(trace_path)
+        self.max_events = max_events if max_events and max_events > 0 else None
         self._events = self._parse_raw_events()
     
     def _parse_raw_events(self) -> List[Dict[str, Any]]:
@@ -49,6 +50,8 @@ class CPUAdapter:
                 
                 if 'ts_us' in row and 'thread' in row and 'event' in row:
                     events.append(row)
+                    if self.max_events is not None and len(events) >= self.max_events:
+                        break
         
         return events
     
