@@ -107,5 +107,13 @@ marker to match the CPU-style residency CSV schema. The CPU target supports `mat
 by emitting a single active interval based on wall time.
 
 ## Notes
+- `riscvbench` requires Python 3.9+ (see `pyproject.toml`). If you use a venv, make sure it is created with Python 3.9+ and upgrade `pip` before installing editable builds:
+  ```bash
+  python3.9 -m venv .venv
+  source .venv/bin/activate
+  pip install --upgrade pip setuptools wheel
+  pip install -e .
+  ```
+- `riscvbench` supports `--cores` (alias for `--compute-threads`) and `--events-max` (cap events for both Spike and CPU parsing). Use `riscvbench --help` after reinstalling to confirm the flags.
 - Baseline adapter uses CSV only as a Phase-1 deterministic reference.
 - Future phases can add new adapters without changing the engine contract.
