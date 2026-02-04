@@ -36,8 +36,8 @@ static const char *get_arg_str(int argc, char **argv, const char *key, const cha
 
 static void emit_event(worker_args *args, double ts, const char *event, int tile) {
   if (tile >= 0) {
-    fprintf(args->f, "ts_us=%.3f thread=%d event=%s tile=%d elems=%d tiles_done=%d\n",
-            ts, args->thread_id, event, tile, args->tile_elems, tile + 1);
+    fprintf(args->f, "ts_us=%.3f thread=%d event=%s tile=%d elems=%d\n",
+            ts, args->thread_id, event, tile, args->tile_elems);
   } else {
     fprintf(args->f, "ts_us=%.3f thread=%d event=%s\n", ts, args->thread_id, event);
   }
@@ -46,26 +46,18 @@ static void emit_event(worker_args *args, double ts, const char *event, int tile
 static void *worker_main(void *ptr) {
   worker_args *args = (worker_args *)ptr;
   double ts = 0.0;
-  double step_us = (double)args->tile_elems / 64.0;
-  if (step_us < 1.0) {
-    step_us = 1.0;
-  }
 
   pthread_mutex_lock(args->lock);
   emit_event(args, ts, "THREAD_START", -1);
   pthread_mutex_unlock(args->lock);
   ts += 1.0;
 
-  int tiles_per_thread = args->tiles;
-  if (tiles_per_thread < 1) {
-    tiles_per_thread = 1;
-  }
-  int emit_tiles = tiles_per_thread < 500 ? tiles_per_thread : 500;
+  int emit_tiles = args->tiles < 500 ? args->tiles : 500;
   for (int i = 0; i < emit_tiles; i++) {
     pthread_mutex_lock(args->lock);
     emit_event(args, ts, "COMPUTE_WORK", i);
     pthread_mutex_unlock(args->lock);
-    ts += step_us;
+    ts += 1.0;
   }
 
   if (args->reader_sleep > 0) {
@@ -123,14 +115,9 @@ int main(int argc, char **argv) {
     return 2;
   }
 
-  int tiles_per_thread = tiles / compute_threads;
-  if (tiles_per_thread < 1) {
-    tiles_per_thread = 1;
-  }
-
   for (int i = 0; i < compute_threads; i++) {
     args[i].thread_id = i + 1;
-    args[i].tiles = tiles_per_thread;
+    args[i].tiles = tiles;
     args[i].tile_elems = tile_elems;
     args[i].reader_sleep = reader_sleep;
     args[i].writer_sleep = writer_sleep;
