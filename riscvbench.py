@@ -2,8 +2,10 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -117,11 +119,11 @@ int main() {
 """,
 }
 
-def sh(cmd: list[str] | str, cwd: Path | None = None) -> None:
+def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
-        p = subprocess.run(cmd, cwd=cwd, shell=True)
+        p = subprocess.run(cmd, cwd=cwd, shell=True, env=env)
     else:
-        p = subprocess.run(cmd, cwd=cwd)
+        p = subprocess.run(cmd, cwd=cwd, env=env)
     if p.returncode != 0:
         raise SystemExit(f"Command failed: {cmd}")
 
@@ -155,6 +157,7 @@ def main():
     ap.add_argument("--tile-elems", type=int, default=1024)
     ap.add_argument("--tiles", type=int, default=50000)
     ap.add_argument("--compute-threads", type=int, default=1, help="Number of parallel compute threads (for matmul_multicore)")
+    ap.add_argument("--cores", type=int, default=None, help="Alias for --compute-threads (number of cores for matmul_multicore)")
     ap.add_argument("--in-depth", type=int, default=2)
     ap.add_argument("--out-depth", type=int, default=2)
     ap.add_argument("--reader-sleep-ns", type=int, default=0)
@@ -168,8 +171,15 @@ def main():
     ap.add_argument("--inst_us", type=float, default=1.0)
     ap.add_argument("--resident_pc_ge", default="0x80000000")
     ap.add_argument("--trace_lines_max", type=int, default=200000)
+    ap.add_argument("--events-max", type=int, default=None, help="Max events to parse for both spike and cpu (0 for no limit)")
 
     args = ap.parse_args()
+    if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
+        raise SystemExit("Use either --cores or --compute-threads (not both with different values)")
+    compute_threads = args.cores if args.cores is not None else args.compute_threads
+    events_max = args.events_max
+    if events_max is None:
+        events_max = args.trace_lines_max
 
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
@@ -221,9 +231,9 @@ def main():
 
         # 2) run spike -> trace
         trace_path = traces_dir / "spike.trace"
-        if args.trace_lines_max > 0:
+        if events_max > 0:
             sh(
-                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {args.trace_lines_max} > {trace_path}",
+                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
                 cwd=run_dir,
             )
         else:
@@ -233,13 +243,19 @@ def main():
             raise SystemExit(f"Spike trace empty: {trace_path}")
 
         # 3) platform adaptor: spike trace -> baseline CSVs
-        sh([
-            "python3", str(adapter_py),
-            "--spike-trace", str(trace_path),
-            "--out-dir", str(inputs_dir),
-            "--inst-us", str(args.inst_us),
-            "--resident-pc-ge", str(args.resident_pc_ge),
-        ], cwd=repo)
+        adapter_env = dict(os.environ)
+        adapter_env["PYTHONPATH"] = f"{repo}:{adapter_env.get('PYTHONPATH', '')}".rstrip(":")
+        sh(
+            [
+                sys.executable, str(adapter_py),
+                "--spike-trace", str(trace_path),
+                "--out-dir", str(inputs_dir),
+                "--inst-us", str(args.inst_us),
+                "--resident-pc-ge", str(args.resident_pc_ge),
+            ],
+            cwd=repo,
+            env=adapter_env,
+        )
 
         state_csv = inputs_dir / "state_intervals.csv"
         resid_csv = inputs_dir / "residency_intervals.csv"
@@ -288,8 +304,8 @@ def main():
             in_depth_final = args.in_depth
             out_depth_final = args.out_depth
             if args.workload == "matmul_multicore":
-                in_depth_final = max(args.in_depth, args.compute_threads)
-                out_depth_final = max(args.out_depth, args.compute_threads)
+                in_depth_final = max(args.in_depth, compute_threads)
+                out_depth_final = max(args.out_depth, compute_threads)
 
             run_cmd = [str(binpath),
                    "--tile-elems", str(args.tile_elems),
@@ -300,7 +316,7 @@ def main():
             
             # Add compute-threads for multicore variant
             if args.workload == "matmul_multicore":
-                run_cmd += ["--compute-threads", str(args.compute_threads)]
+                run_cmd += ["--compute-threads", str(compute_threads)]
             
             if reader_sleep:
                 run_cmd += ["--reader-sleep-ns", str(reader_sleep)]
@@ -313,9 +329,13 @@ def main():
                 raise SystemExit(f"Matmul trace empty: {trace_path}")
 
             # 3) ingest raw trace via Phase-1 CLI (format cpu) into run_dir
-            sh(["python3", str(Path(__file__).resolve().parent / "cli.py"),
-                "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir)
-                ], cwd=repo)
+            ingest_cmd = [
+                sys.executable, str(Path(__file__).resolve().parent / "cli.py"),
+                "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir),
+            ]
+            if events_max is not None:
+                ingest_cmd += ["--events-max", str(events_max)]
+            sh(ingest_cmd, cwd=repo)
 
             # move normalized outputs into inputs_dir expected layout
             normalized_trace = run_dir / "trace.csv"
@@ -354,19 +374,19 @@ def main():
     # 4) Use local Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
     cli_py = Path(__file__).resolve().parent / "cli.py"
 
-    sh(["python3", str(cli_py), "ingest",
+    sh([sys.executable, str(cli_py), "ingest",
         "--trace", str(state_csv),
         "--format", "baseline",
         "--out", str(run_dir)], cwd=repo)
 
-    cls_cmd = ["python3", str(cli_py), "classify",
+    cls_cmd = [sys.executable, str(cli_py), "classify",
                "--in", str(run_dir),
                "--window-us", str(args.time_us)]
     if resid_csv.exists():
         cls_cmd += ["--residency", str(resid_csv)]
     sh(cls_cmd, cwd=repo)
 
-    sh(["python3", str(cli_py), "export",
+    sh([sys.executable, str(cli_py), "export",
         "--in", str(run_dir),
         "--schema", "v1",
         "--format", "csv"], cwd=repo)
