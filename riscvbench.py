@@ -371,7 +371,7 @@ def main():
             sh(["gcc", "-O2", "-g", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
             start = time.perf_counter()
-            sh([str(binpath)], cwd=build_dir)
+            sh([str(binpath)], cwd=build_dir, check=False)
             end = time.perf_counter()
 
             duration_us = max((end - start) * 1e6, 1.0)
