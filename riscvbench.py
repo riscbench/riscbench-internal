@@ -2,8 +2,11 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
+import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -117,11 +120,11 @@ int main() {
 """,
 }
 
-def sh(cmd: list[str] | str, cwd: Path | None = None) -> None:
+def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
-        p = subprocess.run(cmd, cwd=cwd, shell=True)
+        p = subprocess.run(cmd, cwd=cwd, shell=True, env=env)
     else:
-        p = subprocess.run(cmd, cwd=cwd)
+        p = subprocess.run(cmd, cwd=cwd, env=env)
     if p.returncode != 0:
         raise SystemExit(f"Command failed: {cmd}")
 
@@ -135,6 +138,17 @@ def write_workload(build_dir: Path, workload: str, size: str) -> Path:
     cpath = build_dir / f"{workload}.c"
     cpath.write_text(code)
     return cpath
+
+def find_repo_root(start_dir: Path | None = None) -> Path:
+    cwd = (start_dir or Path.cwd()).resolve()
+    for candidate in [cwd, *cwd.parents]:
+        if (candidate / "cli.py").exists() and (candidate / "adapters").is_dir():
+            return candidate
+    module_dir = Path(__file__).resolve().parent
+    if (module_dir / "cli.py").exists() and (module_dir / "adapters").is_dir():
+        return module_dir
+    return cwd
+
 
 def main():
     ap = argparse.ArgumentParser(
@@ -155,6 +169,7 @@ def main():
     ap.add_argument("--tile-elems", type=int, default=1024)
     ap.add_argument("--tiles", type=int, default=50000)
     ap.add_argument("--compute-threads", type=int, default=1, help="Number of parallel compute threads (for matmul_multicore)")
+    ap.add_argument("--cores", type=int, default=None, help="Alias for --compute-threads (number of cores for matmul_multicore)")
     ap.add_argument("--in-depth", type=int, default=2)
     ap.add_argument("--out-depth", type=int, default=2)
     ap.add_argument("--reader-sleep-ns", type=int, default=0)
@@ -168,12 +183,32 @@ def main():
     ap.add_argument("--inst_us", type=float, default=1.0)
     ap.add_argument("--resident_pc_ge", default="0x80000000")
     ap.add_argument("--trace_lines_max", type=int, default=200000)
+    ap.add_argument("--events-max", type=int, default=None, help="Max events to parse for both spike and cpu (0 for no limit)")
+    ap.add_argument(
+        "--repo",
+        default=None,
+        help="Path to Phase-1 repo (overrides auto-detection; can also set RISCVBENCH_REPO)",
+    )
 
     args = ap.parse_args()
+    if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
+        raise SystemExit("Use either --cores or --compute-threads (not both with different values)")
+    compute_threads = args.cores if args.cores is not None else args.compute_threads
+    events_max = args.events_max
+    if events_max is None:
+        events_max = args.trace_lines_max
 
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
-    repo = Path.cwd()
+    repo_override = args.repo or os.environ.get("RISCVBENCH_REPO")
+    if repo_override:
+        repo = Path(repo_override).resolve()
+        if not (repo / "cli.py").exists():
+            raise SystemExit(f"repo missing cli.py: {repo}")
+        if not (repo / "adapters").is_dir():
+            raise SystemExit(f"repo missing adapters/: {repo}")
+    else:
+        repo = find_repo_root()
 
     adapter_spike = repo / "adapters" / "spike_adapter.py"
     adapter_cpu = repo / "adapters" / "cpu_adapter.py"
@@ -206,7 +241,7 @@ def main():
 
         # 1) build workload
         if args.workload == "matmul_multicore":
-            workload_src = repo.parent / "matmul_multicore.c"
+            workload_src = repo / "matmul_multicore.c"
             if not workload_src.exists():
                 raise SystemExit(f"matmul_multicore.c not found: {workload_src}")
             binpath = build_dir / "matmul_multicore"
@@ -221,9 +256,9 @@ def main():
 
         # 2) run spike -> trace
         trace_path = traces_dir / "spike.trace"
-        if args.trace_lines_max > 0:
+        if events_max > 0:
             sh(
-                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {args.trace_lines_max} > {trace_path}",
+                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
                 cwd=run_dir,
             )
         else:
@@ -233,13 +268,19 @@ def main():
             raise SystemExit(f"Spike trace empty: {trace_path}")
 
         # 3) platform adaptor: spike trace -> baseline CSVs
-        sh([
-            "python3", str(adapter_py),
-            "--spike-trace", str(trace_path),
-            "--out-dir", str(inputs_dir),
-            "--inst-us", str(args.inst_us),
-            "--resident-pc-ge", str(args.resident_pc_ge),
-        ], cwd=repo)
+        adapter_env = dict(os.environ)
+        adapter_env["PYTHONPATH"] = f"{repo}:{adapter_env.get('PYTHONPATH', '')}".rstrip(":")
+        sh(
+            [
+                sys.executable, str(adapter_py),
+                "--spike-trace", str(trace_path),
+                "--out-dir", str(inputs_dir),
+                "--inst-us", str(args.inst_us),
+                "--resident-pc-ge", str(args.resident_pc_ge),
+            ],
+            cwd=repo,
+            env=adapter_env,
+        )
 
         state_csv = inputs_dir / "state_intervals.csv"
         resid_csv = inputs_dir / "residency_intervals.csv"
@@ -271,7 +312,7 @@ def main():
                 src_name = "matmul.c"
                 bin_name = "matmul"
             
-            workload_src = repo.parent / src_name
+            workload_src = repo / src_name
             if not workload_src.exists():
                 raise SystemExit(f"{src_name} not found: {workload_src}")
             
@@ -288,8 +329,8 @@ def main():
             in_depth_final = args.in_depth
             out_depth_final = args.out_depth
             if args.workload == "matmul_multicore":
-                in_depth_final = max(args.in_depth, args.compute_threads)
-                out_depth_final = max(args.out_depth, args.compute_threads)
+                in_depth_final = max(args.in_depth, compute_threads)
+                out_depth_final = max(args.out_depth, compute_threads)
 
             run_cmd = [str(binpath),
                    "--tile-elems", str(args.tile_elems),
@@ -300,7 +341,7 @@ def main():
             
             # Add compute-threads for multicore variant
             if args.workload == "matmul_multicore":
-                run_cmd += ["--compute-threads", str(args.compute_threads)]
+                run_cmd += ["--compute-threads", str(compute_threads)]
             
             if reader_sleep:
                 run_cmd += ["--reader-sleep-ns", str(reader_sleep)]
@@ -313,9 +354,13 @@ def main():
                 raise SystemExit(f"Matmul trace empty: {trace_path}")
 
             # 3) ingest raw trace via Phase-1 CLI (format cpu) into run_dir
-            sh(["python3", str(Path(__file__).resolve().parent / "cli.py"),
-                "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir)
-                ], cwd=repo)
+            ingest_cmd = [
+                sys.executable, str(Path(__file__).resolve().parent / "cli.py"),
+                "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir),
+            ]
+            if events_max is not None:
+                ingest_cmd += ["--events-max", str(events_max)]
+            sh(ingest_cmd, cwd=repo)
 
             # move normalized outputs into inputs_dir expected layout
             normalized_trace = run_dir / "trace.csv"
@@ -351,22 +396,32 @@ def main():
         else:
             raise SystemExit(f"cpu target does not support workload: {args.workload}")
 
-    # 4) Use local Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
-    cli_py = Path(__file__).resolve().parent / "cli.py"
+    # 4) Use Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
+    cli_spec = importlib.util.find_spec("cli")
+    if cli_spec is not None and cli_spec.origin is not None:
+        cli_py = Path(cli_spec.origin)
+    else:
+        cli_py = Path(__file__).resolve().parent / "cli.py"
+        if not cli_py.exists():
+            repo_cli = repo / "cli.py"
+            if repo_cli.exists():
+                cli_py = repo_cli
+            else:
+                raise SystemExit("cli.py not found; reinstall riscvbench or run from the repo root")
 
-    sh(["python3", str(cli_py), "ingest",
+    sh([sys.executable, str(cli_py), "ingest",
         "--trace", str(state_csv),
         "--format", "baseline",
         "--out", str(run_dir)], cwd=repo)
 
-    cls_cmd = ["python3", str(cli_py), "classify",
+    cls_cmd = [sys.executable, str(cli_py), "classify",
                "--in", str(run_dir),
                "--window-us", str(args.time_us)]
     if resid_csv.exists():
         cls_cmd += ["--residency", str(resid_csv)]
     sh(cls_cmd, cwd=repo)
 
-    sh(["python3", str(cli_py), "export",
+    sh([sys.executable, str(cli_py), "export",
         "--in", str(run_dir),
         "--schema", "v1",
         "--format", "csv"], cwd=repo)

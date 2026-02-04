@@ -45,7 +45,11 @@ def cmd_ingest(args) -> int:
     
     # Baseline adapter handles both CSV and raw (via CPU adapter)
     try:
-        adapter = BaselineAdapter(str(trace_path), trace_format=trace_format)
+        adapter = BaselineAdapter(
+            str(trace_path),
+            trace_format=trace_format,
+            max_events=args.events_max,
+        )
         df = adapter.load_state_intervals()
     except Exception as e:
         print(f"adapter error: {e}")
@@ -103,6 +107,9 @@ def cmd_ingest(args) -> int:
 
     blank()
     ok(f"parsed {ev_str} events across {n_cores} {core_str}")
+    for core_id in cores:
+        core_events = int((df["core"] == core_id).sum())
+        print(f"  - core {core_id}: {core_events} events")
     blank()
     return 0
 
@@ -249,6 +256,7 @@ def main():
     p_ing.add_argument("--trace", required=True)
     p_ing.add_argument("--format", default="baseline", choices=["baseline", "cpu"])
     p_ing.add_argument("--out", required=True)
+    p_ing.add_argument("--events-max", type=int, default=None, help="Max events to parse (raw/cpu only)")
     p_ing.set_defaults(fn=cmd_ingest)
 
     p_cls = sub.add_parser("classify")
