@@ -155,6 +155,7 @@ def main():
     ap.add_argument("--tile-elems", type=int, default=1024)
     ap.add_argument("--tiles", type=int, default=50000)
     ap.add_argument("--compute-threads", type=int, default=1, help="Number of parallel compute threads (for matmul_multicore)")
+    ap.add_argument("--cores", type=int, default=None, help="Alias for --compute-threads (number of cores for matmul_multicore)")
     ap.add_argument("--in-depth", type=int, default=2)
     ap.add_argument("--out-depth", type=int, default=2)
     ap.add_argument("--reader-sleep-ns", type=int, default=0)
@@ -168,8 +169,15 @@ def main():
     ap.add_argument("--inst_us", type=float, default=1.0)
     ap.add_argument("--resident_pc_ge", default="0x80000000")
     ap.add_argument("--trace_lines_max", type=int, default=200000)
+    ap.add_argument("--events-max", type=int, default=None, help="Max events to parse for both spike and cpu (0 for no limit)")
 
     args = ap.parse_args()
+    if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
+        raise SystemExit("Use either --cores or --compute-threads (not both with different values)")
+    compute_threads = args.cores if args.cores is not None else args.compute_threads
+    events_max = args.events_max
+    if events_max is None:
+        events_max = args.trace_lines_max
 
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
@@ -221,9 +229,9 @@ def main():
 
         # 2) run spike -> trace
         trace_path = traces_dir / "spike.trace"
-        if args.trace_lines_max > 0:
+        if events_max > 0:
             sh(
-                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {args.trace_lines_max} > {trace_path}",
+                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
                 cwd=run_dir,
             )
         else:
@@ -288,8 +296,8 @@ def main():
             in_depth_final = args.in_depth
             out_depth_final = args.out_depth
             if args.workload == "matmul_multicore":
-                in_depth_final = max(args.in_depth, args.compute_threads)
-                out_depth_final = max(args.out_depth, args.compute_threads)
+                in_depth_final = max(args.in_depth, compute_threads)
+                out_depth_final = max(args.out_depth, compute_threads)
 
             run_cmd = [str(binpath),
                    "--tile-elems", str(args.tile_elems),
@@ -300,7 +308,7 @@ def main():
             
             # Add compute-threads for multicore variant
             if args.workload == "matmul_multicore":
-                run_cmd += ["--compute-threads", str(args.compute_threads)]
+                run_cmd += ["--compute-threads", str(compute_threads)]
             
             if reader_sleep:
                 run_cmd += ["--reader-sleep-ns", str(reader_sleep)]
@@ -313,9 +321,13 @@ def main():
                 raise SystemExit(f"Matmul trace empty: {trace_path}")
 
             # 3) ingest raw trace via Phase-1 CLI (format cpu) into run_dir
-            sh(["python3", str(Path(__file__).resolve().parent / "cli.py"),
-                "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir)
-                ], cwd=repo)
+            ingest_cmd = [
+                "python3", str(Path(__file__).resolve().parent / "cli.py"),
+                "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir),
+            ]
+            if events_max is not None:
+                ingest_cmd += ["--events-max", str(events_max)]
+            sh(ingest_cmd, cwd=repo)
 
             # move normalized outputs into inputs_dir expected layout
             normalized_trace = run_dir / "trace.csv"
