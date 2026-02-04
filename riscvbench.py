@@ -139,6 +139,14 @@ def write_workload(build_dir: Path, workload: str, size: str) -> Path:
     cpath.write_text(code)
     return cpath
 
+def find_repo_root() -> Path:
+    candidates = [Path.cwd(), Path(__file__).resolve().parent, Path.cwd().parent]
+    for candidate in candidates:
+        if (candidate / "cli.py").exists() and (candidate / "adapters").is_dir():
+            return candidate
+    return Path(__file__).resolve().parent
+
+
 def main():
     ap = argparse.ArgumentParser(
         prog="riscvbench",
