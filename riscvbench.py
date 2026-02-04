@@ -4,10 +4,13 @@ from __future__ import annotations
 import argparse
 import shutil
 import subprocess
+import time
 from pathlib import Path
 
 # ---- workload generators (same as earlier, minimal set) ----
-WORKLOADS = {"alu", "branch", "memory", "hello"}
+WORKLOADS_SIMPLE = {"alu", "branch", "memory", "hello", "memread", "memwrite", "memcpy"}
+WORKLOADS_SPIKE = WORKLOADS_SIMPLE | {"matmul", "matmul_multicore"}
+WORKLOADS_CPU = WORKLOADS_SIMPLE | {"matmul", "matmul_multicore"}
 SIZES = {"tiny", "small", "med", "large"}
 
 SIZE_PRESETS = {
@@ -56,6 +59,62 @@ int main() {
   return 0;
 }
 """,
+    "matmul": r"""
+#define N DIM
+static int A[N][N];
+static int B[N][N];
+static int C[N][N];
+int main() {
+  for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++) {
+      A[i][j] = i + j;
+      B[i][j] = i - j;
+      C[i][j] = 0;
+    }
+
+  for (int i = 0; i < N; i++)
+    for (int k = 0; k < N; k++)
+      for (int j = 0; j < N; j++)
+        C[i][j] += A[i][k] * B[k][j];
+
+  return C[N - 1][N - 1];
+}
+""",
+    "memread": r"""
+#define N DIM
+static int A[N];
+int main() {
+  for (int i = 0; i < N; i++) A[i] = i;
+  volatile int sum = 0;
+  for (int i = 0; i < ITER; i++) {
+    sum += A[i % N];
+  }
+  return sum;
+}
+""",
+    "memwrite": r"""
+#define N DIM
+static int A[N];
+int main() {
+  for (int i = 0; i < N; i++) A[i] = 0;
+  for (int i = 0; i < ITER; i++) {
+    A[i % N] = i;
+  }
+  return A[N - 1];
+}
+""",
+    "memcpy": r"""
+#define N DIM
+static int A[N];
+static int B[N];
+int main() {
+  for (int i = 0; i < N; i++) A[i] = i;
+  for (int i = 0; i < ITER; i++) {
+    B[i % N] = A[i % N];
+  }
+  return B[N - 1];
+}
+""",
 }
 
 def sh(cmd: list[str] | str, cwd: Path | None = None) -> None:
@@ -78,9 +137,17 @@ def write_workload(build_dir: Path, workload: str, size: str) -> Path:
     return cpath
 
 def main():
-    ap = argparse.ArgumentParser(prog="riscvbench")
+    ap = argparse.ArgumentParser(
+        prog="riscvbench",
+        epilog=(
+            "Workloads by target: spike="
+            + ",".join(sorted(WORKLOADS_SPIKE))
+            + " cpu="
+            + ",".join(sorted(WORKLOADS_CPU))
+        ),
+    )
     ap.add_argument("--target", required=True, choices=["spike", "cpu"])
-    ap.add_argument("--workload", required=True, choices=sorted(WORKLOADS | {"matmul", "matmul_multicore"}))
+    ap.add_argument("--workload", required=True, choices=sorted(WORKLOADS_CPU | WORKLOADS_SPIKE))
     ap.add_argument("--workload_size", required=True, choices=sorted(SIZES))
     ap.add_argument("--time_us", required=True, type=float)
 
@@ -134,10 +201,23 @@ def main():
         if not adapter_py.exists():
             raise SystemExit(f"missing adapter: {adapter_py}")
 
+        if args.workload not in WORKLOADS_SPIKE:
+            raise SystemExit(f"spike target does not support workload: {args.workload}")
+
         # 1) build workload
-        cpath = write_workload(build_dir, args.workload, args.workload_size)
-        binpath = build_dir / args.workload
-        sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
+        if args.workload == "matmul_multicore":
+            workload_src = repo.parent / "matmul_multicore.c"
+            if not workload_src.exists():
+                raise SystemExit(f"matmul_multicore.c not found: {workload_src}")
+            binpath = build_dir / "matmul_multicore"
+            sh(
+                ["riscv64-unknown-elf-gcc", "-O2", "-static", "-pthread", str(workload_src), "-o", str(binpath)],
+                cwd=build_dir,
+            )
+        else:
+            cpath = write_workload(build_dir, args.workload, args.workload_size)
+            binpath = build_dir / args.workload
+            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
         # 2) run spike -> trace
         trace_path = traces_dir / "spike.trace"
@@ -170,87 +250,106 @@ def main():
 
     elif args.target == "cpu":
         # Local matmul/matmul_multicore workload
-        adapter_py = adapter_cpu
-        if not adapter_py.exists():
-            raise SystemExit(f"missing adapter: {adapter_py}")
+        if args.workload in {"matmul", "matmul_multicore"}:
+            adapter_py = adapter_cpu
+            if not adapter_py.exists():
+                raise SystemExit(f"missing adapter: {adapter_py}")
 
-        # Determine matmul parameters
-        reader_sleep = args.reader_sleep_ns
-        writer_sleep = args.writer_sleep_ns
-        if args.underflow:
-            reader_sleep = max(reader_sleep, 2000)
-        if args.overflow:
-            writer_sleep = max(writer_sleep, 5000)
+            # Determine matmul parameters
+            reader_sleep = args.reader_sleep_ns
+            writer_sleep = args.writer_sleep_ns
+            if args.underflow:
+                reader_sleep = max(reader_sleep, 2000)
+            if args.overflow:
+                writer_sleep = max(writer_sleep, 5000)
 
-        # 1) Select and build workload
-        if args.workload == "matmul_multicore":
-            src_name = "matmul_multicore.c"
-            bin_name = "matmul_multicore"
+            # 1) Select and build workload
+            if args.workload == "matmul_multicore":
+                src_name = "matmul_multicore.c"
+                bin_name = "matmul_multicore"
+            else:
+                src_name = "matmul.c"
+                bin_name = "matmul"
+            
+            workload_src = repo.parent / src_name
+            if not workload_src.exists():
+                raise SystemExit(f"{src_name} not found: {workload_src}")
+            
+            binpath = build_dir / bin_name
+            sh(["gcc", "-O2", "-g", "-pthread", str(workload_src), "-o", str(binpath)], cwd=repo)
+
+            # 2) run matmul/matmul_multicore -> raw trace
+            trace_path = traces_dir / f"{bin_name}.trace"
+            # pick sensible tile counts for workload sizes unless user provided explicit tiles
+            size_tiles = {"tiny": 10, "small": 100, "med": 1000, "large": 5000}
+            tiles_count = args.tiles if args.tiles != 50000 else size_tiles.get(args.workload_size, args.tiles)
+
+            # Scale ring depths for multicore variant
+            in_depth_final = args.in_depth
+            out_depth_final = args.out_depth
+            if args.workload == "matmul_multicore":
+                in_depth_final = max(args.in_depth, args.compute_threads)
+                out_depth_final = max(args.out_depth, args.compute_threads)
+
+            run_cmd = [str(binpath),
+                   "--tile-elems", str(args.tile_elems),
+                   "--tiles", str(tiles_count),
+                   "--in-depth", str(in_depth_final),
+                   "--out-depth", str(out_depth_final),
+                   "--trace", str(trace_path)]
+            
+            # Add compute-threads for multicore variant
+            if args.workload == "matmul_multicore":
+                run_cmd += ["--compute-threads", str(args.compute_threads)]
+            
+            if reader_sleep:
+                run_cmd += ["--reader-sleep-ns", str(reader_sleep)]
+            if writer_sleep:
+                run_cmd += ["--writer-sleep-ns", str(writer_sleep)]
+
+            sh(run_cmd, cwd=repo)
+
+            if not trace_path.exists() or trace_path.stat().st_size == 0:
+                raise SystemExit(f"Matmul trace empty: {trace_path}")
+
+            # 3) ingest raw trace via Phase-1 CLI (format cpu) into run_dir
+            sh(["python3", str(Path(__file__).resolve().parent / "cli.py"),
+                "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir)
+                ], cwd=repo)
+
+            # move normalized outputs into inputs_dir expected layout
+            normalized_trace = run_dir / "trace.csv"
+            normalized_resid = run_dir / "residency.csv"
+            if not normalized_trace.exists():
+                raise SystemExit(f"Normalized trace not found: {normalized_trace}")
+            inputs_dir.mkdir(parents=True, exist_ok=True)
+            (inputs_dir / "state_intervals.csv").write_bytes(normalized_trace.read_bytes())
+            if normalized_resid.exists():
+                (inputs_dir / "residency_intervals.csv").write_bytes(normalized_resid.read_bytes())
+            else:
+                # create empty residency to satisfy downstream (engine will handle missing)
+                (inputs_dir / "residency_intervals.csv").write_text("start_us,end_us,core,resident\n")
+            # set state/resid paths for downstream
+            state_csv = inputs_dir / "state_intervals.csv"
+            resid_csv = inputs_dir / "residency_intervals.csv"
+        elif args.workload in WORKLOADS_SIMPLE:
+            # For other CPU workloads, run a simple binary and emit a single active interval.
+            cpath = write_workload(build_dir, args.workload, args.workload_size)
+            binpath = build_dir / args.workload
+            sh(["gcc", "-O2", "-g", str(cpath), "-o", str(binpath)], cwd=build_dir)
+
+            start = time.perf_counter()
+            sh([str(binpath)], cwd=build_dir)
+            end = time.perf_counter()
+
+            duration_us = max((end - start) * 1e6, 1.0)
+            inputs_dir.mkdir(parents=True, exist_ok=True)
+            state_csv = inputs_dir / "state_intervals.csv"
+            resid_csv = inputs_dir / "residency_intervals.csv"
+            state_csv.write_text("start_us,end_us,core,state\n0.0,{:.3f},0,active\n".format(duration_us))
+            resid_csv.write_text("start_us,end_us,core,resident\n0.0,{:.3f},0,1\n".format(duration_us))
         else:
-            src_name = "matmul.c"
-            bin_name = "matmul"
-        
-        workload_src = repo.parent / src_name
-        if not workload_src.exists():
-            raise SystemExit(f"{src_name} not found: {workload_src}")
-        
-        binpath = build_dir / bin_name
-        sh(["gcc", "-O2", "-g", "-pthread", str(workload_src), "-o", str(binpath)], cwd=repo)
-
-        # 2) run matmul/matmul_multicore -> raw trace
-        trace_path = traces_dir / f"{bin_name}.trace"
-        # pick sensible tile counts for workload sizes unless user provided explicit tiles
-        size_tiles = {"tiny": 10, "small": 100, "med": 1000, "large": 5000}
-        tiles_count = args.tiles if args.tiles != 50000 else size_tiles.get(args.workload_size, args.tiles)
-
-        # Scale ring depths for multicore variant
-        in_depth_final = args.in_depth
-        out_depth_final = args.out_depth
-        if args.workload == "matmul_multicore":
-            in_depth_final = max(args.in_depth, args.compute_threads)
-            out_depth_final = max(args.out_depth, args.compute_threads)
-
-        run_cmd = [str(binpath),
-               "--tile-elems", str(args.tile_elems),
-               "--tiles", str(tiles_count),
-               "--in-depth", str(in_depth_final),
-               "--out-depth", str(out_depth_final),
-               "--trace", str(trace_path)]
-        
-        # Add compute-threads for multicore variant
-        if args.workload == "matmul_multicore":
-            run_cmd += ["--compute-threads", str(args.compute_threads)]
-        
-        if reader_sleep:
-            run_cmd += ["--reader-sleep-ns", str(reader_sleep)]
-        if writer_sleep:
-            run_cmd += ["--writer-sleep-ns", str(writer_sleep)]
-
-        sh(run_cmd, cwd=repo)
-
-        if not trace_path.exists() or trace_path.stat().st_size == 0:
-            raise SystemExit(f"Matmul trace empty: {trace_path}")
-
-        # 3) ingest raw trace via Phase-1 CLI (format cpu) into run_dir
-        sh(["python3", str(Path(__file__).resolve().parent / "cli.py"),
-            "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir)
-            ], cwd=repo)
-
-        # move normalized outputs into inputs_dir expected layout
-        normalized_trace = run_dir / "trace.csv"
-        normalized_resid = run_dir / "residency.csv"
-        if not normalized_trace.exists():
-            raise SystemExit(f"Normalized trace not found: {normalized_trace}")
-        inputs_dir.mkdir(parents=True, exist_ok=True)
-        (inputs_dir / "state_intervals.csv").write_bytes(normalized_trace.read_bytes())
-        if normalized_resid.exists():
-            (inputs_dir / "residency_intervals.csv").write_bytes(normalized_resid.read_bytes())
-        else:
-            # create empty residency to satisfy downstream (engine will handle missing)
-            (inputs_dir / "residency_intervals.csv").write_text("start_us,end_us,core,resident\n")
-        # set state/resid paths for downstream
-        state_csv = inputs_dir / "state_intervals.csv"
-        resid_csv = inputs_dir / "residency_intervals.csv"
+            raise SystemExit(f"cpu target does not support workload: {args.workload}")
 
     # 4) Use local Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
     cli_py = Path(__file__).resolve().parent / "cli.py"

@@ -129,7 +129,7 @@ class SpikePlatformAdapter:
                 rs = float(open_seg[core])
                 re = t0
                 if re > rs:
-                    rows.append({"start_us": rs, "end_us": re, "core": core})
+                    rows.append({"start_us": rs, "end_us": re, "core": core, "resident": 1})
                 open_seg[core] = None
 
         # close any open segments at end
@@ -138,11 +138,16 @@ class SpikePlatformAdapter:
                 continue
             end_t = t_by_core.get(core, rs)
             if end_t > rs:
-                rows.append({"start_us": float(rs), "end_us": float(end_t), "core": int(core)})
+                rows.append({
+                    "start_us": float(rs),
+                    "end_us": float(end_t),
+                    "core": int(core),
+                    "resident": 1,
+                })
 
         rdf = pd.DataFrame(rows)
         if len(rdf) == 0:
-            rdf = pd.DataFrame(columns=["start_us", "end_us", "core"])
+            rdf = pd.DataFrame(columns=["start_us", "end_us", "core", "resident"])
 
         return validate_resid_df(rdf)
 
