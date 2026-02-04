@@ -1,15 +1,15 @@
 {
   "schema_version": 1,
   "window_us": 256.0,
-  "windows_total": 8,
-  "resident_windows_total": 8,
+  "windows_total": 9,
+  "resident_windows_total": 9,
   "cores": [
     0
   ],
-  "sit_median": 0.509453240715072,
-  "sit_p95": 0.822122844827586,
-  "residency_idle_avg": 0.42433388809709405,
+  "sit_median": 0.5140562248995983,
+  "sit_p95": 0.9230283911671924,
+  "residency_idle_avg": 0.3823689439867808,
   "residency_stall_avg": 0.0,
-  "residency_active_avg": 0.5756661119029058,
+  "residency_active_avg": 0.6176310560132191,
   "used_residency_file": true
 }
