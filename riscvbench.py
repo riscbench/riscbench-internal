@@ -192,7 +192,7 @@ def main():
 
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
-    repo = find_repo_root()
+    repo = Path(__file__).resolve().parent
 
     adapter_spike = repo / "adapters" / "spike_adapter.py"
     adapter_cpu = repo / "adapters" / "cpu_adapter.py"
