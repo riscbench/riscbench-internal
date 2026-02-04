@@ -84,6 +84,28 @@ python tests/run_golden_suite.py --outdir golden_out
 ### 9. CLI pipeline
 - `cli.py` (ingest → classify → export)
 
+## Spike + CPU workloads (riscvbench.py)
+
+You can generate Spike traces and run them through the same Phase-1 ingest/classify/export
+pipeline. Shared workloads for both CPU and Spike include `alu`, `branch`, `memory`, `memread`,
+`memwrite`, `memcpy`, and `hello`. Both targets support `matmul` and `matmul_multicore` as
+long as the `matmul_multicore.c` source is available. For a Spike matmul workload:
+
+```bash
+python riscvbench.py \
+  --target spike \
+  --workload matmul \
+  --workload_size small \
+  --time_us 256 \
+  --pk /path/to/riscv-pk/build/pk
+```
+
+This will emit outputs under `runs/spike/matmul/<size>/` including `summary.json` and
+`windows.csv` for analysis. The generated Spike residency intervals include a `resident=1`
+marker to match the CPU-style residency CSV schema. The CPU target supports `matmul` and
+`matmul_multicore` with detailed traces, and also supports the shared simple workloads
+by emitting a single active interval based on wall time.
+
 ## Notes
 - Baseline adapter uses CSV only as a Phase-1 deterministic reference.
 - Future phases can add new adapters without changing the engine contract.
