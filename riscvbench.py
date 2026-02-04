@@ -128,6 +128,14 @@ def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -
     if p.returncode != 0:
         raise SystemExit(f"Command failed: {cmd}")
 
+
+def sh_allow_fail(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> int:
+    if isinstance(cmd, str):
+        p = subprocess.run(cmd, cwd=cwd, shell=True, env=env)
+    else:
+        p = subprocess.run(cmd, cwd=cwd, env=env)
+    return p.returncode
+
 def ensure_tool(name: str):
     if shutil.which(name) is None:
         raise SystemExit(f"Tool not found in PATH: {name}")
