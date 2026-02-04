@@ -5,6 +5,7 @@ import argparse
 import os
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -246,7 +247,7 @@ def main():
         adapter_env["PYTHONPATH"] = f"{repo}:{adapter_env.get('PYTHONPATH', '')}".rstrip(":")
         sh(
             [
-                "python3", str(adapter_py),
+                sys.executable, str(adapter_py),
                 "--spike-trace", str(trace_path),
                 "--out-dir", str(inputs_dir),
                 "--inst-us", str(args.inst_us),
@@ -329,7 +330,7 @@ def main():
 
             # 3) ingest raw trace via Phase-1 CLI (format cpu) into run_dir
             ingest_cmd = [
-                "python3", str(Path(__file__).resolve().parent / "cli.py"),
+                sys.executable, str(Path(__file__).resolve().parent / "cli.py"),
                 "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir),
             ]
             if events_max is not None:
@@ -373,19 +374,19 @@ def main():
     # 4) Use local Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
     cli_py = Path(__file__).resolve().parent / "cli.py"
 
-    sh(["python3", str(cli_py), "ingest",
+    sh([sys.executable, str(cli_py), "ingest",
         "--trace", str(state_csv),
         "--format", "baseline",
         "--out", str(run_dir)], cwd=repo)
 
-    cls_cmd = ["python3", str(cli_py), "classify",
+    cls_cmd = [sys.executable, str(cli_py), "classify",
                "--in", str(run_dir),
                "--window-us", str(args.time_us)]
     if resid_csv.exists():
         cls_cmd += ["--residency", str(resid_csv)]
     sh(cls_cmd, cwd=repo)
 
-    sh(["python3", str(cli_py), "export",
+    sh([sys.executable, str(cli_py), "export",
         "--in", str(run_dir),
         "--schema", "v1",
         "--format", "csv"], cwd=repo)
