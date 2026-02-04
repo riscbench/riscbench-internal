@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import time
@@ -117,11 +118,11 @@ int main() {
 """,
 }
 
-def sh(cmd: list[str] | str, cwd: Path | None = None) -> None:
+def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
-        p = subprocess.run(cmd, cwd=cwd, shell=True)
+        p = subprocess.run(cmd, cwd=cwd, shell=True, env=env)
     else:
-        p = subprocess.run(cmd, cwd=cwd)
+        p = subprocess.run(cmd, cwd=cwd, env=env)
     if p.returncode != 0:
         raise SystemExit(f"Command failed: {cmd}")
 
@@ -241,13 +242,19 @@ def main():
             raise SystemExit(f"Spike trace empty: {trace_path}")
 
         # 3) platform adaptor: spike trace -> baseline CSVs
-        sh([
-            "python3", str(adapter_py),
-            "--spike-trace", str(trace_path),
-            "--out-dir", str(inputs_dir),
-            "--inst-us", str(args.inst_us),
-            "--resident-pc-ge", str(args.resident_pc_ge),
-        ], cwd=repo)
+        adapter_env = dict(os.environ)
+        adapter_env["PYTHONPATH"] = f"{repo}:{adapter_env.get('PYTHONPATH', '')}".rstrip(":")
+        sh(
+            [
+                "python3", str(adapter_py),
+                "--spike-trace", str(trace_path),
+                "--out-dir", str(inputs_dir),
+                "--inst-us", str(args.inst_us),
+                "--resident-pc-ge", str(args.resident_pc_ge),
+            ],
+            cwd=repo,
+            env=adapter_env,
+        )
 
         state_csv = inputs_dir / "state_intervals.csv"
         resid_csv = inputs_dir / "residency_intervals.csv"
