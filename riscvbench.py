@@ -198,6 +198,7 @@ def main():
     if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
         raise SystemExit("Use either --cores or --compute-threads (not both with different values)")
     compute_threads = args.cores if args.cores is not None else args.compute_threads
+    user_events_max = args.events_max
     events_max = args.events_max
     if events_max is None:
         events_max = args.trace_lines_max
@@ -299,6 +300,18 @@ def main():
             if args.overflow:
                 writer_sleep = max(writer_sleep, 5000)
 
+            # For multicore, add practical default pressure when no explicit knobs are set,
+            # so SIT is less likely to clamp at 1.0 in every window.
+            if (
+                args.workload == "matmul_multicore"
+                and not args.underflow
+                and not args.overflow
+                and args.reader_sleep_ns == 0
+                and args.writer_sleep_ns == 0
+            ):
+                reader_sleep = 1000
+                writer_sleep = 3000
+
             # 1) Select and build workload
             if args.workload == "matmul_multicore":
                 src_name = "matmul_multicore.c"
@@ -322,12 +335,10 @@ def main():
             if args.tiles == 50000 and events_max is not None and events_max > 0:
                 tiles_count = events_max
 
-            # Scale ring depths for multicore variant
+            # Keep user-selected ring depths. Over-scaling these to core-count can hide
+            # queue pressure and produce unrealistically perfect SIT.
             in_depth_final = args.in_depth
             out_depth_final = args.out_depth
-            if args.workload == "matmul_multicore":
-                in_depth_final = max(args.in_depth, compute_threads)
-                out_depth_final = max(args.out_depth, compute_threads)
 
             run_cmd = [str(binpath),
                    "--tile-elems", str(args.tile_elems),
@@ -376,7 +387,8 @@ def main():
             resid_csv = inputs_dir / "residency_intervals.csv"
             needs_baseline_ingest = False
         elif args.workload in WORKLOADS_SIMPLE:
-            # For other CPU workloads, run a simple binary and emit a single active interval.
+            # For simple CPU workloads, run the binary and emit a dense synthetic timeline
+            # so parsed event volume is comparable to Spike traces.
             cpath = write_workload(build_dir, args.workload, args.workload_size)
             binpath = build_dir / args.workload
             sh(["gcc", "-O2", "-g", str(cpath), "-o", str(binpath)], cwd=build_dir)
@@ -389,16 +401,36 @@ def main():
             inputs_dir.mkdir(parents=True, exist_ok=True)
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
+
+            # If user requested --events-max, honor it. Otherwise use practical defaults
+            # per workload size that are near observed Spike event volumes.
+            default_simple_events = {
+                "tiny": 12_000,
+                "small": 48_000,
+                "med": 96_000,
+                "large": 192_000,
+            }
+            if user_events_max is not None and user_events_max > 0:
+                n_events = int(user_events_max)
+            else:
+                n_events = int(default_simple_events.get(args.workload_size, 48_000))
+
             depth_total = max(1, args.in_depth + args.out_depth)
-            active_us = duration_us * (args.in_depth / depth_total)
-            idle_us = max(0.0, duration_us - active_us)
+            active_ratio = args.in_depth / depth_total
+            active_ratio = min(max(active_ratio, 0.05), 0.95)
+
+            step_us = max(duration_us / max(n_events, 1), 1e-6)
+            t = 0.0
             lines = ["start_us,end_us,core,state"]
-            if active_us > 0:
-                lines.append("0.0,{:.3f},0,active".format(active_us))
-            if idle_us > 0:
-                lines.append("{:.3f},{:.3f},0,idle".format(active_us, duration_us))
+            for i in range(n_events):
+                t_next = duration_us if i == n_events - 1 else min(duration_us, t + step_us)
+                # periodic active/idle pattern with overall active ratio control
+                state = "active" if ((i * 9973) % 10000) < int(active_ratio * 10000) else "idle"
+                lines.append(f"{t:.6f},{t_next:.6f},0,{state}")
+                t = t_next
+
             state_csv.write_text("\n".join(lines) + "\n")
-            resid_csv.write_text("start_us,end_us,core,resident\n0.0,{:.3f},0,1\n".format(duration_us))
+            resid_csv.write_text("start_us,end_us,core,resident\n0.0,{:.6f},0,1\n".format(duration_us))
         else:
             raise SystemExit(f"cpu target does not support workload: {args.workload}")
 
