@@ -115,7 +115,7 @@ by emitting a single active interval based on wall time.
   pip install -e .
   ```
 - `riscvbench` supports `--cores` (alias for `--compute-threads`) and `--events-max` (cap events for both Spike and CPU parsing). Use `riscvbench --help` after reinstalling to confirm the flags.
-- For CPU simple workloads (`alu`, `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `hello`), `riscvbench` emits a dense synthetic CPU timeline after running the binary so parsed event counts are in the same practical range as Spike (about 48k by default for `small`). Use `--events-max` to force an exact count target on both targets.
+- For CPU simple workloads (`alu`, `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `hello`), `riscvbench` emits a dense synthetic CPU timeline after running the binary so parsed event counts are in the same practical range as Spike (about 48k by default for `small`). `--underflow` / `--overflow` now also inject deterministic stall share for this synthetic path so `residency_stall` reacts on simple workloads. Use `--events-max` to force an exact count target on both targets.
 - `--cores` only affects `matmul_multicore`; it is ignored for single-core/simple workloads.
 - If `riscvbench --help` still shows old flags after reinstalling, verify which module is being loaded and reinstall in the same venv:
   ```bash

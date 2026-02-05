@@ -591,13 +591,34 @@ def main():
             active_ratio = args.in_depth / depth_total
             active_ratio = min(max(active_ratio, 0.05), 0.95)
 
+            # Simple-workload pressure modeling:
+            # map underflow/overflow knobs to explicit stall share so residency_stall reacts.
+            stall_ratio = 0.0
+            if args.underflow:
+                stall_ratio += 0.15
+            if args.overflow:
+                stall_ratio += 0.15
+            stall_ratio += min(float(args.reader_sleep_ns) / 100000.0, 0.15)
+            stall_ratio += min(float(args.writer_sleep_ns) / 100000.0, 0.15)
+            stall_ratio = min(stall_ratio, 0.7)
+            active_ratio = min(active_ratio, max(0.05, 1.0 - stall_ratio - 0.05))
+            idle_ratio = max(0.0, 1.0 - active_ratio - stall_ratio)
+
             step_us = max(duration_us / max(n_events, 1), 1e-6)
             t = 0.0
             lines = ["start_us,end_us,core,state"]
             for i in range(n_events):
                 t_next = duration_us if i == n_events - 1 else min(duration_us, t + step_us)
-                # periodic active/idle pattern with overall active ratio control
-                state = "active" if ((i * 9973) % 10000) < int(active_ratio * 10000) else "idle"
+                # deterministic 3-way distribution (active/stall/idle)
+                v = (i * 9973) % 10000
+                a_th = int(active_ratio * 10000)
+                s_th = a_th + int(stall_ratio * 10000)
+                if v < a_th:
+                    state = "active"
+                elif v < s_th:
+                    state = "stall"
+                else:
+                    state = "idle"
                 lines.append(f"{t:.6f},{t_next:.6f},0,{state}")
                 t = t_next
 

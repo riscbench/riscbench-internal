@@ -120,7 +120,14 @@ class CPUAdapter:
                 interval_end = next_ts
                 interval_start = ts
                 idle_start = None
-                if gap_us > self._idle_gap_us and event_type not in ('THREAD_START', 'THREAD_END'):
+                # Only split long ACTIVE gaps into active+idle.
+                # For pressure events (stall), keep the full interval as stall so
+                # underflow/overflow contributes to residency_stall instead of idle.
+                if (
+                    gap_us > self._idle_gap_us
+                    and event_type not in ('THREAD_START', 'THREAD_END')
+                    and state == 'active'
+                ):
                     interval_end = ts + self._idle_gap_us
                     idle_start = interval_end
 
