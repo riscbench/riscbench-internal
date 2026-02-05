@@ -18,15 +18,19 @@ from ingest.ingest_api import validate_state_df, validate_resid_df
 # Example spike -l line:
 # core   0: 0x0000000080000214 (0x00000413) li      s0, 0
 SPIKE_LINE_RE = re.compile(
-    # Some Spike builds emit: "core   0: 0x... (0x...) add ..."
-    # Others emit:          "core   0: 3 0x... (0x...) add ..." (privilege level token)
-    r"^\s*core\s+(?P<core>\d+):\s+(?:\d+\s+)?0x(?P<pc>[0-9a-fA-F]+)\s+\(0x(?P<insn>[0-9a-fA-F]+)\)\s+(?P<mnemonic>\S+)"
+    # Common Spike commit-log line (allow optional privilege token and mnemonic):
+    #   core   0: 0x... (0x...) add ...
+    #   core   0: 3 0x... (0x...)
+    r"(?:core|hart)\s+(?P<core>\d+):\s*(?:\d+\s+)?(?:pc\s+)?0x(?P<pc>[0-9a-fA-F]{8,16})(?:\s+\(0x(?P<insn>[0-9a-fA-F]+)\))?(?:\s+(?P<mnemonic>\S+))?"
 )
 
 
-# Fallback parser for Spike variants that do not include full disassembly.
-CORE_FALLBACK_RE = re.compile(r"core\s+(?P<core>\d+):")
-PC_AFTER_CORE_RE = re.compile(r"(?:0x)?(?P<pc>[0-9a-fA-F]{8,16})")
+# Fallback parser for Spike variants that do not include an (0xINSN) tuple.
+CORE_FALLBACK_RE = re.compile(r"(?:core|hart)\s+(?P<core>\d+):")
+PC_AFTER_CORE_RE = re.compile(r"0x(?P<pc>[0-9a-fA-F]{8,16})")
+
+GENERIC_CORE_RE = re.compile(r"(?:core|hart)\D*(?P<core>\d+)", re.IGNORECASE)
+HEX_TOKEN_RE = re.compile(r"0x(?P<hex>[0-9a-fA-F]{8,16})")
 
 # Very simple heuristic: treat memory ops as "stall" else "active"
 MEM_MNEMONICS_PREFIX = (
@@ -63,9 +67,18 @@ class SpikePlatformAdapter:
         Fallback parser extracts core+pc from minimal commit-log lines so
         workloads still produce events even when mnemonic text is absent.
         """
+        # Defensive fallback: if module-level regexes are missing/stale in an
+        # older installed copy, compile local patterns so parsing still works.
+        generic_core_re = globals().get("GENERIC_CORE_RE") or re.compile(
+            r"(?:core|hart)\D*(?P<core>\d+)", re.IGNORECASE
+        )
+        hex_token_re = globals().get("HEX_TOKEN_RE") or re.compile(
+            r"0x(?P<hex>[0-9a-fA-F]{8,16})"
+        )
+
         with open(self.spike_trace_path, "r", errors="ignore") as f:
             for line in f:
-                m = SPIKE_LINE_RE.match(line)
+                m = SPIKE_LINE_RE.search(line)
                 if m:
                     core = int(m.group("core"))
                     pc = int(m.group("pc"), 16)
@@ -74,21 +87,39 @@ class SpikePlatformAdapter:
                     continue
 
                 core_m = CORE_FALLBACK_RE.search(line)
-                if not core_m:
-                    continue
-                core = int(core_m.group("core"))
-                tail = line[core_m.end():]
-                pc_m = PC_AFTER_CORE_RE.search(tail)
-                if not pc_m:
+                if core_m:
+                    core = int(core_m.group("core"))
+                    tail = line[core_m.end():]
+                    pc_m = PC_AFTER_CORE_RE.search(tail)
+                    if pc_m:
+                        try:
+                            pc = int(pc_m.group("pc"), 16)
+                        except ValueError:
+                            pc = None
+                        if pc is not None:
+                            yield core, pc, ""
+                            continue
+
+                # Ultra-relaxed fallback for Spike variants with unusual formatting:
+                # - core token may appear without colon
+                # - line may omit decoded instruction tuple
+                # - only a PC-like 0x........ token is available
+                # This is Spike-only fallback and does not affect other targets.
+                core_guess = 0
+                generic_core_m = generic_core_re.search(line)
+                if generic_core_m:
+                    try:
+                        core_guess = int(generic_core_m.group("core"))
+                    except ValueError:
+                        core_guess = 0
+                hexes = hex_token_re.findall(line)
+                if not hexes:
                     continue
                 try:
-                    pc = int(pc_m.group("pc"), 16)
+                    pc_guess = int(hexes[0], 16)
                 except ValueError:
                     continue
-                core = int(m.group("core"))
-                pc = int(m.group("pc"), 16)
-                mnemonic = m.group("mnemonic") or ""
-                yield core, pc, mnemonic
+                yield core_guess, pc_guess, ""
 
     def build_state_intervals(self) -> pd.DataFrame:
         """
