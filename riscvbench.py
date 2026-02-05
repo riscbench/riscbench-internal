@@ -219,6 +219,29 @@ def apply_practical_projection(
     _write_csv_rows(state_csv, state_fields, new_state)
     _write_csv_rows(resid_csv, resid_fields, new_resid)
 
+
+def calibrate_spike_cpu_style(state_csv: Path, resid_csv: Path, workload_size: str, cores: int) -> None:
+    """
+    Calibrate Spike post-processing to follow CPU simple-workload style semantics:
+    - favor active/idle split (minimal synthetic stall)
+    - keep residency fully resident
+    - project single-core traces when multi-core requested
+    """
+    idle_by_size = {
+        "tiny": 0.45,
+        "small": 0.50,
+        "med": 0.50,
+        "large": 0.50,
+    }
+    idle_inject_frac = float(idle_by_size.get(workload_size, 0.50))
+    apply_practical_projection(
+        state_csv,
+        resid_csv,
+        cores=max(1, cores),
+        idle_inject_frac=idle_inject_frac,
+        residency_keep_frac=1.0,
+    )
+
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
         p = subprocess.run(cmd, cwd=cwd, shell=True, env=env)
@@ -486,7 +509,12 @@ def main():
                 f"Inspect trace at {trace_path}. First lines:\n{trace_preview}"
             )
 
-        apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
+        calibrate_spike_cpu_style(
+            state_csv,
+            resid_csv,
+            workload_size=args.workload_size,
+            cores=max(1, compute_threads),
+        )
 
     elif args.target == "cpu":
         # Local matmul/matmul_multicore workload

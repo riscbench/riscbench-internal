@@ -37,6 +37,13 @@ MEM_MNEMONICS_PREFIX = (
     "flw", "fld", "fsw", "fsd",
 )
 
+# CPU-style calibration: treat regular load/store instructions as active work
+# (not pipeline stall), and reserve "stall" for explicit waiting/synchronization
+# instructions that better match software-visible blocked time.
+STALL_MNEMONICS = {
+    "wfi", "fence", "fence.i",
+}
+
 @dataclass
 class SpikeParseConfig:
     inst_us: float = 1.0
@@ -115,6 +122,18 @@ class SpikePlatformAdapter:
                     continue
                 yield core, pc, ""
 
+    @staticmethod
+    def _classify_state(mnemonic: str) -> str:
+        m = (mnemonic or "").strip().lower()
+        if not m:
+            return "active"
+        if m in STALL_MNEMONICS:
+            return "stall"
+        # CPU-style trace semantics: memory ops are still useful executed work.
+        if m.startswith(MEM_MNEMONICS_PREFIX):
+            return "active"
+        return "active"
+
     def build_state_intervals(self) -> pd.DataFrame:
         """
         Convert instruction stream into per-core state intervals.
@@ -130,7 +149,7 @@ class SpikePlatformAdapter:
             t1 = t0 + inst_us
             t_by_core[core] = t1
 
-            state = "stall" if mnemonic.startswith(MEM_MNEMONICS_PREFIX) else "active"
+            state = self._classify_state(mnemonic)
             rows.append({"start_us": t0, "end_us": t1, "core": core, "state": state})
 
         df = pd.DataFrame(rows)
