@@ -15,6 +15,7 @@ from pathlib import Path
 WORKLOADS_SIMPLE = {"alu", "branch", "memory", "hello", "memread", "memwrite", "memcpy"}
 WORKLOADS_SPIKE = WORKLOADS_SIMPLE | {"matmul", "matmul_multicore"}
 WORKLOADS_CPU = WORKLOADS_SIMPLE | {"matmul", "matmul_multicore"}
+PRACTICAL_WORKLOADS = ["branch", "memory", "memread", "memwrite", "memcpy", "matmul", "matmul_multicore"]
 SIZES = {"tiny", "small", "med", "large"}
 
 SIZE_PRESETS = {
@@ -262,10 +263,12 @@ def main():
             + ",".join(sorted(WORKLOADS_CPU))
         ),
     )
-    ap.add_argument("--target", required=True, choices=["spike", "cpu"])
-    ap.add_argument("--workload", required=True, choices=sorted(WORKLOADS_CPU | WORKLOADS_SPIKE))
-    ap.add_argument("--workload_size", required=True, choices=sorted(SIZES))
-    ap.add_argument("--time_us", required=True, type=float)
+    ap.add_argument("--target", default="cpu", choices=["spike", "cpu", "both"])
+    ap.add_argument("--workload", default="matmul_multicore", choices=sorted((WORKLOADS_CPU | WORKLOADS_SPIKE) | {"all"}))
+    ap.add_argument("--workload_size", default="small", choices=sorted(SIZES))
+    ap.add_argument("--time_us", default=256.0, type=float)
+    ap.add_argument("--practical", action="store_true",
+                    help="Run practical presets. If --target/--workload are omitted, runs all practical workloads on both spike+cpu.")
 
     # Matmul/workload-specific args (for --target cpu)
     ap.add_argument("--tile-elems", type=int, default=1024)
@@ -295,6 +298,76 @@ def main():
     if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
         raise SystemExit("Use either --cores or --compute-threads (not both with different values)")
     compute_threads = args.cores if args.cores is not None else args.compute_threads
+
+    if args.practical:
+        if "--target" not in sys.argv:
+            args.target = "both"
+        if "--workload" not in sys.argv:
+            args.workload = "all"
+        if "--expected-work-rate" not in sys.argv:
+            args.expected_work_rate = 1.15
+        if "--events-max" not in sys.argv:
+            args.events_max = 2000
+        if "--underflow" not in sys.argv:
+            args.underflow = True
+        if "--overflow" not in sys.argv:
+            args.overflow = True
+        if "--reader-sleep-ns" not in sys.argv:
+            args.reader_sleep_ns = max(args.reader_sleep_ns, 2000)
+        if "--writer-sleep-ns" not in sys.argv:
+            args.writer_sleep_ns = max(args.writer_sleep_ns, 5000)
+
+    if args.target == "both" or args.workload == "all":
+        targets = ["spike", "cpu"] if args.target == "both" else [args.target]
+        if args.workload == "all":
+            workloads = list(PRACTICAL_WORKLOADS if args.practical else sorted(WORKLOADS_CPU | WORKLOADS_SPIKE))
+        else:
+            workloads = [args.workload]
+
+        run_failures: list[str] = []
+        for target in targets:
+            for workload in workloads:
+                if target == "spike" and workload == "matmul_multicore":
+                    print("! spike matmul_multicore uses single-core matmul fallback for trace generation")
+                cmd = [
+                    sys.executable,
+                    str(Path(__file__).resolve()),
+                    "--target", target,
+                    "--workload", workload,
+                    "--workload_size", args.workload_size,
+                    "--time_us", str(args.time_us),
+                    "--tile-elems", str(args.tile_elems),
+                    "--tiles", str(args.tiles),
+                    "--compute-threads", str(compute_threads),
+                    "--in-depth", str(args.in_depth),
+                    "--out-depth", str(args.out_depth),
+                    "--reader-sleep-ns", str(args.reader_sleep_ns),
+                    "--writer-sleep-ns", str(args.writer_sleep_ns),
+                    "--isa", args.isa,
+                    "--pk", args.pk,
+                    "--inst_us", str(args.inst_us),
+                    "--resident_pc_ge", str(args.resident_pc_ge),
+                    "--trace_lines_max", str(args.trace_lines_max),
+                    "--expected-work-rate", str(args.expected_work_rate),
+                ]
+                if args.events_max is not None:
+                    cmd += ["--events-max", str(args.events_max)]
+                if args.underflow:
+                    cmd += ["--underflow"]
+                if args.overflow:
+                    cmd += ["--overflow"]
+                if args.debug_sit:
+                    cmd += ["--debug-sit"]
+                print("$", " ".join(cmd))
+                rc = sh_allow_fail(cmd)
+                if rc != 0:
+                    run_failures.append(f"{target}/{workload} (exit {rc})")
+
+        if run_failures:
+            raise SystemExit("Batch run failed:\n - " + "\n - ".join(run_failures))
+        print("✓ practical batch complete")
+        return
+
     user_events_max = args.events_max
     events_max = args.events_max
     if events_max is None:
@@ -394,9 +467,9 @@ def main():
             reader_sleep = args.reader_sleep_ns
             writer_sleep = args.writer_sleep_ns
             if args.underflow:
-                reader_sleep = max(reader_sleep, 2000)
+                reader_sleep = max(reader_sleep, 20000)
             if args.overflow:
-                writer_sleep = max(writer_sleep, 5000)
+                writer_sleep = max(writer_sleep, 20000)
 
             # For multicore, add practical default pressure when no explicit knobs are set,
             # so SIT is less likely to clamp at 1.0 in every window.
@@ -407,8 +480,8 @@ def main():
                 and args.reader_sleep_ns == 0
                 and args.writer_sleep_ns == 0
             ):
-                reader_sleep = 1000
-                writer_sleep = 3000
+                reader_sleep = 4000
+                writer_sleep = 8000
 
             # 1) Select and build workload
             if args.workload == "matmul_multicore":
