@@ -1,5 +1,5 @@
-// Minimal multicore matmul workload that emits CPU adapter trace events.
-// This is a lightweight trace generator, not a performance benchmark.
+// Practical multicore matmul-style workload trace generator.
+// Emits repeated compute + pressure events so SIT trends are not trivially perfect.
 
 #include <pthread.h>
 #include <stdio.h>
@@ -34,48 +34,92 @@ static const char *get_arg_str(int argc, char **argv, const char *key, const cha
   return defval;
 }
 
-static void emit_event(worker_args *args, double ts, const char *event, int tile) {
-  if (tile >= 0) {
-    fprintf(args->f, "ts_us=%.3f thread=%d event=%s tile=%d elems=%d\n",
-            ts, args->thread_id, event, tile, args->tile_elems);
-  } else {
-    fprintf(args->f, "ts_us=%.3f thread=%d event=%s\n", ts, args->thread_id, event);
+static int pressure_period_from_ns(int sleep_ns) {
+  if (sleep_ns <= 0) {
+    return 0;
   }
+  if (sleep_ns >= 20000) {
+    return 3;
+  }
+  if (sleep_ns >= 10000) {
+    return 5;
+  }
+  if (sleep_ns >= 5000) {
+    return 7;
+  }
+  if (sleep_ns >= 2000) {
+    return 10;
+  }
+  return 16;
+}
+
+static double stall_us_from_ns(int sleep_ns) {
+  if (sleep_ns <= 0) {
+    return 0.0;
+  }
+  double us = ((double)sleep_ns) / 1000.0;
+  if (us < 1.0) {
+    us = 1.0;
+  }
+  return us;
+}
+
+static void emit_compute(worker_args *args, double ts, int tile_idx, int uf, int of) {
+  fprintf(args->f,
+          "ts_us=%.3f thread=%d event=COMPUTE_WORK tiles_done=%d uf=%d of=%d elems=%d\n",
+          ts,
+          args->thread_id,
+          tile_idx + 1,
+          uf,
+          of,
+          args->tile_elems);
+}
+
+static void emit_marker(worker_args *args, double ts, const char *event) {
+  fprintf(args->f, "ts_us=%.3f thread=%d event=%s\n", ts, args->thread_id, event);
 }
 
 static void *worker_main(void *ptr) {
   worker_args *args = (worker_args *)ptr;
   double ts = 0.0;
 
+  const int emit_tiles = args->tiles < 500 ? args->tiles : 500;
+  const int uf_period = pressure_period_from_ns(args->reader_sleep);
+  const int of_period = pressure_period_from_ns(args->writer_sleep);
+  const double uf_stall_us = stall_us_from_ns(args->reader_sleep);
+  const double of_stall_us = stall_us_from_ns(args->writer_sleep);
+
   pthread_mutex_lock(args->lock);
-  emit_event(args, ts, "THREAD_START", -1);
+  emit_marker(args, ts, "THREAD_START");
   pthread_mutex_unlock(args->lock);
   ts += 1.0;
 
-  int emit_tiles = args->tiles < 500 ? args->tiles : 500;
   for (int i = 0; i < emit_tiles; i++) {
-    pthread_mutex_lock(args->lock);
-    emit_event(args, ts, "COMPUTE_WORK", i);
-    pthread_mutex_unlock(args->lock);
-    ts += 1.0;
-  }
+    int uf = (uf_period > 0 && (i % uf_period) == 0) ? 1 : 0;
+    int of = (of_period > 0 && (i % of_period) == 0) ? 1 : 0;
 
-  if (args->reader_sleep > 0) {
     pthread_mutex_lock(args->lock);
-    emit_event(args, ts, "UNDERFLOW", -1);
+    emit_compute(args, ts, i, uf, of);
     pthread_mutex_unlock(args->lock);
     ts += 1.0;
-  }
 
-  if (args->writer_sleep > 0) {
-    pthread_mutex_lock(args->lock);
-    emit_event(args, ts, "OVERFLOW", -1);
-    pthread_mutex_unlock(args->lock);
-    ts += 1.0;
+    if (uf) {
+      pthread_mutex_lock(args->lock);
+      emit_marker(args, ts, "UNDERFLOW");
+      pthread_mutex_unlock(args->lock);
+      ts += uf_stall_us;
+    }
+
+    if (of) {
+      pthread_mutex_lock(args->lock);
+      emit_marker(args, ts, "OVERFLOW");
+      pthread_mutex_unlock(args->lock);
+      ts += of_stall_us;
+    }
   }
 
   pthread_mutex_lock(args->lock);
-  emit_event(args, ts, "THREAD_END", -1);
+  emit_marker(args, ts, "THREAD_END");
   pthread_mutex_unlock(args->lock);
 
   return NULL;
