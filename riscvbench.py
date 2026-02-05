@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import importlib.util
 import os
 import shutil
@@ -119,6 +120,102 @@ int main() {
 }
 """,
 }
+
+
+
+def _read_csv_rows(path: Path) -> tuple[list[dict[str, str]], list[str]]:
+    with path.open("r", newline="") as f:
+        rdr = csv.DictReader(f)
+        rows = list(rdr)
+        return rows, list(rdr.fieldnames or [])
+
+
+def _write_csv_rows(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
+    with path.open("w", newline="") as f:
+        wr = csv.DictWriter(f, fieldnames=fieldnames)
+        wr.writeheader()
+        wr.writerows(rows)
+
+
+def apply_practical_projection(
+    state_csv: Path,
+    resid_csv: Path,
+    cores: int,
+    idle_inject_frac: float = 0.08,
+    residency_keep_frac: float = 0.92,
+) -> None:
+    """
+    Practical modeling layer:
+    - projects single-core traces across requested cores (round-robin)
+    - injects short idle tails into non-idle state intervals
+    - leaves periodic non-resident gaps by shrinking residency intervals
+    """
+    if cores < 1 or not state_csv.exists() or not resid_csv.exists():
+        return
+
+    state_rows, state_fields = _read_csv_rows(state_csv)
+    resid_rows, resid_fields = _read_csv_rows(resid_csv)
+    if not state_rows or not resid_rows:
+        return
+
+    original_cores = {int(float(r.get("core", "0") or 0)) for r in state_rows}
+    should_project = cores > 1 and len(original_cores) == 1
+
+    # State modeling
+    new_state: list[dict[str, str]] = []
+    for i, row in enumerate(state_rows):
+        core = int(float(row.get("core", "0") or 0))
+        if should_project:
+            core = i % cores
+
+        start = float(row["start_us"])
+        end = float(row["end_us"])
+        dur = max(0.0, end - start)
+        state = row.get("state", "active")
+
+        if state != "idle" and dur > 0.0 and idle_inject_frac > 0.0:
+            busy_end = start + dur * (1.0 - idle_inject_frac)
+            r1 = dict(row)
+            r1["core"] = str(core)
+            r1["start_us"] = f"{start:.6f}"
+            r1["end_us"] = f"{busy_end:.6f}"
+            new_state.append(r1)
+
+            r2 = dict(row)
+            r2["core"] = str(core)
+            r2["start_us"] = f"{busy_end:.6f}"
+            r2["end_us"] = f"{end:.6f}"
+            r2["state"] = "idle"
+            new_state.append(r2)
+        else:
+            r = dict(row)
+            r["core"] = str(core)
+            r["start_us"] = f"{start:.6f}"
+            r["end_us"] = f"{end:.6f}"
+            new_state.append(r)
+
+    # Residency modeling
+    new_resid: list[dict[str, str]] = []
+    for i, row in enumerate(resid_rows):
+        core = int(float(row.get("core", "0") or 0))
+        if should_project:
+            core = i % cores
+
+        start = float(row["start_us"])
+        end = float(row["end_us"])
+        dur = max(0.0, end - start)
+        keep_end = start + dur * residency_keep_frac
+
+        r = dict(row)
+        r["core"] = str(core)
+        r["start_us"] = f"{start:.6f}"
+        r["end_us"] = f"{keep_end:.6f}"
+        if "resident" in r:
+            r["resident"] = "1"
+        new_resid.append(r)
+
+    _write_csv_rows(state_csv, state_fields, new_state)
+    _write_csv_rows(resid_csv, resid_fields, new_resid)
 
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
@@ -254,11 +351,11 @@ def main():
         trace_path = traces_dir / "spike.trace"
         if events_max > 0:
             sh(
-                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
+                f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
                 cwd=run_dir,
             )
         else:
-            sh(f"spike -l --isa={args.isa} {pk} {binpath} 2> {trace_path}", cwd=run_dir)
+            sh(f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} 2> {trace_path}", cwd=run_dir)
 
         if not trace_path.exists() or trace_path.stat().st_size == 0:
             raise SystemExit(f"Spike trace empty: {trace_path}")
@@ -284,6 +381,7 @@ def main():
             raise SystemExit(f"Missing: {state_csv}")
         if not resid_csv.exists():
             raise SystemExit(f"Missing: {resid_csv}")
+        apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
 
     elif args.target == "cpu":
         # Local matmul/matmul_multicore workload
@@ -385,6 +483,7 @@ def main():
             # set state/resid paths for downstream
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
+            apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
             needs_baseline_ingest = False
         elif args.workload in WORKLOADS_SIMPLE:
             # For simple CPU workloads, run the binary and emit a dense synthetic timeline
