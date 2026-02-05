@@ -429,10 +429,19 @@ def main():
         trace_path = traces_dir / "spike.trace"
         # Capture full Spike output first; some builds print non-trace preamble lines
         # before commit-log events. Truncating with `head` can drop all `core ...` lines.
-        sh(
-            f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} > {trace_path} 2>&1",
-            cwd=run_dir,
-        )
+        spike_cmd = ["spike"]
+        # Spike option parsing differs across builds: some accept `-p N`, others
+        # require the attached form `-pN`. Use the attached form for portability.
+        if compute_threads and int(compute_threads) > 1:
+            spike_cmd.append(f"-p{int(compute_threads)}")
+        spike_cmd += ["-l", f"--isa={args.isa}", str(pk), str(binpath)]
+
+        with open(trace_path, "w") as trace_out:
+            p = subprocess.run(spike_cmd, cwd=run_dir, stdout=trace_out, stderr=subprocess.STDOUT)
+        # Spike commit-log runs may return non-zero workload exit codes while still
+        # producing usable `core ...` trace lines for downstream parsing.
+        if p.returncode != 0 and trace_path.stat().st_size == 0:
+            raise SystemExit(f"Command failed: {' '.join(spike_cmd)}")
 
         if not trace_path.exists() or trace_path.stat().st_size == 0:
             raise SystemExit(f"Spike trace empty: {trace_path}")
