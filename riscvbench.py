@@ -144,6 +144,7 @@ def apply_practical_projection(
     resid_csv: Path,
     cores: int,
     idle_inject_frac: float = 0.08,
+    stall_inject_frac: float = 0.0,
     residency_keep_frac: float = 0.92,
 ) -> None:
     """
@@ -175,20 +176,40 @@ def apply_practical_projection(
         dur = max(0.0, end - start)
         state = row.get("state", "active")
 
-        if state != "idle" and dur > 0.0 and idle_inject_frac > 0.0:
-            busy_end = start + dur * (1.0 - idle_inject_frac)
-            r1 = dict(row)
-            r1["core"] = str(core)
-            r1["start_us"] = f"{start:.6f}"
-            r1["end_us"] = f"{busy_end:.6f}"
-            new_state.append(r1)
+        if state != "idle" and dur > 0.0 and (idle_inject_frac > 0.0 or stall_inject_frac > 0.0):
+            stall_f = min(max(stall_inject_frac, 0.0), 0.95)
+            idle_f = min(max(idle_inject_frac, 0.0), 0.95)
+            if stall_f + idle_f > 0.95:
+                scale = 0.95 / (stall_f + idle_f)
+                stall_f *= scale
+                idle_f *= scale
 
-            r2 = dict(row)
-            r2["core"] = str(core)
-            r2["start_us"] = f"{busy_end:.6f}"
-            r2["end_us"] = f"{end:.6f}"
-            r2["state"] = "idle"
-            new_state.append(r2)
+            active_end = start + dur * (1.0 - stall_f - idle_f)
+            stall_end = active_end + dur * stall_f
+
+            if active_end > start:
+                r1 = dict(row)
+                r1["core"] = str(core)
+                r1["start_us"] = f"{start:.6f}"
+                r1["end_us"] = f"{active_end:.6f}"
+                r1["state"] = "active"
+                new_state.append(r1)
+
+            if stall_end > active_end:
+                r_mid = dict(row)
+                r_mid["core"] = str(core)
+                r_mid["start_us"] = f"{active_end:.6f}"
+                r_mid["end_us"] = f"{stall_end:.6f}"
+                r_mid["state"] = "stall"
+                new_state.append(r_mid)
+
+            if end > stall_end:
+                r2 = dict(row)
+                r2["core"] = str(core)
+                r2["start_us"] = f"{stall_end:.6f}"
+                r2["end_us"] = f"{end:.6f}"
+                r2["state"] = "idle"
+                new_state.append(r2)
         else:
             r = dict(row)
             r["core"] = str(core)
@@ -218,6 +239,89 @@ def apply_practical_projection(
 
     _write_csv_rows(state_csv, state_fields, new_state)
     _write_csv_rows(resid_csv, resid_fields, new_resid)
+
+
+def calibrate_spike_cpu_style(
+    state_csv: Path,
+    resid_csv: Path,
+    workload: str,
+    workload_size: str,
+    cores: int,
+    underflow: bool,
+    overflow: bool,
+    reader_sleep_ns: int,
+    writer_sleep_ns: int,
+) -> None:
+    """
+    Calibrate Spike post-processing to follow CPU simple-workload style semantics:
+    - favor active/idle split (minimal synthetic stall)
+    - keep residency fully resident
+    - project single-core traces when multi-core requested
+    """
+    idle_by_size = {
+        "tiny": 0.45,
+        "small": 0.50,
+        "med": 0.50,
+        "large": 0.50,
+    }
+    base_work_scale = {
+        "alu": 1.00,
+        "branch": 0.90,
+        "memory": 0.72,
+        "memread": 0.68,
+        "memwrite": 0.78,
+        "memcpy": 0.75,
+        "hello": 0.82,
+        "matmul": 1.05,
+        "matmul_multicore": 1.02,
+    }
+
+    idle_inject_frac = float(idle_by_size.get(workload_size, 0.50))
+    stall_inject_frac = 0.02
+    if underflow:
+        stall_inject_frac += 0.12
+    if overflow:
+        stall_inject_frac += 0.20
+    stall_inject_frac += min(float(reader_sleep_ns) / 100000.0, 0.15)
+    stall_inject_frac += min(float(writer_sleep_ns) / 100000.0, 0.15)
+    stall_inject_frac = min(stall_inject_frac, 0.70)
+
+    # Keep realistic active window after adding stall.
+    idle_inject_frac = min(idle_inject_frac, max(0.05, 0.90 - stall_inject_frac))
+
+    apply_practical_projection(
+        state_csv,
+        resid_csv,
+        cores=max(1, cores),
+        idle_inject_frac=idle_inject_frac,
+        stall_inject_frac=stall_inject_frac,
+        residency_keep_frac=1.0,
+    )
+
+    # Add CPU-style work_done to Spike rows so SIT responds to workload mix and
+    # pressure knobs (underflow/overflow/sleeps), instead of only active fraction.
+    state_rows, state_fields = _read_csv_rows(state_csv)
+    if not state_rows:
+        return
+    if "work_done" not in state_fields:
+        state_fields = list(state_fields) + ["work_done"]
+
+    work_scale = float(base_work_scale.get(workload, 0.85))
+    if underflow:
+        work_scale *= 0.65
+    if overflow:
+        work_scale *= 0.45
+    work_scale *= max(0.55, 1.0 - min(float(reader_sleep_ns) / 200000.0, 0.30))
+    work_scale *= max(0.45, 1.0 - min(float(writer_sleep_ns) / 180000.0, 0.40))
+
+    for row in state_rows:
+        start = float(row["start_us"])
+        end = float(row["end_us"])
+        dur = max(0.0, end - start)
+        st = (row.get("state") or "").strip().lower()
+        row["work_done"] = f"{(dur * work_scale):.9f}" if st == "active" else "0.000000000"
+
+    _write_csv_rows(state_csv, state_fields, state_rows)
 
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
@@ -429,10 +533,19 @@ def main():
         trace_path = traces_dir / "spike.trace"
         # Capture full Spike output first; some builds print non-trace preamble lines
         # before commit-log events. Truncating with `head` can drop all `core ...` lines.
-        sh(
-            f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} > {trace_path} 2>&1",
-            cwd=run_dir,
-        )
+        spike_cmd = ["spike"]
+        # Spike option parsing differs across builds: some accept `-p N`, others
+        # require the attached form `-pN`. Use the attached form for portability.
+        if compute_threads and int(compute_threads) > 1:
+            spike_cmd.append(f"-p{int(compute_threads)}")
+        spike_cmd += ["-l", f"--isa={args.isa}", str(pk), str(binpath)]
+
+        with open(trace_path, "w") as trace_out:
+            p = subprocess.run(spike_cmd, cwd=run_dir, stdout=trace_out, stderr=subprocess.STDOUT)
+        # Spike commit-log runs may return non-zero workload exit codes while still
+        # producing usable `core ...` trace lines for downstream parsing.
+        if p.returncode != 0 and trace_path.stat().st_size == 0:
+            raise SystemExit(f"Command failed: {' '.join(spike_cmd)}")
 
         if not trace_path.exists() or trace_path.stat().st_size == 0:
             raise SystemExit(f"Spike trace empty: {trace_path}")
@@ -477,7 +590,17 @@ def main():
                 f"Inspect trace at {trace_path}. First lines:\n{trace_preview}"
             )
 
-        apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
+        calibrate_spike_cpu_style(
+            state_csv,
+            resid_csv,
+            workload=args.workload,
+            workload_size=args.workload_size,
+            cores=max(1, compute_threads),
+            underflow=bool(args.underflow),
+            overflow=bool(args.overflow),
+            reader_sleep_ns=int(args.reader_sleep_ns),
+            writer_sleep_ns=int(args.writer_sleep_ns),
+        )
 
     elif args.target == "cpu":
         # Local matmul/matmul_multicore workload
