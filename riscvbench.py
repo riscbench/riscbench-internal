@@ -224,6 +224,10 @@ def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -
     else:
         p = subprocess.run(cmd, cwd=cwd, env=env)
     if p.returncode != 0:
+        # Spike commit-log runs may return non-zero workload exit codes while still
+        # producing usable `core ...` trace lines for downstream parsing.
+        if isinstance(cmd, str) and cmd.lstrip().startswith("spike ") and " -l " in cmd:
+            return
         raise SystemExit(f"Command failed: {cmd}")
 
 
