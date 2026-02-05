@@ -422,16 +422,23 @@ def main():
 
         # 2) run spike -> trace
         trace_path = traces_dir / "spike.trace"
-        if events_max > 0:
-            sh(
-                f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
-                cwd=run_dir,
-            )
-        else:
-            sh(f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} 2> {trace_path}", cwd=run_dir)
+        # Capture full Spike output first; some builds print non-trace preamble lines
+        # before commit-log events. Truncating with `head` can drop all `core ...` lines.
+        sh(
+            f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} > {trace_path} 2>&1",
+            cwd=run_dir,
+        )
 
         if not trace_path.exists() or trace_path.stat().st_size == 0:
             raise SystemExit(f"Spike trace empty: {trace_path}")
+
+        if events_max > 0:
+            trace_lines = trace_path.read_text(errors="ignore").splitlines()
+            core_lines = [ln for ln in trace_lines if "core" in ln and ":" in ln]
+            if core_lines:
+                trace_path.write_text("\n".join(core_lines[:events_max]) + "\n")
+            else:
+                trace_path.write_text("\n".join(trace_lines[:events_max]) + "\n")
 
         # 3) platform adaptor: spike trace -> baseline CSVs
         adapter_env = dict(os.environ)
