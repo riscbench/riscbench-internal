@@ -127,6 +127,56 @@ by emitting a single active interval based on wall time.
 - Baseline adapter uses CSV only as a Phase-1 deterministic reference.
 - Future phases can add new adapters without changing the engine contract.
 
+
+### Practical cross-target workloads (Spike + CPU with similar parsed event counts)
+If you want practical runs on **both Spike and CPU** with a shared parser cap and similar event
+counts, use `run_cross_target_suite.py`.
+
+Defaults now include:
+- workloads: `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `matmul`, `matmul_multicore`
+- `--events-max 47000`
+- `--match-mode similar` with `--similarity-pct 0.05` (5% tolerance)
+
+```bash
+python run_cross_target_suite.py \
+  --pk /path/to/riscv-pk/build/pk \
+  --workload-size small \
+  --time-us 256
+```
+
+If you want strict equality (exact same count and exact `events-max`), use:
+
+```bash
+python run_cross_target_suite.py \
+  --pk /path/to/riscv-pk/build/pk \
+  --workload-size small \
+  --time-us 256 \
+  --events-max 47000 \
+  --match-mode exact
+```
+
+Important: for `matmul_multicore`, Spike still uses a single-core `matmul` fallback to generate
+instruction traces (not true pthread multicore execution). This workload is included for practical
+comparison and event-volume alignment, not architectural multicore equivalence.
+
+### Making SIT less likely to clamp at 1.0
+For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
+perfectly active:
+
+```bash
+python riscvbench.py \
+  --target cpu \
+  --workload matmul_multicore \
+  --workload_size small \
+  --time_us 256 \
+  --cores 4 \
+  --events-max 2000 \
+  --underflow --overflow \
+  --reader-sleep-ns 2000 \
+  --writer-sleep-ns 5000 \
+  --expected-work-rate 1.15
+```
+
 ### SIT normalization + debug
 SIT is computed per resident window. If the input trace includes `work_done` (e.g., tiles completed), the engine normalizes
 per-window work rate against `--expected-work-rate` (default `1.0` work/us). Otherwise it falls back to the active fraction
