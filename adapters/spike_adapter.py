@@ -20,7 +20,7 @@ from ingest.ingest_api import validate_state_df, validate_resid_df
 SPIKE_LINE_RE = re.compile(
     # Some Spike builds emit: "core   0: 0x... (0x...) add ..."
     # Others emit:          "core   0: 3 0x... (0x...) add ..." (privilege level token)
-    r"^\s*core\s+(?P<core>\d+):\s+(?:\d+\s+)?(?:0x)?(?P<pc>[0-9a-fA-F]+)\s+\((?:0x)?(?P<insn>[0-9a-fA-F]+)\)(?:\s+(?P<mnemonic>\S+))?"
+    r"^\s*core\s+(?P<core>\d+):\s+(?:\d+\s+)?0x(?P<pc>[0-9a-fA-F]+)\s+\(0x(?P<insn>[0-9a-fA-F]+)\)\s+(?P<mnemonic>\S+)"
 )
 
 # Very simple heuristic: treat memory ops as "stall" else "active"
