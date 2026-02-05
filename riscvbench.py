@@ -530,7 +530,6 @@ def main():
 
             state_csv.write_text("\n".join(lines) + "\n")
             resid_csv.write_text("start_us,end_us,core,resident\n0.0,{:.6f},0,1\n".format(duration_us))
-            apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
         else:
             raise SystemExit(f"cpu target does not support workload: {args.workload}")
 
