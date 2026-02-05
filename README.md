@@ -117,7 +117,6 @@ by emitting a single active interval based on wall time.
 - `riscvbench` supports `--cores` (alias for `--compute-threads`) and `--events-max` (cap events for both Spike and CPU parsing). Use `riscvbench --help` after reinstalling to confirm the flags.
 - For CPU simple workloads (`alu`, `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `hello`), `riscvbench` emits a dense synthetic CPU timeline after running the binary so parsed event counts are in the same practical range as Spike (about 48k by default for `small`). Use `--events-max` to force an exact count target on both targets.
 - `--cores` only affects `matmul_multicore`; it is ignored for single-core/simple workloads.
-- For CPU `matmul_multicore`, if you do not pass any sleep/underflow/overflow knobs, `riscvbench` now applies practical default queue pressure (`--reader-sleep-ns 1000`, `--writer-sleep-ns 3000`) to avoid trivially perfect SIT windows.
 - If `riscvbench --help` still shows old flags after reinstalling, verify which module is being loaded and reinstall in the same venv:
   ```bash
   which riscvbench
@@ -131,36 +130,22 @@ by emitting a single active interval based on wall time.
 - Future phases can add new adapters without changing the engine contract.
 
 
-### Practical cross-target workloads (Spike + CPU with similar parsed event counts)
-If you want practical runs on **both Spike and CPU** with a shared parser cap and similar event
-counts, use `run_cross_target_suite.py`.
-
-Defaults now include:
-- workloads: `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `matmul`, `matmul_multicore`
-- `--events-max 47000`
-- `--match-mode similar` with `--similarity-pct 0.05` (5% tolerance)
-
-```bash
-python run_cross_target_suite.py \
-  --pk /path/to/riscv-pk/build/pk \
-  --workload-size small \
-  --time-us 256
-```
-
-If you want strict equality (exact same count and exact `events-max`), use:
+### Practical cross-target workloads (same workloads + same event count)
+If you want **the same workload list and same parsed event count** on both Spike and CPU, use
+`run_cross_target_suite.py`. It runs a practical shared set (`branch`, `memory`, `memread`,
+`memwrite`, `memcpy`, `matmul`) on both targets and checks that each run reaches exactly
+`--events-max` rows in `trace.csv` for parity.
 
 ```bash
 python run_cross_target_suite.py \
   --pk /path/to/riscv-pk/build/pk \
   --workload-size small \
   --time-us 256 \
-  --events-max 47000 \
-  --match-mode exact
+  --events-max 2000
 ```
 
-Important: for `matmul_multicore`, Spike still uses a single-core `matmul` fallback to generate
-instruction traces (not true pthread multicore execution). This workload is included for practical
-comparison and event-volume alignment, not architectural multicore equivalence.
+This is a strict parity mode, so `matmul_multicore` is intentionally excluded because Spike
+falls back to single-core `matmul` for trace generation.
 
 ### Making SIT less likely to clamp at 1.0
 For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
@@ -173,7 +158,7 @@ python riscvbench.py \
   --workload_size small \
   --time_us 256 \
   --cores 4 \
-  --events-max 47000 \
+  --events-max 2000 \
   --underflow --overflow \
   --reader-sleep-ns 2000 \
   --writer-sleep-ns 5000 \
