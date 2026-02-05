@@ -5,6 +5,7 @@ import argparse
 import csv
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
