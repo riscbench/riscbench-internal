@@ -74,15 +74,36 @@ class SpikePlatformAdapter:
                     continue
 
                 core_m = CORE_FALLBACK_RE.search(line)
-                if not core_m:
-                    continue
-                core = int(core_m.group("core"))
-                tail = line[core_m.end():]
-                pc_m = PC_AFTER_CORE_RE.search(tail)
-                if not pc_m:
+                if core_m:
+                    core = int(core_m.group("core"))
+                    tail = line[core_m.end():]
+                    pc_m = PC_AFTER_CORE_RE.search(tail)
+                    if pc_m:
+                        try:
+                            pc = int(pc_m.group("pc"), 16)
+                        except ValueError:
+                            pc = None
+                        if pc is not None:
+                            yield core, pc, ""
+                            continue
+
+                # Ultra-relaxed fallback for Spike variants with unusual formatting:
+                # - core token may appear without colon
+                # - line may omit decoded instruction tuple
+                # - only a PC-like 0x........ token is available
+                # This is Spike-only fallback and does not affect other targets.
+                core_guess = 0
+                generic_core_m = GENERIC_CORE_RE.search(line)
+                if generic_core_m:
+                    try:
+                        core_guess = int(generic_core_m.group("core"))
+                    except ValueError:
+                        core_guess = 0
+                hexes = HEX_TOKEN_RE.findall(line)
+                if not hexes:
                     continue
                 try:
-                    pc = int(pc_m.group("pc"), 16)
+                    pc_guess = int(hexes[0], 16)
                 except ValueError:
                     continue
                 yield core, pc, ""

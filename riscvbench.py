@@ -466,6 +466,17 @@ def main():
             raise SystemExit(f"Missing: {state_csv}")
         if not resid_csv.exists():
             raise SystemExit(f"Missing: {resid_csv}")
+
+        # Guardrail: avoid silently continuing into NaN SIT summaries when the
+        # Spike adapter could not extract any intervals.
+        state_lines = state_csv.read_text(errors="ignore").splitlines()
+        if len(state_lines) <= 1:
+            trace_preview = "\n".join(trace_path.read_text(errors="ignore").splitlines()[:40])
+            raise SystemExit(
+                "Spike adapter produced zero state events. "
+                f"Inspect trace at {trace_path}. First lines:\n{trace_preview}"
+            )
+
         apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
 
     elif args.target == "cpu":
