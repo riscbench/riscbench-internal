@@ -27,6 +27,8 @@ SPIKE_LINE_RE = re.compile(
 # Fallback parser for Spike variants that do not include an (0xINSN) tuple.
 CORE_FALLBACK_RE = re.compile(r"core\s+(?P<core>\d+):")
 PC_AFTER_CORE_RE = re.compile(r"0x(?P<pc>[0-9a-fA-F]{8,16})")
+GENERIC_CORE_RE = re.compile(r"(?:core|hart)\D*(?P<core>\d+)", re.IGNORECASE)
+HEX_TOKEN_RE = re.compile(r"0x(?P<hex>[0-9a-fA-F]{8,16})")
 
 # Very simple heuristic: treat memory ops as "stall" else "active"
 MEM_MNEMONICS_PREFIX = (
@@ -65,12 +67,8 @@ class SpikePlatformAdapter:
         """
         # Defensive fallback: if module-level regexes are missing/stale in an
         # older installed copy, compile local patterns so parsing still works.
-        generic_core_re = globals().get("GENERIC_CORE_RE") or re.compile(
-            r"(?:core|hart)\D*(?P<core>\d+)", re.IGNORECASE
-        )
-        hex_token_re = globals().get("HEX_TOKEN_RE") or re.compile(
-            r"0x(?P<hex>[0-9a-fA-F]{8,16})"
-        )
+        generic_core_re = globals().get("GENERIC_CORE_RE") or GENERIC_CORE_RE
+        hex_token_re = globals().get("HEX_TOKEN_RE") or HEX_TOKEN_RE
 
         with open(self.spike_trace_path, "r", errors="ignore") as f:
             for line in f:
@@ -102,13 +100,13 @@ class SpikePlatformAdapter:
                 # - only a PC-like 0x........ token is available
                 # This is Spike-only fallback and does not affect other targets.
                 core_guess = 0
-                generic_core_m = GENERIC_CORE_RE.search(line)
+                generic_core_m = generic_core_re.search(line)
                 if generic_core_m:
                     try:
                         core_guess = int(generic_core_m.group("core"))
                     except ValueError:
                         core_guess = 0
-                hexes = HEX_TOKEN_RE.findall(line)
+                hexes = hex_token_re.findall(line)
                 if not hexes:
                     continue
                 try:
