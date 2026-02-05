@@ -211,7 +211,13 @@ def main():
             if not math.isnan(sit):
                 debug_sit_clamped.append(float(sit))
 
-    out = pd.DataFrame.from_records(records).sort_values(["core", "window_id"]).reset_index(drop=True)
+    out_cols = [
+        "core", "window_id", "window_start_us", "window_end_us",
+        "resident_us", "resident_frac_of_window", "is_resident_window",
+        "active_frac", "stall_frac", "idle_frac", "sit",
+    ]
+    out = pd.DataFrame.from_records(records, columns=out_cols)
+    out = out.sort_values(["core", "window_id"]).reset_index(drop=True)
 
     # Summary uses only resident windows
     resident_out = out[out["is_resident_window"] == 1].copy()
