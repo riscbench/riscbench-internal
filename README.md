@@ -1,95 +1,235 @@
-# RISCBench Phase-1: SIT Engine (toy, hardware-agnostic)
+# RISCBench Phase-1 SIT Engine
 
-This repository contains a Phase-1 implementation of a Sustained Instantaneous Throughput (SIT) engine with:
-- normalized trace ingestion API (adapter contract)
-- baseline adapter (reference ingestion path)
-- windowing + boundary-correct overlap logic
-- optional residency gating (no accumulation outside residency)
-- stable output schema v1 (validated)
-- validation suite + golden runner
+A practical Phase-1 implementation of a **Sustained Instantaneous Throughput (SIT)** pipeline for trace-based performance analysis.
 
-## Quickstart
+This repository provides:
+- A normalized ingestion contract (`ingest/ingest_api.py`)
+- Adapter-based trace loading (`adapters/`)
+- Windowed SIT computation with optional residency gating (`sit_engine_phase1.py`)
+- A staged CLI workflow (`cli.py`: `ingest` → `classify` → `export`)
+- Schema-validated outputs (`schema/v1.py`)
+- Golden/invariant validation scripts (`tests/`)
 
-### 1) Run engine directly (Phase-1 baseline)
-No residency:
-```bash
-python sit_engine_phase1.py --trace datasets/traces/trace_A_single_residency.csv --window-us 256 --out-prefix out/A_base
+---
+
+## 1) Why this exists
+
+Phase-1 is designed to be:
+- **Hardware-agnostic**: the engine consumes normalized intervals, not target-specific trace formats.
+- **Deterministic**: fixed window slicing and explicit boundary behavior.
+- **Extensible**: new adapters can be added without changing core SIT math.
+- **Testable**: dataset manifest + golden outputs + invariant checks.
+
+---
+
+## 2) High-level architecture
+
+```mermaid
+flowchart LR
+  A[Raw Trace Sources\nCSV / CPU raw / Spike-derived] --> B[Adapters\nadapters/baseline_adapter.py\nadapters/cpu_adapter.py\nadapters/spike_adapter.py]
+  B --> C[Normalized Interval Frames\nstate_intervals + optional residency_intervals]
+  C --> D[SIT Engine\nsit_engine_phase1.py]
+  D --> E[Window Metrics\nwindows.csv]
+  D --> F[Summary Metrics\nsummary.json]
+  E --> G[Schema Export\nexport/windows_v1.csv]
+  F --> H[Schema Export\nexport/summary_v1.json]
+  I[Validation\ntests/check_invariants.py\ntests/run_golden_suite.py] -. checks .-> E
+  I -. checks .-> F
 ```
 
-With residency gating:
-```bash
-python sit_engine_phase1.py --trace datasets/traces/trace_A_single_residency.csv --residency datasets/residency/partial.csv --window-us 256 --out-prefix out/A_partial
+### Design considerations
+
+1. **Strict adapter boundary**  
+   Engine logic only sees normalized columns (start/end/core/state/work), minimizing coupling to source formats.
+
+2. **Half-open interval semantics** (`[start_us, end_us)`)  
+   Prevents double counting and allows exact-boundary correctness across windows.
+
+3. **Residency-aware accounting**  
+   If residency exists, all state accumulation is clipped to residency masks.
+
+4. **Stable schema contract**  
+   Export step materializes versioned artifacts (`*_v1`) for downstream compatibility.
+
+5. **Two operational modes for SIT**  
+   - With `work_done`: normalized by `expected_work_rate`
+   - Without `work_done`: falls back to active fraction
+
+---
+
+## 3) End-to-end workflow (operator view)
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant C as CLI (cli.py)
+  participant A as Adapter
+  participant E as Engine (sit_engine_phase1.py)
+  participant X as Export
+
+  U->>C: ingest --trace ... --out runs/<id>
+  C->>A: parse + normalize trace
+  A-->>C: trace.csv (+ optional residency.csv)
+  C-->>U: manifest.json written
+
+  U->>C: classify --in runs/<id> --window-us 256
+  C->>E: run engine with trace (+ residency)
+  E-->>C: run_windows.csv + run_summary.json
+  C-->>U: windows.csv + summary.json
+
+  U->>C: export --in runs/<id> --schema v1
+  C->>X: copy/format versioned outputs
+  X-->>U: export/windows_v1.csv + export/summary_v1.json
 ```
 
-Outputs:
-- `<prefix>_windows.csv`
-- `<prefix>_summary.json`
+### Minimal commands
 
-### 2) Run via CLI pipeline (ingest → classify → export)
 ```bash
 python cli.py ingest --trace datasets/traces/trace_A_single_residency.csv --out runs/A
 python cli.py classify --in runs/A --window-us 256 --residency datasets/residency/partial.csv
 python cli.py export --in runs/A --schema v1
 ```
 
-Artifacts:
-- `runs/A/manifest.json`
-- `runs/A/windows.csv`
-- `runs/A/summary.json`
-- `runs/A/export/windows_v1.csv`
-- `runs/A/export/summary_v1.json`
+---
 
-## Validation (golden suite)
+## 4) Technical specification
 
-Run invariants on a single output:
-```bash
-python tests/check_invariants.py --windows out/A_partial_windows.csv --mode partial --window-us 256
+### 4.1 Core inputs
+
+#### State intervals (normalized)
+Required fields (via ingest API / adapters):
+- `start_us` (float)
+- `end_us` (float)
+- `core` (int)
+- `state` in `{active, stall, idle}`
+- optional `work_done` (float)
+
+#### Residency intervals (optional)
+- `start_us`, `end_us`, `core`
+- residency windows are merged per core before gating
+
+---
+
+### 4.2 Windowing and overlap behavior
+
+The engine slices intervals into fixed windows of `window_us` using half-open intervals.
+
+```mermaid
+flowchart TD
+  A[Interval start_us,end_us] --> B[Find first window floor(start/window_us)]
+  B --> C[Find last window floor((end-1e-9)/window_us)]
+  C --> D[For each window compute overlap = max(0, min(end,w_end)-max(start,w_start))]
+  D --> E[Accumulate per core,window,state]
 ```
 
-Run all traces/masks listed in `datasets/manifest.json`:
+**Boundary rule:** subtracting epsilon (`1e-9`) for last-window selection prevents an interval ending exactly on a boundary from spilling into the next window.
+
+---
+
+### 4.3 Residency gating logic
+
+If residency is provided:
+- Build merged residency mask per core
+- Intersect each state interval with the mask
+- Only intersected pieces contribute to `active_us`, `stall_us`, `idle_us`
+- `resident_us` is independently accumulated from residency mask overlap
+
+If residency is not provided:
+- Each window is treated as fully resident (`resident_us = window_us`)
+
+---
+
+### 4.4 Per-window metrics
+
+For each `(core, window_id)`:
+- `resident_us`
+- `resident_frac_of_window = resident_us / window_us`
+- `is_resident_window = 1 if resident_us > 0 else 0`
+- `active_frac`, `stall_frac`, `idle_frac` (NaN for non-resident windows)
+- `sit`
+
+When `resident_us > 0`:
+1. Accumulate state durations within residency
+2. Gap-fill to residency (`idle += resident_us - (active+stall+idle)` if needed)
+3. Convert to fractions over total resident-accounted time
+4. Compute SIT:
+   - with `work_done`: `sit_raw = (work_done / resident_us) / expected_work_rate`
+   - otherwise: `sit_raw = active_frac`
+5. Clamp: `sit = min(max(sit_raw, 0), 1)`
+
+---
+
+### 4.5 Summary metrics (`summary.json`)
+
+Computed on resident windows only:
+- `schema_version`
+- `window_us`
+- `windows_total`
+- `resident_windows_total`
+- `cores`
+- `sit_median`
+- `sit_p95`
+- `residency_idle_avg`
+- `residency_stall_avg`
+- `residency_active_avg`
+- `used_residency_file`
+- `expected_work_rate`
+
+---
+
+### 4.6 Data products and layout
+
+```text
+runs/<run_id>/
+  manifest.json
+  trace.csv
+  residency.csv                # optional
+  windows.csv
+  summary.json
+  export/
+    windows_v1.csv
+    summary_v1.json
+```
+
+---
+
+## 5) Module responsibilities
+
+- `ingest/ingest_api.py`: normalized schema, validators, adapter contract
+- `adapters/baseline_adapter.py`: CSV reference adapter (+ raw path handling)
+- `adapters/cpu_adapter.py`: CPU raw trace parsing support
+- `adapters/spike_adapter.py`: Spike-specific support
+- `sit_engine_phase1.py`: window splitting, residency gating, SIT/summary generation
+- `cli.py`: user-facing pipeline orchestration
+- `schema/v1.py`: output schema validation for export contract
+- `tests/check_invariants.py`: semantic invariants on produced windows
+- `tests/run_golden_suite.py`: reproducible suite execution over manifest datasets
+
+---
+
+## 6) Validation workflow
+
 ```bash
+# Single-output invariant check
+python tests/check_invariants.py --windows out/A_partial_windows.csv --mode partial --window-us 256
+
+# Full golden suite
 python tests/run_golden_suite.py --outdir golden_out
 ```
 
-## Deliverable mapping (Phase-1)
+Recommended CI order:
+1. Ingest/classify/export smoke run
+2. Invariant checks on generated windows
+3. Golden suite against pinned datasets
 
-### 1. SIT Engine core
-- `sit_engine_phase1.py` (engine logic; consumes normalized events via adapter)
+---
 
-### 2. Time and windowing
-- `split_interval_into_windows()` in `sit_engine_phase1.py` (ε boundary correctness)
+## 7) RISC-V bench integration notes
 
-### 3. Residency model
-- residency gating + `resident_us` normalization in `sit_engine_phase1.py`
+`riscvbench.py` can generate traces for Spike and CPU targets and feed the same Phase-1 pipeline.
 
-### 4. Trace ingestion API
-- `ingest/ingest_api.py` (normalized schema + validators + TraceAdapter contract)
-
-### 5. Baseline adapter
-- `adapters/baseline_adapter.py` (CSV reference adapter; validates via ingest API)
-
-### 6. Output schema v1
-- `schemas/v1.py` (schema version + windows/summary validators)
-- enforced by the engine prior to export
-
-### 7. Validation suite
-- `tests/check_invariants.py` (semantic invariants)
-- `tests/run_golden_suite.py` (runner over datasets/manifest.json)
-
-### 8. Reference datasets
-- `datasets/traces/` (golden traces)
-- `datasets/residency/` (mask files)
-- `datasets/manifest.json` (pinned dataset bundle)
-
-### 9. CLI pipeline
-- `cli.py` (ingest → classify → export)
-
-## Spike + CPU workloads (riscvbench.py)
-
-You can generate Spike traces and run them through the same Phase-1 ingest/classify/export
-pipeline. Shared workloads for both CPU and Spike include `alu`, `branch`, `memory`, `memread`,
-`memwrite`, `memcpy`, and `hello`. Both targets support `matmul` and `matmul_multicore` as
-long as the `matmul_multicore.c` source is available. For a Spike matmul workload:
+Typical example:
 
 ```bash
 python riscvbench.py \
@@ -100,99 +240,51 @@ python riscvbench.py \
   --pk /path/to/riscv-pk/build/pk
 ```
 
-This will emit outputs under `runs/spike/matmul/<size>/` including `summary.json` and
-`windows.csv` for analysis. The generated Spike residency intervals include a `resident=1`
-marker to match the CPU-style residency CSV schema. The CPU target supports `matmul` and
-`matmul_multicore` with detailed traces, and also supports the shared simple workloads
-by emitting a single active interval based on wall time.
+Useful flags:
+- `--events-max`: cap parsed events
+- `--cores` (alias for `--compute-threads`): relevant for multicore workloads
+- `--debug-sit`: print SIT internals (`raw`, `clamped`, idle/stall totals)
 
-## Notes
-- `riscvbench` requires Python 3.9+ (see `pyproject.toml`). If you use a venv, make sure it is created with Python 3.9+ and upgrade `pip` before installing editable builds:
-  ```bash
-  python3.9 -m venv .venv
-  source .venv/bin/activate
-  pip install --upgrade pip setuptools wheel
-  pip install -e .
-  ```
-- `riscvbench` supports `--cores` (alias for `--compute-threads`) and `--events-max` (cap events for both Spike and CPU parsing). Use `riscvbench --help` after reinstalling to confirm the flags.
-- For CPU simple workloads (`alu`, `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `hello`), `riscvbench` emits a dense synthetic CPU timeline after running the binary so parsed event counts are in the same practical range as Spike (about 48k by default for `small`). `--underflow` / `--overflow` now also inject deterministic stall share for this synthetic path so `residency_stall` reacts on simple workloads. Use `--events-max` to force an exact count target on both targets.
-- `--cores` only affects `matmul_multicore`; it is ignored for single-core/simple workloads.
-- If `riscvbench --help` still shows old flags after reinstalling, verify which module is being loaded and reinstall in the same venv:
-  ```bash
-  which riscvbench
-  python -c "import riscvbench,inspect; print(riscvbench.__file__)"
-  pip uninstall -y riscvbench
-  pip install -e .
-  hash -r
-  ```
-- Editable installs rely on the `-e` flag. A command like `pip install e .` installs a package literally named `e` and does not install this repo.
-- Baseline adapter uses CSV only as a Phase-1 deterministic reference.
-- Future phases can add new adapters without changing the engine contract.
+---
 
+## 8) Extension guide
 
-### Practical cross-target workloads (same workloads + same event count)
-If you want **the same workload list and same parsed event count** on both Spike and CPU, use
-`run_cross_target_suite.py`. It runs a practical shared set (`branch`, `memory`, `memread`,
-`memwrite`, `memcpy`, `matmul`) on both targets and checks that each run reaches exactly
-`--events-max` rows in `trace.csv` for parity.
+### Add a new adapter
+1. Implement ingest contract in `ingest/ingest_api.py` terms
+2. Emit normalized state intervals (+ optional residency intervals)
+3. Keep engine untouched
+4. Add dataset + golden expectations
+
+### Add a new schema version
+1. Create `schema/v2.py`
+2. Update export subcommand choices
+3. Keep `v1` backward-compatible
+
+---
+
+## 9) Troubleshooting
+
+- **`trace not found`**: ensure absolute/relative path is correct for `--trace`.
+- **No residency effect**: verify residency file is passed or present in `manifest.json`.
+- **SIT always near 1.0**: lower expected work rate tolerance / enable queue-pressure options / inspect `--debug-sit` output.
+- **Unexpected window counts**: verify `window_us` and half-open interval assumptions.
+
+---
+
+## 10) Quick reference
 
 ```bash
-python run_cross_target_suite.py \
-  --pk /path/to/riscv-pk/build/pk \
-  --workload-size small \
-  --time-us 256 \
-  --events-max 2000
+# Direct engine run (no CLI wrapper)
+python sit_engine_phase1.py --trace datasets/traces/trace_A_single_residency.csv --window-us 256 --out-prefix out/A_base
+
+# Direct engine run with residency
+python sit_engine_phase1.py --trace datasets/traces/trace_A_single_residency.csv --residency datasets/residency/partial.csv --window-us 256 --out-prefix out/A_partial
 ```
 
-This is a strict parity mode, so `matmul_multicore` is intentionally excluded because Spike
-falls back to single-core `matmul` for trace generation.
+If you are new to the repo, start with:
+1. `cli.py ingest`
+2. `cli.py classify`
+3. `cli.py export`
+4. `tests/check_invariants.py`
 
-### One-command practical mode (fewer CLI flags)
-`riscvbench` now supports a practical preset mode so you do not need to pass many tuning flags
-every time.
-
-Run all practical workloads on both targets with defaults (parity-oriented event cap + queue pressure):
-
-```bash
-python riscvbench.py --practical --pk /path/to/riscv-pk/build/pk
-```
-
-Run all practical workloads for CPU only:
-
-```bash
-python riscvbench.py --practical --target cpu --workload all
-```
-
-Practical defaults (applied only when not explicitly overridden):
-- `--target both` and `--workload all`
-- `--events-max 2000`
-- `--expected-work-rate 1.15`
-- `--underflow --overflow`
-- `--reader-sleep-ns 2000`
-- `--writer-sleep-ns 5000`
-
-### Making SIT less likely to clamp at 1.0
-For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
-perfectly active. The bundled `matmul`/`matmul_multicore` generators now emit repeated
-`UNDERFLOW`/`OVERFLOW` markers and `uf`/`of` flags across tiles (not just one end marker), so
-these knobs produce practical changes in SIT:
-
-```bash
-python riscvbench.py \
-  --target cpu \
-  --workload matmul_multicore \
-  --workload_size small \
-  --time_us 256 \
-  --cores 4 \
-  --events-max 2000 \
-  --underflow --overflow \
-  --reader-sleep-ns 2000 \
-  --writer-sleep-ns 5000 \
-  --expected-work-rate 1.15
-```
-
-### SIT normalization + debug
-SIT is computed per resident window. If the input trace includes `work_done` (e.g., tiles completed), the engine normalizes
-per-window work rate against `--expected-work-rate` (default `1.0` work/us). Otherwise it falls back to the active fraction
-within resident time. Use `--debug-sit` (or `riscvbench --debug-sit`) to print raw components such as `resident_us`,
-`idle_us`, `stall_us`, work totals, expected work rate, and min/mean/max of raw vs clamped SIT values.
+This path gives the fastest understanding of contracts, artifacts, and correctness checks.
