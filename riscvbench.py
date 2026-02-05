@@ -241,17 +241,7 @@ def apply_practical_projection(
     _write_csv_rows(resid_csv, resid_fields, new_resid)
 
 
-def calibrate_spike_cpu_style(
-    state_csv: Path,
-    resid_csv: Path,
-    workload: str,
-    workload_size: str,
-    cores: int,
-    underflow: bool,
-    overflow: bool,
-    reader_sleep_ns: int,
-    writer_sleep_ns: int,
-) -> None:
+def calibrate_spike_cpu_style(state_csv: Path, resid_csv: Path, workload_size: str, cores: int) -> None:
     """
     Calibrate Spike post-processing to follow CPU simple-workload style semantics:
     - favor active/idle split (minimal synthetic stall)
@@ -264,64 +254,14 @@ def calibrate_spike_cpu_style(
         "med": 0.50,
         "large": 0.50,
     }
-    base_work_scale = {
-        "alu": 1.00,
-        "branch": 0.90,
-        "memory": 0.72,
-        "memread": 0.68,
-        "memwrite": 0.78,
-        "memcpy": 0.75,
-        "hello": 0.82,
-        "matmul": 1.05,
-        "matmul_multicore": 1.02,
-    }
-
     idle_inject_frac = float(idle_by_size.get(workload_size, 0.50))
-    stall_inject_frac = 0.02
-    if underflow:
-        stall_inject_frac += 0.12
-    if overflow:
-        stall_inject_frac += 0.20
-    stall_inject_frac += min(float(reader_sleep_ns) / 100000.0, 0.15)
-    stall_inject_frac += min(float(writer_sleep_ns) / 100000.0, 0.15)
-    stall_inject_frac = min(stall_inject_frac, 0.70)
-
-    # Keep realistic active window after adding stall.
-    idle_inject_frac = min(idle_inject_frac, max(0.05, 0.90 - stall_inject_frac))
-
     apply_practical_projection(
         state_csv,
         resid_csv,
         cores=max(1, cores),
         idle_inject_frac=idle_inject_frac,
-        stall_inject_frac=stall_inject_frac,
         residency_keep_frac=1.0,
     )
-
-    # Add CPU-style work_done to Spike rows so SIT responds to workload mix and
-    # pressure knobs (underflow/overflow/sleeps), instead of only active fraction.
-    state_rows, state_fields = _read_csv_rows(state_csv)
-    if not state_rows:
-        return
-    if "work_done" not in state_fields:
-        state_fields = list(state_fields) + ["work_done"]
-
-    work_scale = float(base_work_scale.get(workload, 0.85))
-    if underflow:
-        work_scale *= 0.65
-    if overflow:
-        work_scale *= 0.45
-    work_scale *= max(0.55, 1.0 - min(float(reader_sleep_ns) / 200000.0, 0.30))
-    work_scale *= max(0.45, 1.0 - min(float(writer_sleep_ns) / 180000.0, 0.40))
-
-    for row in state_rows:
-        start = float(row["start_us"])
-        end = float(row["end_us"])
-        dur = max(0.0, end - start)
-        st = (row.get("state") or "").strip().lower()
-        row["work_done"] = f"{(dur * work_scale):.9f}" if st == "active" else "0.000000000"
-
-    _write_csv_rows(state_csv, state_fields, state_rows)
 
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
@@ -593,13 +533,8 @@ def main():
         calibrate_spike_cpu_style(
             state_csv,
             resid_csv,
-            workload=args.workload,
             workload_size=args.workload_size,
             cores=max(1, compute_threads),
-            underflow=bool(args.underflow),
-            overflow=bool(args.overflow),
-            reader_sleep_ns=int(args.reader_sleep_ns),
-            writer_sleep_ns=int(args.writer_sleep_ns),
         )
 
     elif args.target == "cpu":
