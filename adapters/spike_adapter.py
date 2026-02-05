@@ -61,7 +61,7 @@ class SpikePlatformAdapter:
                     continue
                 core = int(m.group("core"))
                 pc = int(m.group("pc"), 16)
-                mnemonic = m.group("mnemonic")
+                mnemonic = m.group("mnemonic") or ""
                 yield core, pc, mnemonic
 
     def build_state_intervals(self) -> pd.DataFrame:
