@@ -115,7 +115,7 @@ by emitting a single active interval based on wall time.
   pip install -e .
   ```
 - `riscvbench` supports `--cores` (alias for `--compute-threads`) and `--events-max` (cap events for both Spike and CPU parsing). Use `riscvbench --help` after reinstalling to confirm the flags.
-- For CPU simple workloads (`alu`, `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `hello`), `riscvbench` emits a dense synthetic CPU timeline after running the binary so parsed event counts are in the same practical range as Spike (about 48k by default for `small`). Use `--events-max` to force an exact count target on both targets.
+- For CPU simple workloads (`alu`, `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `hello`), `riscvbench` emits a dense synthetic CPU timeline after running the binary so parsed event counts are in the same practical range as Spike (about 48k by default for `small`). `--underflow` / `--overflow` now inject distinct synthetic pressure profiles (underflow skews more toward starvation/idle, overflow skews more toward backpressure/stall) and reduce effective active share, so both `residency_stall` and SIT react with different trends on simple workloads. Use `--events-max` to force an exact count target on both targets.
 - `--cores` only affects `matmul_multicore`; it is ignored for single-core/simple workloads.
 - If `riscvbench --help` still shows old flags after reinstalling, verify which module is being loaded and reinstall in the same venv:
   ```bash
@@ -147,9 +147,35 @@ python run_cross_target_suite.py \
 This is a strict parity mode, so `matmul_multicore` is intentionally excluded because Spike
 falls back to single-core `matmul` for trace generation.
 
+### One-command practical mode (fewer CLI flags)
+`riscvbench` now supports a practical preset mode so you do not need to pass many tuning flags
+every time.
+
+Run all practical workloads on both targets with defaults (parity-oriented event cap + queue pressure):
+
+```bash
+python riscvbench.py --practical --pk /path/to/riscv-pk/build/pk
+```
+
+Run all practical workloads for CPU only:
+
+```bash
+python riscvbench.py --practical --target cpu --workload all
+```
+
+Practical defaults (applied only when not explicitly overridden):
+- `--target both` and `--workload all`
+- `--events-max 2000`
+- `--expected-work-rate 1.15`
+- `--underflow --overflow`
+- `--reader-sleep-ns 2000`
+- `--writer-sleep-ns 5000`
+
 ### Making SIT less likely to clamp at 1.0
 For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
-perfectly active:
+perfectly active. The bundled `matmul`/`matmul_multicore` generators now emit repeated
+`UNDERFLOW`/`OVERFLOW` markers and `uf`/`of` flags across tiles (not just one end marker), so
+these knobs produce practical changes in SIT:
 
 ```bash
 python riscvbench.py \
