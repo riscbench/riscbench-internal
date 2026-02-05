@@ -63,6 +63,15 @@ class SpikePlatformAdapter:
         Fallback parser extracts core+pc from minimal commit-log lines so
         workloads still produce events even when mnemonic text is absent.
         """
+        # Defensive fallback: if module-level regexes are missing/stale in an
+        # older installed copy, compile local patterns so parsing still works.
+        generic_core_re = globals().get("GENERIC_CORE_RE") or re.compile(
+            r"(?:core|hart)\D*(?P<core>\d+)", re.IGNORECASE
+        )
+        hex_token_re = globals().get("HEX_TOKEN_RE") or re.compile(
+            r"0x(?P<hex>[0-9a-fA-F]{8,16})"
+        )
+
         with open(self.spike_trace_path, "r", errors="ignore") as f:
             for line in f:
                 m = SPIKE_LINE_RE.search(line)
