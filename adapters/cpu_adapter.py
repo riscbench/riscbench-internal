@@ -105,11 +105,17 @@ class CPUAdapter:
                     work_done = 1.0
                 
                 
-                # Map event types to CPU states
+                # Map event types to CPU states.
+                # For COMPUTE_WORK rows carrying uf/of flags, keep residency state as active
+                # (so uf/of does not implicitly rewrite residency_stall), but scale useful
+                # work down so SIT drops under pressure even when residency mix is stable.
+                pressure_flag = 1 if (event_type == 'COMPUTE_WORK' and (uf_flag > 0 or of_flag > 0)) else 0
                 if event_type == 'COMPUTE_WORK':
-                    # Some workload traces encode pressure as uf/of flags on COMPUTE_WORK rows
-                    # rather than separate UNDERFLOW/OVERFLOW events.
-                    state = 'stall' if (uf_flag > 0 or of_flag > 0) else 'active'
+                    state = 'active'
+                    if uf_flag > 0:
+                        work_done *= 0.60
+                    if of_flag > 0:
+                        work_done *= 0.40
                 elif 'UNDERFLOW' in event_type or 'OVERFLOW' in event_type:
                     state = 'stall'
                 elif event_type in ('THREAD_START', 'THREAD_END'):
@@ -138,7 +144,7 @@ class CPUAdapter:
                         'core': thread_id - 1,  # thread 1 -> core 0
                         'state': state,
                         'work_done': work_done if state == 'active' else 0.0,
-                        'pressure_flag': 1 if state == 'stall' and event_type == 'COMPUTE_WORK' else 0,
+                        'pressure_flag': pressure_flag,
                     })
 
                 if idle_start is not None and next_ts > idle_start:
