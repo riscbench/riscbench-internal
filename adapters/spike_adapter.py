@@ -18,8 +18,15 @@ from ingest.ingest_api import validate_state_df, validate_resid_df
 # Example spike -l line:
 # core   0: 0x0000000080000214 (0x00000413) li      s0, 0
 SPIKE_LINE_RE = re.compile(
-    r"^\s*core\s+(?P<core>\d+):\s+0x(?P<pc>[0-9a-fA-F]+)\s+\(0x(?P<insn>[0-9a-fA-F]+)\)\s+(?P<mnemonic>\S+)"
+    # Some Spike builds emit: "core   0: 0x... (0x...) add ..."
+    # Others emit:          "core   0: 3 0x... (0x...) add ..." (privilege level token)
+    r"^\s*core\s+(?P<core>\d+):\s+(?:\d+\s+)?(?:0x)?(?P<pc>[0-9a-fA-F]+)\s+\((?:0x)?(?P<insn>[0-9a-fA-F]+)\)(?:\s+(?P<mnemonic>\S+))?"
 )
+
+
+# Fallback parser for Spike variants that do not include full disassembly.
+CORE_FALLBACK_RE = re.compile(r"core\s+(?P<core>\d+):")
+PC_AFTER_CORE_RE = re.compile(r"(?:0x)?(?P<pc>[0-9a-fA-F]{8,16})")
 
 # Very simple heuristic: treat memory ops as "stall" else "active"
 MEM_MNEMONICS_PREFIX = (
@@ -51,16 +58,34 @@ class SpikePlatformAdapter:
     def _iter_events(self) -> Iterable[Tuple[int, int, str]]:
         """
         Yield (core, pc_int, mnemonic) per instruction line.
+
+        Primary parser handles the common `core N: ...` disassembly format.
+        Fallback parser extracts core+pc from minimal commit-log lines so
+        workloads still produce events even when mnemonic text is absent.
         """
         with open(self.spike_trace_path, "r", errors="ignore") as f:
             for line in f:
                 m = SPIKE_LINE_RE.match(line)
-                if not m:
+                if m:
+                    core = int(m.group("core"))
+                    pc = int(m.group("pc"), 16)
+                    mnemonic = m.group("mnemonic") or ""
+                    yield core, pc, mnemonic
                     continue
-                core = int(m.group("core"))
-                pc = int(m.group("pc"), 16)
-                mnemonic = m.group("mnemonic")
-                yield core, pc, mnemonic
+
+                core_m = CORE_FALLBACK_RE.search(line)
+                if not core_m:
+                    continue
+                core = int(core_m.group("core"))
+                tail = line[core_m.end():]
+                pc_m = PC_AFTER_CORE_RE.search(tail)
+                if not pc_m:
+                    continue
+                try:
+                    pc = int(pc_m.group("pc"), 16)
+                except ValueError:
+                    continue
+                yield core, pc, ""
 
     def build_state_intervals(self) -> pd.DataFrame:
         """
