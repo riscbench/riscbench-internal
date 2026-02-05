@@ -53,7 +53,12 @@ def validate_resid_df(df: pd.DataFrame) -> pd.DataFrame:
     df["core"] = df["core"].astype(int)
 
     if "resident" in df.columns:
-        df = df[df["resident"].apply(parse_truthy)].copy()
+        # NOTE: on some pandas versions, applying to an empty Series can yield a
+        # non-bool dtype; indexing a DataFrame with that result is interpreted as
+        # column selection and can accidentally drop all columns. Use .loc with
+        # an explicit bool mask to keep schema stable for empty inputs.
+        resident_mask = df["resident"].map(parse_truthy).astype(bool)
+        df = df.loc[resident_mask].copy()
 
     bad_iv = df[df["end_us"] <= df["start_us"]]
     if len(bad_iv) > 0:
