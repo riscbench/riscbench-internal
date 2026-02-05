@@ -128,36 +128,22 @@ by emitting a single active interval based on wall time.
 - Future phases can add new adapters without changing the engine contract.
 
 
-### Practical cross-target workloads (Spike + CPU with similar parsed event counts)
-If you want practical runs on **both Spike and CPU** with a shared parser cap and similar event
-counts, use `run_cross_target_suite.py`.
-
-Defaults now include:
-- workloads: `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `matmul`, `matmul_multicore`
-- `--events-max 47000`
-- `--match-mode similar` with `--similarity-pct 0.05` (5% tolerance)
-
-```bash
-python run_cross_target_suite.py \
-  --pk /path/to/riscv-pk/build/pk \
-  --workload-size small \
-  --time-us 256
-```
-
-If you want strict equality (exact same count and exact `events-max`), use:
+### Practical cross-target workloads (same workloads + same event count)
+If you want **the same workload list and same parsed event count** on both Spike and CPU, use
+`run_cross_target_suite.py`. It runs a practical shared set (`branch`, `memory`, `memread`,
+`memwrite`, `memcpy`, `matmul`) on both targets and checks that each run reaches exactly
+`--events-max` rows in `trace.csv` for parity.
 
 ```bash
 python run_cross_target_suite.py \
   --pk /path/to/riscv-pk/build/pk \
   --workload-size small \
   --time-us 256 \
-  --events-max 47000 \
-  --match-mode exact
+  --events-max 2000
 ```
 
-Important: for `matmul_multicore`, Spike still uses a single-core `matmul` fallback to generate
-instruction traces (not true pthread multicore execution). This workload is included for practical
-comparison and event-volume alignment, not architectural multicore equivalence.
+This is a strict parity mode, so `matmul_multicore` is intentionally excluded because Spike
+falls back to single-core `matmul` for trace generation.
 
 ### Making SIT less likely to clamp at 1.0
 For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
