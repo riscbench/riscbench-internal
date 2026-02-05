@@ -218,6 +218,7 @@ def main():
     build_dir.mkdir(parents=True, exist_ok=True)
     traces_dir.mkdir(parents=True, exist_ok=True)
     inputs_dir.mkdir(parents=True, exist_ok=True)
+    needs_baseline_ingest = True
 
     # Target-specific handling
     if args.target == "spike":
@@ -375,6 +376,7 @@ def main():
             # set state/resid paths for downstream
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
+            needs_baseline_ingest = False
         elif args.workload in WORKLOADS_SIMPLE:
             # For other CPU workloads, run a simple binary and emit a single active interval.
             cpath = write_workload(build_dir, args.workload, args.workload_size)
@@ -415,10 +417,11 @@ def main():
             else:
                 raise SystemExit("cli.py not found; reinstall riscvbench or run from the repo root")
 
-    sh([sys.executable, str(cli_py), "ingest",
-        "--trace", str(state_csv),
-        "--format", "baseline",
-        "--out", str(run_dir)], cwd=repo)
+    if needs_baseline_ingest:
+        sh([sys.executable, str(cli_py), "ingest",
+            "--trace", str(state_csv),
+            "--format", "baseline",
+            "--out", str(run_dir)], cwd=repo)
 
     cls_cmd = [sys.executable, str(cli_py), "classify",
                "--in", str(run_dir),
