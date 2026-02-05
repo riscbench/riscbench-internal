@@ -5,6 +5,7 @@ import argparse
 import csv
 import importlib.util
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -224,6 +225,10 @@ def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -
     else:
         p = subprocess.run(cmd, cwd=cwd, env=env)
     if p.returncode != 0:
+        # Spike commit-log runs may return non-zero workload exit codes while still
+        # producing usable `core ...` trace lines for downstream parsing.
+        if isinstance(cmd, str) and cmd.lstrip().startswith("spike ") and " -l " in cmd:
+            return
         raise SystemExit(f"Command failed: {cmd}")
 
 
@@ -422,16 +427,26 @@ def main():
 
         # 2) run spike -> trace
         trace_path = traces_dir / "spike.trace"
-        if events_max > 0:
-            sh(
-                f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
-                cwd=run_dir,
-            )
-        else:
-            sh(f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} 2> {trace_path}", cwd=run_dir)
+        # Capture full Spike output first; some builds print non-trace preamble lines
+        # before commit-log events. Truncating with `head` can drop all `core ...` lines.
+        spike_cmd = f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} > {trace_path} 2>&1"
+        spike_rc = sh_allow_fail(spike_cmd, cwd=run_dir)
 
         if not trace_path.exists() or trace_path.stat().st_size == 0:
             raise SystemExit(f"Spike trace empty: {trace_path}")
+
+        if events_max > 0:
+            trace_lines = trace_path.read_text(errors="ignore").splitlines()
+            core_lines = [ln for ln in trace_lines if re.search(r"(?:core|hart)\s+\d+:.*0x[0-9a-fA-F]{8,16}", ln)]
+            if core_lines:
+                trace_path.write_text("\n".join(core_lines[:events_max]) + "\n")
+            else:
+                trace_path.write_text("\n".join(trace_lines[:events_max]) + "\n")
+
+        trace_lines = trace_path.read_text(errors="ignore").splitlines()
+        has_core_events = any(re.search(r"(?:core|hart)\s+\d+:.*0x[0-9a-fA-F]{8,16}", ln) for ln in trace_lines)
+        if spike_rc != 0 and not has_core_events:
+            raise SystemExit(f"Spike run failed (exit {spike_rc}) and emitted no parseable core events: {trace_path}")
 
         # 3) platform adaptor: spike trace -> baseline CSVs
         adapter_env = dict(os.environ)
@@ -454,6 +469,17 @@ def main():
             raise SystemExit(f"Missing: {state_csv}")
         if not resid_csv.exists():
             raise SystemExit(f"Missing: {resid_csv}")
+
+        # Guardrail: avoid silently continuing into NaN SIT summaries when the
+        # Spike adapter could not extract any intervals.
+        state_lines = state_csv.read_text(errors="ignore").splitlines()
+        if len(state_lines) <= 1:
+            trace_preview = "\n".join(trace_path.read_text(errors="ignore").splitlines()[:40])
+            raise SystemExit(
+                "Spike adapter produced zero state events. "
+                f"Inspect trace at {trace_path}. First lines:\n{trace_preview}"
+            )
+
         apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
 
     elif args.target == "cpu":
