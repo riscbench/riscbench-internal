@@ -18,15 +18,16 @@ from ingest.ingest_api import validate_state_df, validate_resid_df
 # Example spike -l line:
 # core   0: 0x0000000080000214 (0x00000413) li      s0, 0
 SPIKE_LINE_RE = re.compile(
-    # Some Spike builds emit: "core   0: 0x... (0x...) add ..."
-    # Others emit:          "core   0: 3 0x... (0x...) add ..." (privilege level token)
-    r"^\s*core\s+(?P<core>\d+):\s+(?:\d+\s+)?0x(?P<pc>[0-9a-fA-F]+)\s+\(0x(?P<insn>[0-9a-fA-F]+)\)\s+(?P<mnemonic>\S+)"
+    # Common Spike commit-log line (allow optional privilege token and mnemonic):
+    #   core   0: 0x... (0x...) add ...
+    #   core   0: 3 0x... (0x...)
+    r"(?:core|hart)\s+(?P<core>\d+):\s*(?:\d+\s+)?(?:pc\s+)?0x(?P<pc>[0-9a-fA-F]{8,16})(?:\s+\(0x(?P<insn>[0-9a-fA-F]+)\))?(?:\s+(?P<mnemonic>\S+))?"
 )
 
 
-# Fallback parser for Spike variants that do not include full disassembly.
-CORE_FALLBACK_RE = re.compile(r"core\s+(?P<core>\d+):")
-PC_AFTER_CORE_RE = re.compile(r"(?:0x)?(?P<pc>[0-9a-fA-F]{8,16})")
+# Fallback parser for Spike variants that do not include an (0xINSN) tuple.
+CORE_FALLBACK_RE = re.compile(r"(?:core|hart)\s+(?P<core>\d+):")
+PC_AFTER_CORE_RE = re.compile(r"0x(?P<pc>[0-9a-fA-F]{8,16})")
 
 # Very simple heuristic: treat memory ops as "stall" else "active"
 MEM_MNEMONICS_PREFIX = (
@@ -65,7 +66,7 @@ class SpikePlatformAdapter:
         """
         with open(self.spike_trace_path, "r", errors="ignore") as f:
             for line in f:
-                m = SPIKE_LINE_RE.match(line)
+                m = SPIKE_LINE_RE.search(line)
                 if m:
                     core = int(m.group("core"))
                     pc = int(m.group("pc"), 16)
@@ -85,10 +86,7 @@ class SpikePlatformAdapter:
                     pc = int(pc_m.group("pc"), 16)
                 except ValueError:
                     continue
-                core = int(m.group("core"))
-                pc = int(m.group("pc"), 16)
-                mnemonic = m.group("mnemonic") or ""
-                yield core, pc, mnemonic
+                yield core, pc, ""
 
     def build_state_intervals(self) -> pd.DataFrame:
         """
