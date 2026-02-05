@@ -596,7 +596,7 @@ def main():
             active_ratio = min(max(active_ratio, 0.05), 0.95)
 
             # Simple-workload pressure modeling:
-            # map underflow/overflow knobs to explicit stall share so residency_stall reacts.
+            # keep residency/stall mix stable and lower SIT through reduced effective work.
             stall_ratio = 0.0
             if args.underflow:
                 stall_ratio += 0.12
@@ -608,9 +608,17 @@ def main():
             active_ratio = min(active_ratio, max(0.05, 1.0 - stall_ratio - 0.05))
             idle_ratio = max(0.0, 1.0 - active_ratio - stall_ratio)
 
+            work_scale = 1.0
+            if args.underflow:
+                work_scale *= 0.65
+            if args.overflow:
+                work_scale *= 0.45
+            work_scale *= max(0.55, 1.0 - min(float(args.reader_sleep_ns) / 200000.0, 0.30))
+            work_scale *= max(0.45, 1.0 - min(float(args.writer_sleep_ns) / 180000.0, 0.40))
+
             step_us = max(duration_us / max(n_events, 1), 1e-6)
             t = 0.0
-            lines = ["start_us,end_us,core,state"]
+            lines = ["start_us,end_us,core,state,work_done"]
             for i in range(n_events):
                 t_next = duration_us if i == n_events - 1 else min(duration_us, t + step_us)
                 # deterministic 3-way distribution (active/stall/idle)
@@ -623,7 +631,9 @@ def main():
                     state = "stall"
                 else:
                     state = "idle"
-                lines.append(f"{t:.6f},{t_next:.6f},0,{state}")
+                dur = max(0.0, t_next - t)
+                work_done = (dur * work_scale) if state == "active" else 0.0
+                lines.append(f"{t:.6f},{t_next:.6f},0,{state},{work_done:.9f}")
                 t = t_next
 
             state_csv.write_text("\n".join(lines) + "\n")
