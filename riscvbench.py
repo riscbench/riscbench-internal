@@ -300,6 +300,18 @@ def main():
             if args.overflow:
                 writer_sleep = max(writer_sleep, 5000)
 
+            # For multicore, add practical default pressure when no explicit knobs are set,
+            # so SIT is less likely to clamp at 1.0 in every window.
+            if (
+                args.workload == "matmul_multicore"
+                and not args.underflow
+                and not args.overflow
+                and args.reader_sleep_ns == 0
+                and args.writer_sleep_ns == 0
+            ):
+                reader_sleep = 1000
+                writer_sleep = 3000
+
             # 1) Select and build workload
             if args.workload == "matmul_multicore":
                 src_name = "matmul_multicore.c"
@@ -323,12 +335,10 @@ def main():
             if args.tiles == 50000 and events_max is not None and events_max > 0:
                 tiles_count = events_max
 
-            # Scale ring depths for multicore variant
+            # Keep user-selected ring depths. Over-scaling these to core-count can hide
+            # queue pressure and produce unrealistically perfect SIT.
             in_depth_final = args.in_depth
             out_depth_final = args.out_depth
-            if args.workload == "matmul_multicore":
-                in_depth_final = max(args.in_depth, compute_threads)
-                out_depth_final = max(args.out_depth, compute_threads)
 
             run_cmd = [str(binpath),
                    "--tile-elems", str(args.tile_elems),
