@@ -601,9 +601,7 @@ def main():
             stall_ratio += min(float(args.reader_sleep_ns) / 100000.0, 0.15)
             stall_ratio += min(float(args.writer_sleep_ns) / 100000.0, 0.15)
             stall_ratio = min(stall_ratio, 0.7)
-            # Pressure should reduce effective useful work (active), not only trade idle->stall.
-            active_ratio = active_ratio * max(0.0, (1.0 - stall_ratio))
-            active_ratio = min(max(active_ratio, 0.05), max(0.05, 1.0 - stall_ratio - 0.01))
+            active_ratio = min(active_ratio, max(0.05, 1.0 - stall_ratio - 0.05))
             idle_ratio = max(0.0, 1.0 - active_ratio - stall_ratio)
 
             step_us = max(duration_us / max(n_events, 1), 1e-6)
