@@ -1,0 +1,218 @@
+\documentclass[11pt,a4paper]{article}
+
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{xcolor}
+\usepackage{hyperref}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{listings}
+\usepackage{graphicx}
+\usepackage{float}
+
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
+
+\definecolor{mermaidbg}{RGB}{248,249,250}
+\definecolor{mermaidframe}{RGB}{210,214,220}
+
+\lstdefinelanguage{mermaid}{
+  morekeywords={flowchart,sequenceDiagram,graph,subgraph,participant,autonumber,classDef,classStyle,style,click,linkStyle},
+  sensitive=true,
+  morecomment=[l]{%%},
+  morestring=[b]"
+}
+
+\lstdefinestyle{mermaidstyle}{
+  language=mermaid,
+  basicstyle=\ttfamily\small,
+  backgroundcolor=\color{mermaidbg},
+  frame=single,
+  rulecolor=\color{mermaidframe},
+  breaklines=true,
+  showstringspaces=false,
+  tabsize=2
+}
+
+\title{RISCBench Phase-1\\Technical Stack and Design Specification}
+\author{Phase-1 Engineering Documentation}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Document Scope}
+This document provides a full technical specification for Phase-1, covering:
+\begin{itemize}[leftmargin=1.4em]
+  \item the end-to-end stack decomposition,
+  \item design principles and constraints,
+  \item data contracts and schema behavior,
+  \item processing pipeline semantics,
+  \item validation and quality gates.
+\end{itemize}
+
+The system implements a Sustained Instantaneous Throughput (SIT) analysis pipeline using trace inputs normalized through adapters and processed into deterministic windowed metrics.
+
+\section{Stack Inventory by Layer}
+\subsection{Interface and Orchestration Stack}
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{CLI Layer:} \texttt{cli.py}
+  \item \textbf{Pipeline Stages:} ingest $\rightarrow$ classify $\rightarrow$ export
+  \item \textbf{Run Artifacts:} \texttt{manifest.json}, \texttt{trace.csv}, \texttt{windows.csv}, \texttt{summary.json}
+\end{itemize}
+
+\subsection{Ingestion and Adapter Stack}
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Contract Definition:} \texttt{ingest/ingest\_api.py}
+  \item \textbf{Adapters:}
+  \begin{itemize}
+    \item \texttt{adapters/baseline\_adapter.py}
+    \item \texttt{adapters/cpu\_adapter.py}
+    \item \texttt{adapters/spike\_adapter.py}
+  \end{itemize}
+  \item \textbf{Normalized Output:} state intervals (required) and residency intervals (optional)
+\end{itemize}
+
+\subsection{Computation Stack}
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Engine Core:} \texttt{sit\_engine\_phase1.py}
+  \item \textbf{Core Features:}
+  \begin{itemize}
+    \item Fixed-window slicing with half-open interval semantics
+    \item Residency-aware gating and accumulation
+    \item SIT metric derivation with or without work normalization
+  \end{itemize}
+\end{itemize}
+
+\subsection{Schema and Validation Stack}
+\begin{itemize}[leftmargin=1.4em]
+  \item \textbf{Schema Contract:} \texttt{schema/v1.py}
+  \item \textbf{Invariant Validation:} \texttt{tests/check\_invariants.py}
+  \item \textbf{Golden Regression:} \texttt{tests/run\_golden\_suite.py}
+\end{itemize}
+
+\section{Architecture Diagram (Mermaid)}
+\subsection{Mermaid Source}
+\lstinputlisting[style=mermaidstyle]{mermaid/architecture.mmd}
+
+\subsection{Rendered Diagram Placeholder}
+Render \texttt{mermaid/architecture.mmd} to an image (for example PNG) and place it at:
+\texttt{mermaid/architecture.png}. Then uncomment the include below.
+
+% \begin{figure}[H]
+%   \centering
+%   \includegraphics[width=\textwidth]{mermaid/architecture.png}
+%   \caption{Phase-1 High-Level Architecture}
+% \end{figure}
+
+\section{End-to-End Workflow Specification}
+\subsection{Mermaid Sequence Diagram Source}
+\lstinputlisting[style=mermaidstyle]{mermaid/workflow_sequence.mmd}
+
+\subsection{Workflow Stages}
+\begin{longtable}{>{\raggedright\arraybackslash}p{0.20\textwidth} >{\raggedright\arraybackslash}p{0.74\textwidth}}
+\toprule
+\textbf{Stage} & \textbf{Technical Description} \\
+\midrule
+Ingest & Reads raw trace source, selects adapter, validates normalized fields, writes \texttt{trace.csv} (+ optional \texttt{residency.csv}), and emits \texttt{manifest.json}. \\
+Classify & Executes SIT engine with configured \texttt{window\_us}, computes per-window metrics, and writes \texttt{windows.csv} and \texttt{summary.json}. \\
+Export & Applies schema-versioned materialization and writes \texttt{export/windows\_v1.csv} and \texttt{export/summary\_v1.json}. \\
+\bottomrule
+\end{longtable}
+
+\section{Design Specifications}
+\subsection{Adapter Boundary and Normalization}
+\begin{itemize}[leftmargin=1.4em]
+  \item Engine input is adapter-normalized and source-format agnostic.
+  \item State interval contract is strict: \texttt{start\_us}, \texttt{end\_us}, \texttt{core}, \texttt{state}, optional \texttt{work\_done}.
+  \item Residency stream is optional and independently normalized.
+\end{itemize}
+
+\subsection{Windowing and Boundary Rules}
+\lstinputlisting[style=mermaidstyle]{mermaid/windowing_logic.mmd}
+
+\textbf{Boundary rule:} last-window selection uses an epsilon offset on end time to avoid assigning an interval ending exactly on a boundary to the next window.
+
+\subsection{Residency Gating Semantics}
+\begin{enumerate}[leftmargin=1.4em]
+  \item Merge residency intervals per core.
+  \item Intersect state intervals with merged residency mask.
+  \item Accumulate active/stall/idle using only intersected durations.
+  \item Compute \texttt{resident\_us} independently from residency overlap.
+  \item If no residency file is supplied, treat full window duration as resident.
+\end{enumerate}
+
+\subsection{Per-Window Metrics}
+For each \texttt{(core, window\_id)}:
+\begin{itemize}[leftmargin=1.4em]
+  \item \texttt{resident\_us}, \texttt{resident\_frac\_of\_window}, \texttt{is\_resident\_window}
+  \item \texttt{active\_frac}, \texttt{stall\_frac}, \texttt{idle\_frac}
+  \item \texttt{sit}
+\end{itemize}
+
+If resident time exists, compute:
+\[
+\text{sit\_raw} =
+\begin{cases}
+\frac{\left(\frac{\text{work\_done}}{\text{resident\_us}}\right)}{\text{expected\_work\_rate}} & \text{if work\_done exists} \\
+\text{active\_frac} & \text{otherwise}
+\end{cases}
+\]
+\[
+\text{sit} = \min(\max(\text{sit\_raw}, 0), 1)
+\]
+
+\subsection{Summary Metrics Contract}
+Summary statistics are computed across resident windows and include:
+\begin{itemize}[leftmargin=1.4em]
+  \item \texttt{schema\_version}, \texttt{window\_us}, \texttt{windows\_total}, \texttt{resident\_windows\_total}
+  \item \texttt{cores}, \texttt{sit\_median}, \texttt{sit\_p95}
+  \item \texttt{residency\_active\_avg}, \texttt{residency\_stall\_avg}, \texttt{residency\_idle\_avg}
+  \item \texttt{used\_residency\_file}, \texttt{expected\_work\_rate}
+\end{itemize}
+
+\section{Run Directory and Artifact Layout}
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+runs/<run_id>/
+  manifest.json
+  trace.csv
+  residency.csv                # optional
+  windows.csv
+  summary.json
+  export/
+    windows_v1.csv
+    summary_v1.json
+\end{lstlisting}
+
+\section{Validation and QA Specification}
+\begin{itemize}[leftmargin=1.4em]
+  \item Invariant checks enforce semantic correctness on window outputs.
+  \item Golden suite enforces reproducibility across representative datasets.
+  \item Recommended CI: smoke pipeline $\rightarrow$ invariants $\rightarrow$ golden suite.
+\end{itemize}
+
+\subsection{Reference Commands}
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+python cli.py ingest --trace datasets/traces/trace_A_single_residency.csv --out runs/A
+python cli.py classify --in runs/A --window-us 256 --residency datasets/residency/partial.csv
+python cli.py export --in runs/A --schema v1
+python tests/check_invariants.py --windows out/A_partial_windows.csv --mode partial --window-us 256
+python tests/run_golden_suite.py --outdir golden_out
+\end{lstlisting}
+
+\section{Mermaid Rendering Guidance (Optional)}
+To produce image files from the Mermaid source files:
+\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
+mmdc -i docs/mermaid/architecture.mmd -o docs/mermaid/architecture.png
+mmdc -i docs/mermaid/workflow_sequence.mmd -o docs/mermaid/workflow_sequence.png
+mmdc -i docs/mermaid/windowing_logic.mmd -o docs/mermaid/windowing_logic.png
+\end{lstlisting}
+
+These images can then be included in this LaTeX document with \texttt{\textbackslash includegraphics}.
+
+\end{document}
