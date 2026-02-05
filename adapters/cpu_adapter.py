@@ -78,21 +78,33 @@ class CPUAdapter:
                 ts = float(ev['ts_us'])
                 next_ts = float(events[i + 1]['ts_us']) if i + 1 < len(events) else ts + 1000
                 gap_us = max(0.0, next_ts - ts)
-                tiles_done = float(ev.get("tiles_done", ev.get("tiles", 0.0)) or 0.0)
+                tiles_done = float(
+                    ev.get("tiles_done", ev.get("tiles", ev.get("tile", 0.0))) or 0.0
+                )
                 next_tiles_done = tiles_done
                 if i + 1 < len(events):
-                    next_tiles_done = float(events[i + 1].get("tiles_done", events[i + 1].get("tiles", tiles_done)) or tiles_done)
+                    nxt = events[i + 1]
+                    next_tiles_done = float(
+                        nxt.get("tiles_done", nxt.get("tiles", nxt.get("tile", tiles_done))) or tiles_done
+                    )
                 work_done = max(0.0, next_tiles_done - tiles_done)
-                
+
                 event_type = ev.get('event', '')
+                if work_done == 0.0 and event_type == 'COMPUTE_WORK':
+                    # Fallback: many traces emit `tile=<idx>` or only COMPUTE_WORK events.
+                    # Treat each compute step as one unit of work to preserve SIT sensitivity.
+                    work_done = 1.0
+                
                 
                 # Map event types to CPU states
                 if event_type == 'COMPUTE_WORK':
                     state = 'active'
                 elif 'UNDERFLOW' in event_type or 'OVERFLOW' in event_type:
                     state = 'stall'
+                elif event_type in ('THREAD_START', 'THREAD_END'):
+                    state = 'idle'
                 else:
-                    state = 'active'
+                    state = 'idle'
 
                 interval_end = next_ts
                 interval_start = ts

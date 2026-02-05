@@ -189,6 +189,10 @@ def main():
     ap.add_argument("--resident_pc_ge", default="0x80000000")
     ap.add_argument("--trace_lines_max", type=int, default=200000)
     ap.add_argument("--events-max", type=int, default=None, help="Max events to parse for both spike and cpu (0 for no limit)")
+    ap.add_argument("--expected-work-rate", type=float, default=1.0,
+                    help="Expected work rate used by SIT normalization")
+    ap.add_argument("--debug-sit", action="store_true",
+                    help="Print debug fields for SIT components during classify")
 
     args = ap.parse_args()
     if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
@@ -201,7 +205,6 @@ def main():
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
     repo = find_repo_root()
-    repo = Path(__file__).resolve().parent
 
     adapter_spike = repo / "adapters" / "spike_adapter.py"
     adapter_cpu = repo / "adapters" / "cpu_adapter.py"
@@ -215,6 +218,7 @@ def main():
     build_dir.mkdir(parents=True, exist_ok=True)
     traces_dir.mkdir(parents=True, exist_ok=True)
     inputs_dir.mkdir(parents=True, exist_ok=True)
+    needs_baseline_ingest = True
 
     # Target-specific handling
     if args.target == "spike":
@@ -234,14 +238,12 @@ def main():
 
         # 1) build workload
         if args.workload == "matmul_multicore":
-            workload_src = repo / "matmul_multicore.c"
-            if not workload_src.exists():
-                raise SystemExit(f"matmul_multicore.c not found: {workload_src}")
+            # Spike toolchains commonly do not provide pthread support.
+            # Use the single-core matmul kernel for instruction-trace generation.
+            print("! spike target does not support pthread multicore; falling back to single-core matmul kernel")
+            cpath = write_workload(build_dir, "matmul", args.workload_size)
             binpath = build_dir / "matmul_multicore"
-            sh(
-                ["riscv64-unknown-elf-gcc", "-O2", "-static", "-pthread", str(workload_src), "-o", str(binpath)],
-                cwd=build_dir,
-            )
+            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
         else:
             cpath = write_workload(build_dir, args.workload, args.workload_size)
             binpath = build_dir / args.workload
@@ -372,6 +374,7 @@ def main():
             # set state/resid paths for downstream
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
+            needs_baseline_ingest = False
         elif args.workload in WORKLOADS_SIMPLE:
             # For other CPU workloads, run a simple binary and emit a single active interval.
             cpath = write_workload(build_dir, args.workload, args.workload_size)
@@ -379,7 +382,7 @@ def main():
             sh(["gcc", "-O2", "-g", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
             start = time.perf_counter()
-            sh([str(binpath)], cwd=build_dir, check=False)
+            sh_allow_fail([str(binpath)], cwd=build_dir)
             end = time.perf_counter()
 
             duration_us = max((end - start) * 1e6, 1.0)
@@ -412,10 +415,11 @@ def main():
             else:
                 raise SystemExit("cli.py not found; reinstall riscvbench or run from the repo root")
 
-    sh([sys.executable, str(cli_py), "ingest",
-        "--trace", str(state_csv),
-        "--format", "baseline",
-        "--out", str(run_dir)], cwd=repo)
+    if needs_baseline_ingest:
+        sh([sys.executable, str(cli_py), "ingest",
+            "--trace", str(state_csv),
+            "--format", "baseline",
+            "--out", str(run_dir)], cwd=repo)
 
     cls_cmd = [sys.executable, str(cli_py), "classify",
                "--in", str(run_dir),
