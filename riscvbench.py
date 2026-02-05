@@ -238,14 +238,12 @@ def main():
 
         # 1) build workload
         if args.workload == "matmul_multicore":
-            workload_src = repo / "matmul_multicore.c"
-            if not workload_src.exists():
-                raise SystemExit(f"matmul_multicore.c not found: {workload_src}")
+            # Spike toolchains commonly do not provide pthread support.
+            # Use the single-core matmul kernel for instruction-trace generation.
+            print("! spike target does not support pthread multicore; falling back to single-core matmul kernel")
+            cpath = write_workload(build_dir, "matmul", args.workload_size)
             binpath = build_dir / "matmul_multicore"
-            sh(
-                ["riscv64-unknown-elf-gcc", "-O2", "-static", "-pthread", str(workload_src), "-o", str(binpath)],
-                cwd=build_dir,
-            )
+            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
         else:
             cpath = write_workload(build_dir, args.workload, args.workload_size)
             binpath = build_dir / args.workload

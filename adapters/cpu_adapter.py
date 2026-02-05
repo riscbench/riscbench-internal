@@ -101,8 +101,10 @@ class CPUAdapter:
                     state = 'active'
                 elif 'UNDERFLOW' in event_type or 'OVERFLOW' in event_type:
                     state = 'stall'
+                elif event_type in ('THREAD_START', 'THREAD_END'):
+                    state = 'idle'
                 else:
-                    state = 'active'
+                    state = 'idle'
 
                 interval_end = next_ts
                 interval_start = ts
