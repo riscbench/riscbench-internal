@@ -173,7 +173,9 @@ Practical defaults (applied only when not explicitly overridden):
 
 ### Making SIT less likely to clamp at 1.0
 For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
-perfectly active:
+perfectly active. The bundled `matmul`/`matmul_multicore` generators now emit repeated
+`UNDERFLOW`/`OVERFLOW` markers and `uf`/`of` flags across tiles (not just one end marker), so
+these knobs produce practical changes in SIT:
 
 ```bash
 python riscvbench.py \
