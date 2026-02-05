@@ -127,6 +127,56 @@ by emitting a single active interval based on wall time.
 - Baseline adapter uses CSV only as a Phase-1 deterministic reference.
 - Future phases can add new adapters without changing the engine contract.
 
+
+### Practical cross-target workloads (same workloads + same event count)
+If you want **the same workload list and same parsed event count** on both Spike and CPU, use
+`run_cross_target_suite.py`. It runs a practical shared set (`branch`, `memory`, `memread`,
+`memwrite`, `memcpy`, `matmul`) on both targets and checks that each run reaches exactly
+`--events-max` rows in `trace.csv` for parity.
+
+```bash
+python run_cross_target_suite.py \
+  --pk /path/to/riscv-pk/build/pk \
+  --workload-size small \
+  --time-us 256 \
+  --events-max 2000
+```
+
+This is a strict parity mode, so `matmul_multicore` is intentionally excluded because Spike
+falls back to single-core `matmul` for trace generation.
+
+If you want to include `matmul_multicore` for comparison anyway, run:
+
+```bash
+python run_cross_target_suite.py \
+  --pk /path/to/riscv-pk/build/pk \
+  --workload-size small \
+  --time-us 256 \
+  --events-max 2000 \
+  --include-matmul-multicore
+```
+
+Important: Spike does **not** execute a true pthread multicore kernel here; it uses a
+single-core matmul fallback to generate a compatible instruction trace.
+
+### Making SIT less likely to clamp at 1.0
+For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
+perfectly active:
+
+```bash
+python riscvbench.py \
+  --target cpu \
+  --workload matmul_multicore \
+  --workload_size small \
+  --time_us 256 \
+  --cores 4 \
+  --events-max 2000 \
+  --underflow --overflow \
+  --reader-sleep-ns 2000 \
+  --writer-sleep-ns 5000 \
+  --expected-work-rate 1.15
+```
+
 ### SIT normalization + debug
 SIT is computed per resident window. If the input trace includes `work_done` (e.g., tiles completed), the engine normalizes
 per-window work rate against `--expected-work-rate` (default `1.0` work/us). Otherwise it falls back to the active fraction
