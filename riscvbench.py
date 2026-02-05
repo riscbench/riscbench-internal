@@ -189,6 +189,10 @@ def main():
     ap.add_argument("--resident_pc_ge", default="0x80000000")
     ap.add_argument("--trace_lines_max", type=int, default=200000)
     ap.add_argument("--events-max", type=int, default=None, help="Max events to parse for both spike and cpu (0 for no limit)")
+    ap.add_argument("--expected-work-rate", type=float, default=1.0,
+                    help="Expected work rate used by SIT normalization")
+    ap.add_argument("--debug-sit", action="store_true",
+                    help="Print debug fields for SIT components during classify")
 
     args = ap.parse_args()
     if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
@@ -201,7 +205,6 @@ def main():
     # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
 
     repo = find_repo_root()
-    repo = Path(__file__).resolve().parent
 
     adapter_spike = repo / "adapters" / "spike_adapter.py"
     adapter_cpu = repo / "adapters" / "cpu_adapter.py"
@@ -379,7 +382,7 @@ def main():
             sh(["gcc", "-O2", "-g", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
             start = time.perf_counter()
-            sh([str(binpath)], cwd=build_dir, check=False)
+            sh_allow_fail([str(binpath)], cwd=build_dir)
             end = time.perf_counter()
 
             duration_us = max((end - start) * 1e6, 1.0)
