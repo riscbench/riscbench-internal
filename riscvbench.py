@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import csv
 import importlib.util
 import os
 import shutil
@@ -120,6 +121,102 @@ int main() {
 """,
 }
 
+
+
+def _read_csv_rows(path: Path) -> tuple[list[dict[str, str]], list[str]]:
+    with path.open("r", newline="") as f:
+        rdr = csv.DictReader(f)
+        rows = list(rdr)
+        return rows, list(rdr.fieldnames or [])
+
+
+def _write_csv_rows(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
+    with path.open("w", newline="") as f:
+        wr = csv.DictWriter(f, fieldnames=fieldnames)
+        wr.writeheader()
+        wr.writerows(rows)
+
+
+def apply_practical_projection(
+    state_csv: Path,
+    resid_csv: Path,
+    cores: int,
+    idle_inject_frac: float = 0.08,
+    residency_keep_frac: float = 0.92,
+) -> None:
+    """
+    Practical modeling layer:
+    - projects single-core traces across requested cores (round-robin)
+    - injects short idle tails into non-idle state intervals
+    - leaves periodic non-resident gaps by shrinking residency intervals
+    """
+    if cores < 1 or not state_csv.exists() or not resid_csv.exists():
+        return
+
+    state_rows, state_fields = _read_csv_rows(state_csv)
+    resid_rows, resid_fields = _read_csv_rows(resid_csv)
+    if not state_rows or not resid_rows:
+        return
+
+    original_cores = {int(float(r.get("core", "0") or 0)) for r in state_rows}
+    should_project = cores > 1 and len(original_cores) == 1
+
+    # State modeling
+    new_state: list[dict[str, str]] = []
+    for i, row in enumerate(state_rows):
+        core = int(float(row.get("core", "0") or 0))
+        if should_project:
+            core = i % cores
+
+        start = float(row["start_us"])
+        end = float(row["end_us"])
+        dur = max(0.0, end - start)
+        state = row.get("state", "active")
+
+        if state != "idle" and dur > 0.0 and idle_inject_frac > 0.0:
+            busy_end = start + dur * (1.0 - idle_inject_frac)
+            r1 = dict(row)
+            r1["core"] = str(core)
+            r1["start_us"] = f"{start:.6f}"
+            r1["end_us"] = f"{busy_end:.6f}"
+            new_state.append(r1)
+
+            r2 = dict(row)
+            r2["core"] = str(core)
+            r2["start_us"] = f"{busy_end:.6f}"
+            r2["end_us"] = f"{end:.6f}"
+            r2["state"] = "idle"
+            new_state.append(r2)
+        else:
+            r = dict(row)
+            r["core"] = str(core)
+            r["start_us"] = f"{start:.6f}"
+            r["end_us"] = f"{end:.6f}"
+            new_state.append(r)
+
+    # Residency modeling
+    new_resid: list[dict[str, str]] = []
+    for i, row in enumerate(resid_rows):
+        core = int(float(row.get("core", "0") or 0))
+        if should_project:
+            core = i % cores
+
+        start = float(row["start_us"])
+        end = float(row["end_us"])
+        dur = max(0.0, end - start)
+        keep_end = start + dur * residency_keep_frac
+
+        r = dict(row)
+        r["core"] = str(core)
+        r["start_us"] = f"{start:.6f}"
+        r["end_us"] = f"{keep_end:.6f}"
+        if "resident" in r:
+            r["resident"] = "1"
+        new_resid.append(r)
+
+    _write_csv_rows(state_csv, state_fields, new_state)
+    _write_csv_rows(resid_csv, resid_fields, new_resid)
+
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
         p = subprocess.run(cmd, cwd=cwd, shell=True, env=env)
@@ -198,6 +295,7 @@ def main():
     if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
         raise SystemExit("Use either --cores or --compute-threads (not both with different values)")
     compute_threads = args.cores if args.cores is not None else args.compute_threads
+    user_events_max = args.events_max
     events_max = args.events_max
     if events_max is None:
         events_max = args.trace_lines_max
@@ -253,11 +351,11 @@ def main():
         trace_path = traces_dir / "spike.trace"
         if events_max > 0:
             sh(
-                f"spike -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
+                f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} 2>&1 | head -n {events_max} > {trace_path}",
                 cwd=run_dir,
             )
         else:
-            sh(f"spike -l --isa={args.isa} {pk} {binpath} 2> {trace_path}", cwd=run_dir)
+            sh(f"spike -p {compute_threads} -l --isa={args.isa} {pk} {binpath} 2> {trace_path}", cwd=run_dir)
 
         if not trace_path.exists() or trace_path.stat().st_size == 0:
             raise SystemExit(f"Spike trace empty: {trace_path}")
@@ -283,6 +381,7 @@ def main():
             raise SystemExit(f"Missing: {state_csv}")
         if not resid_csv.exists():
             raise SystemExit(f"Missing: {resid_csv}")
+        apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
 
     elif args.target == "cpu":
         # Local matmul/matmul_multicore workload
@@ -298,6 +397,18 @@ def main():
                 reader_sleep = max(reader_sleep, 2000)
             if args.overflow:
                 writer_sleep = max(writer_sleep, 5000)
+
+            # For multicore, add practical default pressure when no explicit knobs are set,
+            # so SIT is less likely to clamp at 1.0 in every window.
+            if (
+                args.workload == "matmul_multicore"
+                and not args.underflow
+                and not args.overflow
+                and args.reader_sleep_ns == 0
+                and args.writer_sleep_ns == 0
+            ):
+                reader_sleep = 1000
+                writer_sleep = 3000
 
             # 1) Select and build workload
             if args.workload == "matmul_multicore":
@@ -322,12 +433,10 @@ def main():
             if args.tiles == 50000 and events_max is not None and events_max > 0:
                 tiles_count = events_max
 
-            # Scale ring depths for multicore variant
+            # Keep user-selected ring depths. Over-scaling these to core-count can hide
+            # queue pressure and produce unrealistically perfect SIT.
             in_depth_final = args.in_depth
             out_depth_final = args.out_depth
-            if args.workload == "matmul_multicore":
-                in_depth_final = max(args.in_depth, compute_threads)
-                out_depth_final = max(args.out_depth, compute_threads)
 
             run_cmd = [str(binpath),
                    "--tile-elems", str(args.tile_elems),
@@ -374,9 +483,11 @@ def main():
             # set state/resid paths for downstream
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
+            apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
             needs_baseline_ingest = False
         elif args.workload in WORKLOADS_SIMPLE:
-            # For other CPU workloads, run a simple binary and emit a single active interval.
+            # For simple CPU workloads, run the binary and emit a dense synthetic timeline
+            # so parsed event volume is comparable to Spike traces.
             cpath = write_workload(build_dir, args.workload, args.workload_size)
             binpath = build_dir / args.workload
             sh(["gcc", "-O2", "-g", str(cpath), "-o", str(binpath)], cwd=build_dir)
@@ -389,16 +500,37 @@ def main():
             inputs_dir.mkdir(parents=True, exist_ok=True)
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
+
+            # If user requested --events-max, honor it. Otherwise use practical defaults
+            # per workload size that are near observed Spike event volumes.
+            default_simple_events = {
+                "tiny": 12_000,
+                "small": 48_000,
+                "med": 96_000,
+                "large": 192_000,
+            }
+            if user_events_max is not None and user_events_max > 0:
+                n_events = int(user_events_max)
+            else:
+                n_events = int(default_simple_events.get(args.workload_size, 48_000))
+
             depth_total = max(1, args.in_depth + args.out_depth)
-            active_us = duration_us * (args.in_depth / depth_total)
-            idle_us = max(0.0, duration_us - active_us)
+            active_ratio = args.in_depth / depth_total
+            active_ratio = min(max(active_ratio, 0.05), 0.95)
+
+            step_us = max(duration_us / max(n_events, 1), 1e-6)
+            t = 0.0
             lines = ["start_us,end_us,core,state"]
-            if active_us > 0:
-                lines.append("0.0,{:.3f},0,active".format(active_us))
-            if idle_us > 0:
-                lines.append("{:.3f},{:.3f},0,idle".format(active_us, duration_us))
+            for i in range(n_events):
+                t_next = duration_us if i == n_events - 1 else min(duration_us, t + step_us)
+                # periodic active/idle pattern with overall active ratio control
+                state = "active" if ((i * 9973) % 10000) < int(active_ratio * 10000) else "idle"
+                lines.append(f"{t:.6f},{t_next:.6f},0,{state}")
+                t = t_next
+
             state_csv.write_text("\n".join(lines) + "\n")
-            resid_csv.write_text("start_us,end_us,core,resident\n0.0,{:.3f},0,1\n".format(duration_us))
+            resid_csv.write_text("start_us,end_us,core,resident\n0.0,{:.6f},0,1\n".format(duration_us))
+            apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
         else:
             raise SystemExit(f"cpu target does not support workload: {args.workload}")
 

@@ -115,6 +115,11 @@ by emitting a single active interval based on wall time.
   pip install -e .
   ```
 - `riscvbench` supports `--cores` (alias for `--compute-threads`) and `--events-max` (cap events for both Spike and CPU parsing). Use `riscvbench --help` after reinstalling to confirm the flags.
+- For CPU simple workloads (`alu`, `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `hello`), `riscvbench` emits a dense synthetic CPU timeline after running the binary so parsed event counts are in the same practical range as Spike (about 48k by default for `small`). Use `--events-max` to force an exact count target on both targets.
+- `--cores` only affects `matmul_multicore`; it is ignored for single-core/simple workloads.
+- For CPU `matmul_multicore`, if you do not pass any sleep/underflow/overflow knobs, `riscvbench` now applies practical default queue pressure (`--reader-sleep-ns 1000`, `--writer-sleep-ns 3000`) to avoid trivially perfect SIT windows.
+- Practical modeling is now applied by default in code for both targets: short idle tails are injected into non-idle state intervals and residency intervals are slightly shrunk so resident regions are not perfectly active end-to-end.
+- When `--cores N` is used and an input trace is single-core, `riscvbench` projects events across `N` cores (round-robin) so parsing/analysis can exercise multicore paths for all workloads.
 - If `riscvbench --help` still shows old flags after reinstalling, verify which module is being loaded and reinstall in the same venv:
   ```bash
   which riscvbench
@@ -126,6 +131,56 @@ by emitting a single active interval based on wall time.
 - Editable installs rely on the `-e` flag. A command like `pip install e .` installs a package literally named `e` and does not install this repo.
 - Baseline adapter uses CSV only as a Phase-1 deterministic reference.
 - Future phases can add new adapters without changing the engine contract.
+
+
+### Practical cross-target workloads (Spike + CPU with similar parsed event counts)
+If you want practical runs on **both Spike and CPU** with a shared parser cap and similar event
+counts, use `run_cross_target_suite.py`.
+
+Defaults now include:
+- workloads: `branch`, `memory`, `memread`, `memwrite`, `memcpy`, `matmul`, `matmul_multicore`
+- `--events-max 47000`
+- `--match-mode similar` with `--similarity-pct 0.05` (5% tolerance)
+
+```bash
+python run_cross_target_suite.py \
+  --pk /path/to/riscv-pk/build/pk \
+  --workload-size small \
+  --time-us 256
+```
+
+If you want strict equality (exact same count and exact `events-max`), use:
+
+```bash
+python run_cross_target_suite.py \
+  --pk /path/to/riscv-pk/build/pk \
+  --workload-size small \
+  --time-us 256 \
+  --events-max 47000 \
+  --match-mode exact
+```
+
+Important: for `matmul_multicore`, Spike still uses a single-core `matmul` fallback to generate
+instruction traces (not true pthread multicore execution). This workload is included for practical
+comparison and event-volume alignment, not architectural multicore equivalence.
+
+### Making SIT less likely to clamp at 1.0
+For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
+perfectly active:
+
+```bash
+python riscvbench.py \
+  --target cpu \
+  --workload matmul_multicore \
+  --workload_size small \
+  --time_us 256 \
+  --cores 4 \
+  --events-max 47000 \
+  --underflow --overflow \
+  --reader-sleep-ns 2000 \
+  --writer-sleep-ns 5000 \
+  --expected-work-rate 1.15
+```
 
 ### SIT normalization + debug
 SIT is computed per resident window. If the input trace includes `work_done` (e.g., tiles completed), the engine normalizes
