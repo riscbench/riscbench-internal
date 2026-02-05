@@ -24,7 +24,7 @@ SPIKE_LINE_RE = re.compile(
 )
 
 
-# Fallback parser for Spike variants that do not include full disassembly.
+# Fallback parser for Spike variants that do not include an (0xINSN) tuple.
 CORE_FALLBACK_RE = re.compile(r"core\s+(?P<core>\d+):")
 PC_AFTER_CORE_RE = re.compile(r"0x(?P<pc>[0-9a-fA-F]{8,16})")
 
@@ -65,7 +65,7 @@ class SpikePlatformAdapter:
         """
         with open(self.spike_trace_path, "r", errors="ignore") as f:
             for line in f:
-                m = SPIKE_LINE_RE.match(line)
+                m = SPIKE_LINE_RE.search(line)
                 if m:
                     core = int(m.group("core"))
                     pc = int(m.group("pc"), 16)
