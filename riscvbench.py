@@ -466,8 +466,12 @@ def main():
             # Determine matmul parameters
             reader_sleep = args.reader_sleep_ns
             writer_sleep = args.writer_sleep_ns
+            # Keep underflow vs overflow behavior intentionally asymmetric so they
+            # do not collapse to identical SIT/residency outcomes.
+            # - underflow: moderate, frequent reader starvation
+            # - overflow: stronger, burstier writer backpressure
             if args.underflow:
-                reader_sleep = max(reader_sleep, 20000)
+                reader_sleep = max(reader_sleep, 12000)
             if args.overflow:
                 writer_sleep = max(writer_sleep, 20000)
 
@@ -595,9 +599,9 @@ def main():
             # map underflow/overflow knobs to explicit stall share so residency_stall reacts.
             stall_ratio = 0.0
             if args.underflow:
-                stall_ratio += 0.15
+                stall_ratio += 0.12
             if args.overflow:
-                stall_ratio += 0.15
+                stall_ratio += 0.20
             stall_ratio += min(float(args.reader_sleep_ns) / 100000.0, 0.15)
             stall_ratio += min(float(args.writer_sleep_ns) / 100000.0, 0.15)
             stall_ratio = min(stall_ratio, 0.7)
