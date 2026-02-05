@@ -39,29 +39,15 @@ def main() -> int:
     ap.add_argument("--events-max", type=int, default=2000)
     ap.add_argument("--pk", required=True, help="Path to riscv-pk for spike")
     ap.add_argument("--cores", type=int, default=4, help="CPU cores for matmul_multicore (if selected)")
-    ap.add_argument(
-        "--include-matmul-multicore",
-        action="store_true",
-        help=(
-            "Also run matmul_multicore in the suite. Note: Spike uses a single-core matmul "
-            "fallback for this workload (not true multicore execution)."
-        ),
-    )
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
     repo = Path(__file__).resolve().parent
     failures: list[str] = []
 
-    workloads = list(args.workloads)
-    if args.include_matmul_multicore and "matmul_multicore" not in workloads:
-        workloads.append("matmul_multicore")
-
-    for workload in workloads:
-        if workload == "matmul_multicore" and not args.include_matmul_multicore:
-            failures.append(
-                "matmul_multicore requested but strict parity mode excludes it; rerun with --include-matmul-multicore"
-            )
+    for workload in args.workloads:
+        if workload == "matmul_multicore":
+            failures.append("matmul_multicore is excluded from strict parity because spike falls back to single-core matmul")
             continue
 
         per_target_counts = {}
@@ -89,12 +75,6 @@ def main() -> int:
                 cmd += ["--overflow", "--underflow", "--reader-sleep-ns", "2000", "--writer-sleep-ns", "5000"]
                 if workload == "matmul_multicore":
                     cmd += ["--cores", str(args.cores)]
-
-            if workload == "matmul_multicore":
-                print(
-                    "! Note: Spike matmul_multicore is implemented via a single-core matmul fallback "
-                    "for instruction trace generation."
-                )
 
             run_cmd(cmd, dry_run=args.dry_run)
             if args.dry_run:

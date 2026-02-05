@@ -145,20 +145,6 @@ python run_cross_target_suite.py \
 This is a strict parity mode, so `matmul_multicore` is intentionally excluded because Spike
 falls back to single-core `matmul` for trace generation.
 
-If you want to include `matmul_multicore` for comparison anyway, run:
-
-```bash
-python run_cross_target_suite.py \
-  --pk /path/to/riscv-pk/build/pk \
-  --workload-size small \
-  --time-us 256 \
-  --events-max 2000 \
-  --include-matmul-multicore
-```
-
-Important: Spike does **not** execute a true pthread multicore kernel here; it uses a
-single-core matmul fallback to generate a compatible instruction trace.
-
 ### Making SIT less likely to clamp at 1.0
 For CPU workloads, introduce queue pressure and tighten normalization so windows are not always
 perfectly active:
