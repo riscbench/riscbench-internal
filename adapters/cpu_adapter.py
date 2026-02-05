@@ -56,10 +56,17 @@ class CPUAdapter:
         
         return events
     
+    def _event_flag(self, ev: Dict[str, Any], key: str) -> int:
+        raw = ev.get(key, 0)
+        try:
+            return int(float(raw))
+        except (TypeError, ValueError):
+            return 0
+
     def to_state_dataframe(self) -> pd.DataFrame:
         """Convert events to state interval DataFrame (start_us, end_us, core, state)."""
         if not self._events:
-            return pd.DataFrame(columns=['start_us', 'end_us', 'core', 'state'])
+            return pd.DataFrame(columns=['start_us', 'end_us', 'core', 'state', 'work_done', 'pressure_flag'])
         
         # Group events by thread
         threads = {}
@@ -90,6 +97,8 @@ class CPUAdapter:
                 work_done = max(0.0, next_tiles_done - tiles_done)
 
                 event_type = ev.get('event', '')
+                uf_flag = self._event_flag(ev, 'uf')
+                of_flag = self._event_flag(ev, 'of')
                 if work_done == 0.0 and event_type == 'COMPUTE_WORK':
                     # Fallback: many traces emit `tile=<idx>` or only COMPUTE_WORK events.
                     # Treat each compute step as one unit of work to preserve SIT sensitivity.
@@ -98,7 +107,9 @@ class CPUAdapter:
                 
                 # Map event types to CPU states
                 if event_type == 'COMPUTE_WORK':
-                    state = 'active'
+                    # Some workload traces encode pressure as uf/of flags on COMPUTE_WORK rows
+                    # rather than separate UNDERFLOW/OVERFLOW events.
+                    state = 'stall' if (uf_flag > 0 or of_flag > 0) else 'active'
                 elif 'UNDERFLOW' in event_type or 'OVERFLOW' in event_type:
                     state = 'stall'
                 elif event_type in ('THREAD_START', 'THREAD_END'):
@@ -109,7 +120,14 @@ class CPUAdapter:
                 interval_end = next_ts
                 interval_start = ts
                 idle_start = None
-                if gap_us > self._idle_gap_us and event_type not in ('THREAD_START', 'THREAD_END'):
+                # Only split long ACTIVE gaps into active+idle.
+                # For pressure events (stall), keep the full interval as stall so
+                # underflow/overflow contributes to residency_stall instead of idle.
+                if (
+                    gap_us > self._idle_gap_us
+                    and event_type not in ('THREAD_START', 'THREAD_END')
+                    and state == 'active'
+                ):
                     interval_end = ts + self._idle_gap_us
                     idle_start = interval_end
 
@@ -120,6 +138,7 @@ class CPUAdapter:
                         'core': thread_id - 1,  # thread 1 -> core 0
                         'state': state,
                         'work_done': work_done if state == 'active' else 0.0,
+                        'pressure_flag': 1 if state == 'stall' and event_type == 'COMPUTE_WORK' else 0,
                     })
 
                 if idle_start is not None and next_ts > idle_start:
@@ -129,11 +148,12 @@ class CPUAdapter:
                         'core': thread_id - 1,
                         'state': 'idle',  # overhead/spin wait
                         'work_done': 0.0,
+                        'pressure_flag': 0,
                     })
         
         df = pd.DataFrame(intervals)
         if len(df) == 0:
-            return pd.DataFrame(columns=['start_us', 'end_us', 'core', 'state'])
+            return pd.DataFrame(columns=['start_us', 'end_us', 'core', 'state', 'work_done', 'pressure_flag'])
         
         return df.sort_values('start_us').reset_index(drop=True)
     
