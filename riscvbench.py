@@ -467,11 +467,9 @@ def main():
             reader_sleep = args.reader_sleep_ns
             writer_sleep = args.writer_sleep_ns
             if args.underflow:
-                # Underflow: consumer starvation; moderate implicit pressure by default.
-                reader_sleep = max(reader_sleep, 12000)
+                reader_sleep = max(reader_sleep, 20000)
             if args.overflow:
-                # Overflow: backpressure tends to be harsher; stronger implicit pressure.
-                writer_sleep = max(writer_sleep, 24000)
+                writer_sleep = max(writer_sleep, 20000)
 
             # For multicore, add practical default pressure when no explicit knobs are set,
             # so SIT is less likely to clamp at 1.0 in every window.
@@ -596,25 +594,14 @@ def main():
             # Simple-workload pressure modeling:
             # map underflow/overflow knobs to explicit stall share so residency_stall reacts.
             stall_ratio = 0.0
-            idle_bias = 0.0
             if args.underflow:
-                # Underflow profile: starvation with shorter queue-pressure bursts.
-                # Keep stall lower than overflow and slightly boost useful active share.
-                stall_ratio += 0.08
-                idle_bias += 0.06
-                active_ratio += 0.08
+                stall_ratio += 0.15
             if args.overflow:
-                # Overflow profile: stronger backpressure and queue stalls.
-                stall_ratio += 0.28
-                idle_bias += 0.02
-                active_ratio -= 0.06
-            stall_ratio += min(float(args.reader_sleep_ns) / 140000.0, 0.08)
-            stall_ratio += min(float(args.writer_sleep_ns) / 70000.0, 0.22)
-            stall_ratio = min(stall_ratio, 0.80)
-            # Pressure should alter useful active share (for SIT) and keep UF/OF distinct.
-            active_scale = max(0.0, 1.0 - stall_ratio - (idle_bias * 0.4))
-            active_ratio = active_ratio * active_scale
-            active_ratio = min(max(active_ratio, 0.05), max(0.05, 1.0 - stall_ratio - 0.01))
+                stall_ratio += 0.15
+            stall_ratio += min(float(args.reader_sleep_ns) / 100000.0, 0.15)
+            stall_ratio += min(float(args.writer_sleep_ns) / 100000.0, 0.15)
+            stall_ratio = min(stall_ratio, 0.7)
+            active_ratio = min(active_ratio, max(0.05, 1.0 - stall_ratio - 0.05))
             idle_ratio = max(0.0, 1.0 - active_ratio - stall_ratio)
 
             step_us = max(duration_us / max(n_events, 1), 1e-6)
