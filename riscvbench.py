@@ -468,10 +468,10 @@ def main():
             writer_sleep = args.writer_sleep_ns
             # Keep underflow vs overflow behavior intentionally asymmetric so they
             # do not collapse to identical SIT/residency outcomes.
-            # - underflow: lighter, frequent reader starvation
+            # - underflow: moderate, frequent reader starvation
             # - overflow: stronger, burstier writer backpressure
             if args.underflow:
-                reader_sleep = max(reader_sleep, 5000)
+                reader_sleep = max(reader_sleep, 12000)
             if args.overflow:
                 writer_sleep = max(writer_sleep, 20000)
 
