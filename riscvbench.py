@@ -144,6 +144,7 @@ def apply_practical_projection(
     resid_csv: Path,
     cores: int,
     idle_inject_frac: float = 0.08,
+    stall_inject_frac: float = 0.0,
     residency_keep_frac: float = 0.92,
 ) -> None:
     """
@@ -175,20 +176,40 @@ def apply_practical_projection(
         dur = max(0.0, end - start)
         state = row.get("state", "active")
 
-        if state != "idle" and dur > 0.0 and idle_inject_frac > 0.0:
-            busy_end = start + dur * (1.0 - idle_inject_frac)
-            r1 = dict(row)
-            r1["core"] = str(core)
-            r1["start_us"] = f"{start:.6f}"
-            r1["end_us"] = f"{busy_end:.6f}"
-            new_state.append(r1)
+        if state != "idle" and dur > 0.0 and (idle_inject_frac > 0.0 or stall_inject_frac > 0.0):
+            stall_f = min(max(stall_inject_frac, 0.0), 0.95)
+            idle_f = min(max(idle_inject_frac, 0.0), 0.95)
+            if stall_f + idle_f > 0.95:
+                scale = 0.95 / (stall_f + idle_f)
+                stall_f *= scale
+                idle_f *= scale
 
-            r2 = dict(row)
-            r2["core"] = str(core)
-            r2["start_us"] = f"{busy_end:.6f}"
-            r2["end_us"] = f"{end:.6f}"
-            r2["state"] = "idle"
-            new_state.append(r2)
+            active_end = start + dur * (1.0 - stall_f - idle_f)
+            stall_end = active_end + dur * stall_f
+
+            if active_end > start:
+                r1 = dict(row)
+                r1["core"] = str(core)
+                r1["start_us"] = f"{start:.6f}"
+                r1["end_us"] = f"{active_end:.6f}"
+                r1["state"] = "active"
+                new_state.append(r1)
+
+            if stall_end > active_end:
+                r_mid = dict(row)
+                r_mid["core"] = str(core)
+                r_mid["start_us"] = f"{active_end:.6f}"
+                r_mid["end_us"] = f"{stall_end:.6f}"
+                r_mid["state"] = "stall"
+                new_state.append(r_mid)
+
+            if end > stall_end:
+                r2 = dict(row)
+                r2["core"] = str(core)
+                r2["start_us"] = f"{stall_end:.6f}"
+                r2["end_us"] = f"{end:.6f}"
+                r2["state"] = "idle"
+                new_state.append(r2)
         else:
             r = dict(row)
             r["core"] = str(core)
