@@ -467,9 +467,9 @@ def main():
             reader_sleep = args.reader_sleep_ns
             writer_sleep = args.writer_sleep_ns
             if args.underflow:
-                reader_sleep = max(reader_sleep, 2000)
+                reader_sleep = max(reader_sleep, 20000)
             if args.overflow:
-                writer_sleep = max(writer_sleep, 5000)
+                writer_sleep = max(writer_sleep, 20000)
 
             # For multicore, add practical default pressure when no explicit knobs are set,
             # so SIT is less likely to clamp at 1.0 in every window.
@@ -480,8 +480,8 @@ def main():
                 and args.reader_sleep_ns == 0
                 and args.writer_sleep_ns == 0
             ):
-                reader_sleep = 1000
-                writer_sleep = 3000
+                reader_sleep = 4000
+                writer_sleep = 8000
 
             # 1) Select and build workload
             if args.workload == "matmul_multicore":

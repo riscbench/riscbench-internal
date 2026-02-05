@@ -152,8 +152,17 @@ class SpikePlatformAdapter:
                 })
 
         rdf = pd.DataFrame(rows)
+        # Keep schema stable even when rows are empty or partially inferred.
+        rdf = rdf.reindex(columns=["start_us", "end_us", "core", "resident"])
         if len(rdf) == 0:
-            rdf = pd.DataFrame(columns=["start_us", "end_us", "core", "resident"])
+            # Fallback: if no explicit residency transitions were observed, mark each
+            # parsed core as resident for its full observed timeline.
+            fallback_rows = []
+            for core, end_t in sorted(t_by_core.items()):
+                if end_t > 0.0:
+                    fallback_rows.append({"start_us": 0.0, "end_us": float(end_t), "core": int(core), "resident": 1})
+            if fallback_rows:
+                rdf = pd.DataFrame(fallback_rows).reindex(columns=["start_us", "end_us", "core", "resident"])
 
         return validate_resid_df(rdf)
 
