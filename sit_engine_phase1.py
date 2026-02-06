@@ -178,6 +178,8 @@ def main():
 
             if work_enabled and args.expected_work_rate > 0:
                 sit_raw = (work_done / denom) / float(args.expected_work_rate)
+                if not math.isfinite(sit_raw) or (sit_raw <= 0.0 and active > 0.0):
+                    sit_raw = active_f  # fallback when work_done is missing/zero
             else:
                 sit_raw = active_f  # fallback
             sit = max(0.0, min(1.0, sit_raw))
