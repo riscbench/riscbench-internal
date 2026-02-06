@@ -241,7 +241,14 @@ def apply_practical_projection(
     _write_csv_rows(resid_csv, resid_fields, new_resid)
 
 
-def calibrate_spike_cpu_style(state_csv: Path, resid_csv: Path, workload_size: str, cores: int) -> None:
+def calibrate_spike_cpu_style(
+    state_csv: Path,
+    resid_csv: Path,
+    workload_size: str,
+    cores: int,
+    underflow: bool = False,
+    overflow: bool = False,
+) -> None:
     """
     Calibrate Spike post-processing to follow CPU simple-workload style semantics:
     - favor active/idle split (minimal synthetic stall)
@@ -255,11 +262,17 @@ def calibrate_spike_cpu_style(state_csv: Path, resid_csv: Path, workload_size: s
         "large": 0.50,
     }
     idle_inject_frac = float(idle_by_size.get(workload_size, 0.50))
+    stall_inject_frac = 0.0
+    if underflow:
+        stall_inject_frac += 0.08
+    if overflow:
+        stall_inject_frac += 0.14
     apply_practical_projection(
         state_csv,
         resid_csv,
         cores=max(1, cores),
         idle_inject_frac=idle_inject_frac,
+        stall_inject_frac=stall_inject_frac,
         residency_keep_frac=1.0,
     )
 
@@ -535,6 +548,8 @@ def main():
             resid_csv,
             workload_size=args.workload_size,
             cores=max(1, compute_threads),
+            underflow=args.underflow,
+            overflow=args.overflow,
         )
 
     elif args.target == "cpu":
