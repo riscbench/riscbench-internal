@@ -280,12 +280,12 @@ def calibrate_spike_cpu_style(
     - project single-core traces when multi-core requested
     """
     idle_by_size = {
-        "tiny": 0.45,
-        "small": 0.50,
-        "med": 0.50,
-        "large": 0.50,
+        "tiny": 0.08,
+        "small": 0.10,
+        "med": 0.12,
+        "large": 0.12,
     }
-    idle_inject_frac = float(idle_by_size.get(workload_size, 0.50))
+    idle_inject_frac = float(idle_by_size.get(workload_size, 0.10))
     stall_inject_frac = 0.0
     if underflow:
         stall_inject_frac += 0.05
