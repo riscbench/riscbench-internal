@@ -288,16 +288,19 @@ def calibrate_spike_cpu_style(
     idle_inject_frac = float(idle_by_size.get(workload_size, 0.10))
     stall_inject_frac = 0.0
     if underflow:
-        stall_inject_frac += 0.05
-    if overflow:
         stall_inject_frac += 0.08
-    stall_inject_frac = min(stall_inject_frac, 0.18)
-    work_scale = 1.0
-    if underflow:
-        work_scale *= 0.75
+        idle_inject_frac += 0.06
     if overflow:
-        work_scale *= 0.65
-    work_scale = max(work_scale, 0.35)
+        stall_inject_frac += 0.12
+        idle_inject_frac += 0.04
+    stall_inject_frac = min(stall_inject_frac, 0.30)
+    idle_inject_frac = min(idle_inject_frac, 0.35)
+    work_scale = 0.92
+    if underflow:
+        work_scale *= 0.72
+    if overflow:
+        work_scale *= 0.60
+    work_scale = max(work_scale, 0.30)
     apply_practical_projection(
         state_csv,
         resid_csv,
