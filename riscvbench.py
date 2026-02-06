@@ -796,10 +796,13 @@ def main():
             "--format", "baseline",
             "--out", str(run_dir)], cwd=repo)
 
+    expected_work_rate = args.expected_work_rate
+    if args.target == "spike" and (args.underflow or args.overflow):
+        expected_work_rate = 0.0
     cls_cmd = [sys.executable, str(cli_py), "classify",
                "--in", str(run_dir),
                "--window-us", str(args.time_us),
-               "--expected-work-rate", str(args.expected_work_rate)]
+               "--expected-work-rate", str(expected_work_rate)]
     if resid_csv.exists():
         cls_cmd += ["--residency", str(resid_csv)]
     if args.debug_sit:
