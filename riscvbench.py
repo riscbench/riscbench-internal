@@ -287,7 +287,6 @@ def calibrate_spike_cpu_style(
     }
     idle_inject_frac = float(idle_by_size.get(workload_size, 0.50))
     stall_inject_frac = 0.0
-    work_scale = (0.85 if underflow else 1.0) * (0.70 if overflow else 1.0)
     if underflow:
         stall_inject_frac += 0.08
     if overflow:
