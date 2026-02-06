@@ -138,6 +138,30 @@ def _write_csv_rows(path: Path, fieldnames: list[str], rows: list[dict[str, str]
         wr.writeheader()
         wr.writerows(rows)
 
+def _apply_work_done_scale(state_csv: Path, work_scale: float) -> None:
+    if not state_csv.exists():
+        return
+    rows, fields = _read_csv_rows(state_csv)
+    if not rows:
+        return
+    if "work_done" not in fields:
+        fields.append("work_done")
+    new_rows: list[dict[str, str]] = []
+    for row in rows:
+        start = float(row["start_us"])
+        end = float(row["end_us"])
+        dur = max(0.0, end - start)
+        state = row.get("state", "active")
+        base_work = float(row.get("work_done", "0") or 0.0)
+        if state == "active":
+            if base_work <= 0.0:
+                base_work = dur
+            row["work_done"] = f"{base_work * work_scale:.9f}"
+        else:
+            row["work_done"] = "0.0"
+        new_rows.append(row)
+    _write_csv_rows(state_csv, fields, new_rows)
+
 
 def apply_practical_projection(
     state_csv: Path,
@@ -241,7 +265,14 @@ def apply_practical_projection(
     _write_csv_rows(resid_csv, resid_fields, new_resid)
 
 
-def calibrate_spike_cpu_style(state_csv: Path, resid_csv: Path, workload_size: str, cores: int) -> None:
+def calibrate_spike_cpu_style(
+    state_csv: Path,
+    resid_csv: Path,
+    workload_size: str,
+    cores: int,
+    underflow: bool = False,
+    overflow: bool = False,
+) -> None:
     """
     Calibrate Spike post-processing to follow CPU simple-workload style semantics:
     - favor active/idle split (minimal synthetic stall)
@@ -255,13 +286,21 @@ def calibrate_spike_cpu_style(state_csv: Path, resid_csv: Path, workload_size: s
         "large": 0.50,
     }
     idle_inject_frac = float(idle_by_size.get(workload_size, 0.50))
+    stall_inject_frac = 0.0
+    work_scale = (0.85 if underflow else 1.0) * (0.70 if overflow else 1.0)
+    if underflow:
+        stall_inject_frac += 0.08
+    if overflow:
+        stall_inject_frac += 0.14
     apply_practical_projection(
         state_csv,
         resid_csv,
         cores=max(1, cores),
         idle_inject_frac=idle_inject_frac,
+        stall_inject_frac=stall_inject_frac,
         residency_keep_frac=1.0,
     )
+    _apply_work_done_scale(state_csv, work_scale)
 
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
@@ -535,6 +574,8 @@ def main():
             resid_csv,
             workload_size=args.workload_size,
             cores=max(1, compute_threads),
+            underflow=args.underflow,
+            overflow=args.overflow,
         )
 
     elif args.target == "cpu":
