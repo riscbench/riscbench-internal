@@ -306,7 +306,15 @@ def calibrate_spike_cpu_style(
         stall_inject_frac=stall_inject_frac,
         residency_keep_frac=1.0,
     )
-    _apply_work_done_scale(state_csv, work_scale)
+    if underflow or overflow:
+        rows, fields = _read_csv_rows(state_csv)
+        if "work_done" in fields:
+            fields = [f for f in fields if f != "work_done"]
+            for row in rows:
+                row.pop("work_done", None)
+            _write_csv_rows(state_csv, fields, rows)
+    else:
+        _apply_work_done_scale(state_csv, work_scale)
 
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
