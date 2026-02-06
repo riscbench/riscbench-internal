@@ -299,10 +299,7 @@ def calibrate_spike_cpu_style(
         stall_inject_frac=stall_inject_frac,
         residency_keep_frac=1.0,
     )
-    _apply_work_done_scale(
-        state_csv,
-        (0.85 if underflow else 1.0) * (0.70 if overflow else 1.0),
-    )
+    _apply_work_done_scale(state_csv, work_scale)
 
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
