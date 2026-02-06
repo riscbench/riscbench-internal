@@ -291,6 +291,7 @@ def calibrate_spike_cpu_style(
         stall_inject_frac += 0.08
     if overflow:
         stall_inject_frac += 0.14
+    work_scale = 1.0
     apply_practical_projection(
         state_csv,
         resid_csv,
