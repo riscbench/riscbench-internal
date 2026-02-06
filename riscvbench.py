@@ -280,27 +280,27 @@ def calibrate_spike_cpu_style(
     - project single-core traces when multi-core requested
     """
     idle_by_size = {
-        "tiny": 0.22,
-        "small": 0.24,
-        "med": 0.26,
-        "large": 0.26,
+        "tiny": 0.08,
+        "small": 0.10,
+        "med": 0.12,
+        "large": 0.12,
     }
-    idle_inject_frac = float(idle_by_size.get(workload_size, 0.24))
-    stall_inject_frac = 0.05
+    idle_inject_frac = float(idle_by_size.get(workload_size, 0.10))
+    stall_inject_frac = 0.0
     if underflow:
         stall_inject_frac += 0.08
         idle_inject_frac += 0.06
     if overflow:
-        stall_inject_frac += 0.14
+        stall_inject_frac += 0.12
         idle_inject_frac += 0.04
-    stall_inject_frac = min(stall_inject_frac, 0.38)
-    idle_inject_frac = min(idle_inject_frac, 0.42)
-    work_scale = 0.80
+    stall_inject_frac = min(stall_inject_frac, 0.30)
+    idle_inject_frac = min(idle_inject_frac, 0.35)
+    work_scale = 0.92
     if underflow:
-        work_scale *= 0.70
+        work_scale *= 0.72
     if overflow:
-        work_scale *= 0.55
-    work_scale = max(work_scale, 0.28)
+        work_scale *= 0.60
+    work_scale = max(work_scale, 0.30)
     apply_practical_projection(
         state_csv,
         resid_csv,
