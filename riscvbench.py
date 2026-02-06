@@ -291,6 +291,12 @@ def calibrate_spike_cpu_style(
         stall_inject_frac += 0.08
     if overflow:
         stall_inject_frac += 0.14
+    work_scale = 1.0
+    if underflow:
+        work_scale *= 0.65
+    if overflow:
+        work_scale *= 0.45
+    work_scale = max(work_scale, 0.2)
     apply_practical_projection(
         state_csv,
         resid_csv,
