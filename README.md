@@ -12,6 +12,39 @@ This repository provides:
 
 ---
 
+## Phase-1 / Phase-2 deliverables dashboard
+
+A consolidated progress page is available in:
+
+- [`PHASE1_PHASE2_STATUS.md`](PHASE1_PHASE2_STATUS.md)
+
+This keeps the deliverables list in checklist order and tracks:
+- what was requested,
+- what is currently implemented,
+- assumptions/design notes,
+- run commands per section,
+- completion percentages.
+
+---
+
+## Technical report (separate PDF section)
+
+The technical report is maintained separately from this README:
+
+- Source: [`docs/phase1_technical_document.tex`](docs/phase1_technical_document.tex)
+- Generalization notes: [`GENERALIZATION.md`](GENERALIZATION.md)
+
+If you want a PDF locally, compile the TeX source:
+
+```bash
+cd docs
+pdflatex phase1_technical_document.tex
+```
+
+Generated output (typical): `docs/phase1_technical_document.pdf`
+
+---
+
 ## 1) Why this exists
 
 Phase-1 is designed to be:
@@ -117,10 +150,10 @@ The engine slices intervals into fixed windows of `window_us` using half-open in
 
 ```mermaid
 flowchart TD
-  A[Interval start_us,end_us] --> B[Find first window floor(start/window_us)]
-  B --> C[Find last window floor((end-1e-9)/window_us)]
-  C --> D[For each window compute overlap = max(0, min(end,w_end)-max(start,w_start))]
-  D --> E[Accumulate per core,window,state]
+  A["Interval: start_us, end_us"] --> B["Find first window: floor(start_us / window_us)"]
+  B --> C["Find last window: floor((end_us - 1e-9) / window_us)"]
+  C --> D["For each window, compute overlap<br/>max(0, min(end_us, w_end) - max(start_us, w_start))"]
+  D --> E["Accumulate per core, window, state"]
 ```
 
 **Boundary rule:** subtracting epsilon (`1e-9`) for last-window selection prevents an interval ending exactly on a boundary from spilling into the next window.
