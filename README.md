@@ -150,10 +150,10 @@ The engine slices intervals into fixed windows of `window_us` using half-open in
 
 ```mermaid
 flowchart TD
-  A[Interval start_us,end_us] --> B[Find first window floor(start/window_us)]
-  B --> C[Find last window floor((end-1e-9)/window_us)]
-  C --> D[For each window compute overlap = max(0, min(end,w_end)-max(start,w_start))]
-  D --> E[Accumulate per core,window,state]
+  A["Interval: start_us, end_us"] --> B["Find first window: floor(start_us / window_us)"]
+  B --> C["Find last window: floor((end_us - 1e-9) / window_us)"]
+  C --> D["For each window, compute overlap<br/>max(0, min(end_us, w_end) - max(start_us, w_start))"]
+  D --> E["Accumulate per core, window, state"]
 ```
 
 **Boundary rule:** subtracting epsilon (`1e-9`) for last-window selection prevents an interval ending exactly on a boundary from spilling into the next window.
