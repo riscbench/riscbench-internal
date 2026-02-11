@@ -35,10 +35,6 @@ ADDI_A0_IMM_RE = re.compile(
     r"\baddi\s+a0\s*,\s*(?:x0|zero)\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
     re.IGNORECASE,
 )
-LI_A0_IMM_RE = re.compile(
-    r"\bli\s+a0\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
-    re.IGNORECASE,
-)
 
 
 @dataclass
@@ -123,22 +119,14 @@ class SpikePlatformAdapter:
     def _extract_marker_id(raw_mnemonic: str) -> Optional[int]:
         if not raw_mnemonic:
             return None
-
         mm = ADDI_A0_IMM_RE.search(raw_mnemonic)
-        if mm is None:
-            mm = LI_A0_IMM_RE.search(raw_mnemonic)
-        if mm is None:
+        if not mm:
             return None
-
         imm_txt = mm.group("imm")
         try:
-            marker_id = int(imm_txt, 0)
+            return int(imm_txt, 0)
         except ValueError:
             return None
-
-        if marker_id in (RES_ON_MARKER, RES_OFF_MARKER):
-            return marker_id
-        return None
 
     def _collect_core_timeline(self) -> Dict[int, Dict[str, List[float]]]:
         """
@@ -162,9 +150,10 @@ class SpikePlatformAdapter:
             t1 = float(inst_count) * inst_us
             max_t_by_core[core] = max(max_t_by_core.get(core, 0.0), t1)
 
-            marker_id = self._extract_marker_id(raw_mnemonic)
-            if marker_id is not None:
-                pending_marker_by_core[core] = marker_id
+            if mnemonic.startswith("addi"):
+                marker_id = self._extract_marker_id(raw_mnemonic)
+                if marker_id is not None:
+                    pending_marker_by_core[core] = marker_id
                 continue
 
             if mnemonic == "ebreak":
