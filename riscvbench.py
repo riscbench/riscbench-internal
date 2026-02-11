@@ -263,8 +263,8 @@ def main():
     ap.add_argument("--overflow", action="store_true", help="Enable writer slowdown to cause overflow")
 
     # Spike plumbing
-    ap.add_argument("--isa", default=None,
-                    help="Optional Spike ISA string (example: rv64gc). If omitted, uses Spike defaults.")
+    ap.add_argument("--isa", default="RV64GC",
+                    help="Spike ISA string. Default RV64GC to match typical pk/toolchain binaries.")
     ap.add_argument("--pk", default=str(Path.home() / "RISCV" / "riscv-pk" / "build" / "pk"))
     ap.add_argument("--inst_us", type=float, default=1.0)
     ap.add_argument("--resident_pc_ge", default="0x80000000")

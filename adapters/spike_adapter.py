@@ -49,6 +49,11 @@ LI_ZERO_IMM_RE = re.compile(
     re.IGNORECASE,
 )
 
+ADDI_ZERO_IMM_RE = re.compile(
+    r"\baddi\s+(?:x0|zero)\s*,\s*(?:x0|zero)\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
+    re.IGNORECASE,
+)
+
 
 @dataclass
 class SpikeParseConfig:
@@ -177,39 +182,25 @@ class SpikePlatformAdapter:
             t1 = float(inst_count) * inst_us
             max_t_by_core[core] = max(max_t_by_core.get(core, 0.0), t1)
 
-            # Fallback residency based on PC threshold.
-            is_resident_pc = pc is not None and int(pc) >= resident_pc_ge
-            fb_start = fallback_on_start_by_core.get(core)
-            if is_resident_pc and fb_start is None:
-                fallback_on_start_by_core[core] = t1
-            elif (not is_resident_pc) and fb_start is not None:
-                if t1 > fb_start:
-                    fallback_starts_by_core.setdefault(core, []).append(float(fb_start))
-                    fallback_ends_by_core.setdefault(core, []).append(float(t1))
-                fallback_on_start_by_core[core] = None
-
-            # Preferred marker path (both direct and legacy marker forms).
-            if mnemonic in {"addi", "li"}:
+            if mnemonic.startswith("addi"):
+                # Preferred marker path: non-trapping `addi x0, x0, IMM`.
                 marker_id_direct = self._extract_marker_id(raw_mnemonic, ADDI_ZERO_IMM_RE)
-                if marker_id_direct is None:
-                    marker_id_direct = self._extract_marker_id(raw_mnemonic, LI_ZERO_IMM_RE)
-
                 if marker_id_direct == RES_ON_MARKER:
-                    marker_on_start_by_core[core] = t1
+                    on_start_by_core[core] = t1
                     continue
                 if marker_id_direct == RES_OFF_MARKER:
-                    rs = marker_on_start_by_core.get(core)
+                    rs = on_start_by_core.get(core)
                     if rs is not None and t1 > rs:
-                        marker_starts_by_core.setdefault(core, []).append(float(rs))
-                        marker_ends_by_core.setdefault(core, []).append(float(t1))
-                    marker_on_start_by_core[core] = None
+                        starts_by_core.setdefault(core, []).append(float(rs))
+                        ends_by_core.setdefault(core, []).append(float(t1))
+                    on_start_by_core[core] = None
                     continue
 
-                if mnemonic == "addi":
-                    marker_id_legacy = self._extract_marker_id(raw_mnemonic, ADDI_A0_IMM_RE)
-                    if marker_id_legacy is not None:
-                        pending_marker_by_core[core] = marker_id_legacy
-                    continue
+                # Backward-compatible path: `addi a0, x0, IMM` consumed by `ebreak`.
+                marker_id_legacy = self._extract_marker_id(raw_mnemonic, ADDI_A0_IMM_RE)
+                if marker_id_legacy is not None:
+                    pending_marker_by_core[core] = marker_id_legacy
+                continue
 
             if mnemonic == "ebreak":
                 marker_id = pending_marker_by_core.get(core)
