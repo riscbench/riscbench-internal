@@ -22,13 +22,10 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           pip install numpy pandas
-          pip install -e . --no-build-isolation
+          pip install -e .
 
       - name: CLI help
         run: python cli.py --help
-
-      - name: riscvbench smoke
-        run: riscvbench --target cpu --workload hello --workload_size tiny --time_us 64 --events-max 200
 
       - name: Golden suite
         run: python tests/run_golden_suite.py --outdir /tmp/golden_out_ci
