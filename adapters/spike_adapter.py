@@ -26,13 +26,23 @@ PC_AFTER_CORE_RE = re.compile(r"0x(?P<pc>[0-9a-fA-F]{8,16})")
 GENERIC_CORE_RE = re.compile(r"(?:core|hart)\D*(?P<core>\d+)", re.IGNORECASE)
 HEX_TOKEN_RE = re.compile(r"0x(?P<hex>[0-9a-fA-F]{8,16})")
 
-# Marker IDs encoded via: addi a0, x0, MARKER_ID ; ebreak
+# Marker IDs can be encoded in two forms:
+#   1) legacy trap markers: addi a0, x0, MARKER_ID ; ebreak
+#   2) non-trapping markers: addi x0, x0, MARKER_ID
+#
+# The non-trapping form is preferred for pk+spike workloads because `ebreak`
+# can terminate execution before the workload body runs.
 RES_ON_MARKER = 101
 RES_OFF_MARKER = 102
 
 # Match immediate payload for `addi a0, x0, imm` variants.
 ADDI_A0_IMM_RE = re.compile(
     r"\baddi\s+a0\s*,\s*(?:x0|zero)\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
+    re.IGNORECASE,
+)
+
+ADDI_ZERO_IMM_RE = re.compile(
+    r"\baddi\s+(?:x0|zero)\s*,\s*(?:x0|zero)\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
     re.IGNORECASE,
 )
 
@@ -116,10 +126,10 @@ class SpikePlatformAdapter:
                 yield core, norm_mnemonic, inst_count, raw_mnemonic
 
     @staticmethod
-    def _extract_marker_id(raw_mnemonic: str) -> Optional[int]:
+    def _extract_marker_id(raw_mnemonic: str, marker_re: re.Pattern) -> Optional[int]:
         if not raw_mnemonic:
             return None
-        mm = ADDI_A0_IMM_RE.search(raw_mnemonic)
+        mm = marker_re.search(raw_mnemonic)
         if not mm:
             return None
         imm_txt = mm.group("imm")
@@ -151,9 +161,23 @@ class SpikePlatformAdapter:
             max_t_by_core[core] = max(max_t_by_core.get(core, 0.0), t1)
 
             if mnemonic.startswith("addi"):
-                marker_id = self._extract_marker_id(raw_mnemonic)
-                if marker_id is not None:
-                    pending_marker_by_core[core] = marker_id
+                # Preferred marker path: non-trapping `addi x0, x0, IMM`.
+                marker_id_direct = self._extract_marker_id(raw_mnemonic, ADDI_ZERO_IMM_RE)
+                if marker_id_direct == RES_ON_MARKER:
+                    on_start_by_core[core] = t1
+                    continue
+                if marker_id_direct == RES_OFF_MARKER:
+                    rs = on_start_by_core.get(core)
+                    if rs is not None and t1 > rs:
+                        starts_by_core.setdefault(core, []).append(float(rs))
+                        ends_by_core.setdefault(core, []).append(float(t1))
+                    on_start_by_core[core] = None
+                    continue
+
+                # Backward-compatible path: `addi a0, x0, IMM` consumed by `ebreak`.
+                marker_id_legacy = self._extract_marker_id(raw_mnemonic, ADDI_A0_IMM_RE)
+                if marker_id_legacy is not None:
+                    pending_marker_by_core[core] = marker_id_legacy
                 continue
 
             if mnemonic == "ebreak":
