@@ -12,6 +12,39 @@ This repository provides:
 
 ---
 
+## Phase-1 / Phase-2 deliverables dashboard
+
+A consolidated progress page is available in:
+
+- [`PHASE1_PHASE2_STATUS.md`](PHASE1_PHASE2_STATUS.md)
+
+This keeps the deliverables list in checklist order and tracks:
+- what was requested,
+- what is currently implemented,
+- assumptions/design notes,
+- run commands per section,
+- completion percentages.
+
+---
+
+## Technical report (separate PDF section)
+
+The technical report is maintained separately from this README:
+
+- Source: [`docs/phase1_technical_document.tex`](docs/phase1_technical_document.tex)
+- Generalization notes: [`GENERALIZATION.md`](GENERALIZATION.md)
+
+If you want a PDF locally, compile the TeX source:
+
+```bash
+cd docs
+pdflatex phase1_technical_document.tex
+```
+
+Generated output (typical): `docs/phase1_technical_document.pdf`
+
+---
+
 ## 1) Why this exists
 
 Phase-1 is designed to be:
