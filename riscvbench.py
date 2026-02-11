@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import csv
 import importlib.util
 import os
 import re
@@ -29,44 +28,87 @@ SIZE_PRESETS = {
 SRC = {
     "alu": r"""
 #include <stdint.h>
+#ifdef __riscv
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
 int main() {
   volatile uint64_t x = 1;
+  SIT_RES_ON();
   for (uint64_t i = 1; i < ITER; i++) x = x * 3 + i;
+  SIT_RES_OFF();
   return (int)x;
 }
 """,
     "branch": r"""
+#ifdef __riscv
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
 int main() {
   volatile int sum = 0;
+  SIT_RES_ON();
   for (int i = 0; i < ITER; i++) {
     if (i & 1) sum += i;
     else sum -= i;
   }
+  SIT_RES_OFF();
   return sum;
 }
 """,
     "memory": r"""
 #define N DIM
+#ifdef __riscv
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
 static int A[N][N];
 int main() {
   for (int i = 0; i < N; i++)
     for (int j = 0; j < N; j++) A[i][j] = i + j;
 
   volatile int sum = 0;
+  SIT_RES_ON();
   for (int j = 0; j < N; j++)
     for (int i = 0; i < N; i++) sum += A[i][j];
+  SIT_RES_OFF();
   return sum;
 }
 """,
     "hello": r"""
 #include <stdio.h>
+#ifdef __riscv
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
 int main() {
+  SIT_RES_ON();
   for (int i = 0; i < 3; i++) printf("Hello from RISC-V %d\n", i);
+  SIT_RES_OFF();
   return 0;
 }
 """,
     "matmul": r"""
 #define N DIM
+#ifdef __riscv
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
 static int A[N][N];
 static int B[N][N];
 static int C[N][N];
@@ -78,238 +120,79 @@ int main() {
       C[i][j] = 0;
     }
 
+  SIT_RES_ON();
   for (int i = 0; i < N; i++)
     for (int k = 0; k < N; k++)
       for (int j = 0; j < N; j++)
         C[i][j] += A[i][k] * B[k][j];
+  SIT_RES_OFF();
 
   return C[N - 1][N - 1];
 }
 """,
     "memread": r"""
 #define N DIM
+#ifdef __riscv
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
 static int A[N];
 int main() {
   for (int i = 0; i < N; i++) A[i] = i;
   volatile int sum = 0;
+  SIT_RES_ON();
   for (int i = 0; i < ITER; i++) {
     sum += A[i % N];
   }
+  SIT_RES_OFF();
   return sum;
 }
 """,
     "memwrite": r"""
 #define N DIM
+#ifdef __riscv
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
 static int A[N];
 int main() {
   for (int i = 0; i < N; i++) A[i] = 0;
+  SIT_RES_ON();
   for (int i = 0; i < ITER; i++) {
     A[i % N] = i;
   }
+  SIT_RES_OFF();
   return A[N - 1];
 }
 """,
     "memcpy": r"""
 #define N DIM
+#ifdef __riscv
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
 static int A[N];
 static int B[N];
 int main() {
   for (int i = 0; i < N; i++) A[i] = i;
+  SIT_RES_ON();
   for (int i = 0; i < ITER; i++) {
     B[i % N] = A[i % N];
   }
+  SIT_RES_OFF();
   return B[N - 1];
 }
 """,
 }
-
-
-
-def _read_csv_rows(path: Path) -> tuple[list[dict[str, str]], list[str]]:
-    with path.open("r", newline="") as f:
-        rdr = csv.DictReader(f)
-        rows = list(rdr)
-        return rows, list(rdr.fieldnames or [])
-
-
-def _write_csv_rows(path: Path, fieldnames: list[str], rows: list[dict[str, str]]) -> None:
-    with path.open("w", newline="") as f:
-        wr = csv.DictWriter(f, fieldnames=fieldnames)
-        wr.writeheader()
-        wr.writerows(rows)
-
-def _apply_work_done_scale(state_csv: Path, work_scale: float) -> None:
-    if not state_csv.exists():
-        return
-    rows, fields = _read_csv_rows(state_csv)
-    if not rows:
-        return
-    if "work_done" not in fields:
-        fields.append("work_done")
-    new_rows: list[dict[str, str]] = []
-    for row in rows:
-        start = float(row["start_us"])
-        end = float(row["end_us"])
-        dur = max(0.0, end - start)
-        state = row.get("state", "active")
-        base_work = float(row.get("work_done", "0") or 0.0)
-        if state == "active":
-            if base_work <= 0.0:
-                base_work = dur
-            row["work_done"] = f"{base_work * work_scale:.9f}"
-        else:
-            row["work_done"] = "0.0"
-        new_rows.append(row)
-    _write_csv_rows(state_csv, fields, new_rows)
-
-
-def apply_practical_projection(
-    state_csv: Path,
-    resid_csv: Path,
-    cores: int,
-    idle_inject_frac: float = 0.08,
-    stall_inject_frac: float = 0.0,
-    residency_keep_frac: float = 0.92,
-) -> None:
-    """
-    Practical modeling layer:
-    - projects single-core traces across requested cores (round-robin)
-    - injects short idle tails into non-idle state intervals
-    - leaves periodic non-resident gaps by shrinking residency intervals
-    """
-    if cores < 1 or not state_csv.exists() or not resid_csv.exists():
-        return
-
-    state_rows, state_fields = _read_csv_rows(state_csv)
-    resid_rows, resid_fields = _read_csv_rows(resid_csv)
-    if not state_rows or not resid_rows:
-        return
-
-    original_cores = {int(float(r.get("core", "0") or 0)) for r in state_rows}
-    should_project = cores > 1 and len(original_cores) == 1
-
-    # State modeling
-    new_state: list[dict[str, str]] = []
-    for i, row in enumerate(state_rows):
-        core = int(float(row.get("core", "0") or 0))
-        if should_project:
-            core = i % cores
-
-        start = float(row["start_us"])
-        end = float(row["end_us"])
-        dur = max(0.0, end - start)
-        state = row.get("state", "active")
-
-        if state != "idle" and dur > 0.0 and (idle_inject_frac > 0.0 or stall_inject_frac > 0.0):
-            stall_f = min(max(stall_inject_frac, 0.0), 0.95)
-            idle_f = min(max(idle_inject_frac, 0.0), 0.95)
-            if stall_f + idle_f > 0.95:
-                scale = 0.95 / (stall_f + idle_f)
-                stall_f *= scale
-                idle_f *= scale
-
-            active_end = start + dur * (1.0 - stall_f - idle_f)
-            stall_end = active_end + dur * stall_f
-
-            if active_end > start:
-                r1 = dict(row)
-                r1["core"] = str(core)
-                r1["start_us"] = f"{start:.6f}"
-                r1["end_us"] = f"{active_end:.6f}"
-                r1["state"] = "active"
-                new_state.append(r1)
-
-            if stall_end > active_end:
-                r_mid = dict(row)
-                r_mid["core"] = str(core)
-                r_mid["start_us"] = f"{active_end:.6f}"
-                r_mid["end_us"] = f"{stall_end:.6f}"
-                r_mid["state"] = "stall"
-                new_state.append(r_mid)
-
-            if end > stall_end:
-                r2 = dict(row)
-                r2["core"] = str(core)
-                r2["start_us"] = f"{stall_end:.6f}"
-                r2["end_us"] = f"{end:.6f}"
-                r2["state"] = "idle"
-                new_state.append(r2)
-        else:
-            r = dict(row)
-            r["core"] = str(core)
-            r["start_us"] = f"{start:.6f}"
-            r["end_us"] = f"{end:.6f}"
-            new_state.append(r)
-
-    # Residency modeling
-    new_resid: list[dict[str, str]] = []
-    for i, row in enumerate(resid_rows):
-        core = int(float(row.get("core", "0") or 0))
-        if should_project:
-            core = i % cores
-
-        start = float(row["start_us"])
-        end = float(row["end_us"])
-        dur = max(0.0, end - start)
-        keep_end = start + dur * residency_keep_frac
-
-        r = dict(row)
-        r["core"] = str(core)
-        r["start_us"] = f"{start:.6f}"
-        r["end_us"] = f"{keep_end:.6f}"
-        if "resident" in r:
-            r["resident"] = "1"
-        new_resid.append(r)
-
-    _write_csv_rows(state_csv, state_fields, new_state)
-    _write_csv_rows(resid_csv, resid_fields, new_resid)
-
-
-def calibrate_spike_cpu_style(
-    state_csv: Path,
-    resid_csv: Path,
-    workload_size: str,
-    cores: int,
-    underflow: bool = False,
-    overflow: bool = False,
-) -> None:
-    """
-    Calibrate Spike post-processing to follow CPU simple-workload style semantics:
-    - favor active/idle split (minimal synthetic stall)
-    - keep residency fully resident
-    - project single-core traces when multi-core requested
-    """
-    idle_by_size = {
-        "tiny": 0.08,
-        "small": 0.10,
-        "med": 0.12,
-        "large": 0.12,
-    }
-    idle_inject_frac = float(idle_by_size.get(workload_size, 0.10))
-    stall_inject_frac = 0.0
-    if underflow:
-        stall_inject_frac += 0.08
-        idle_inject_frac += 0.06
-    if overflow:
-        stall_inject_frac += 0.12
-        idle_inject_frac += 0.04
-    stall_inject_frac = min(stall_inject_frac, 0.30)
-    idle_inject_frac = min(idle_inject_frac, 0.35)
-    work_scale = 0.92
-    if underflow:
-        work_scale *= 0.72
-    if overflow:
-        work_scale *= 0.60
-    work_scale = max(work_scale, 0.30)
-    apply_practical_projection(
-        state_csv,
-        resid_csv,
-        cores=max(1, cores),
-        idle_inject_frac=idle_inject_frac,
-        stall_inject_frac=stall_inject_frac,
-        residency_keep_frac=1.0,
-    )
-    _apply_work_done_scale(state_csv, work_scale)
 
 def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> None:
     if isinstance(cmd, str):
@@ -578,15 +461,6 @@ def main():
                 f"Inspect trace at {trace_path}. First lines:\n{trace_preview}"
             )
 
-        calibrate_spike_cpu_style(
-            state_csv,
-            resid_csv,
-            workload_size=args.workload_size,
-            cores=max(1, compute_threads),
-            underflow=args.underflow,
-            overflow=args.overflow,
-        )
-
     elif args.target == "cpu":
         # Local matmul/matmul_multicore workload
         if args.workload in {"matmul", "matmul_multicore"}:
@@ -691,7 +565,6 @@ def main():
             # set state/resid paths for downstream
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
-            apply_practical_projection(state_csv, resid_csv, cores=max(1, compute_threads))
             needs_baseline_ingest = False
         elif args.workload in WORKLOADS_SIMPLE:
             # For simple CPU workloads, run the binary and emit a dense synthetic timeline
