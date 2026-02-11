@@ -29,8 +29,8 @@ SRC = {
     "alu": r"""
 #include <stdint.h>
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -45,8 +45,8 @@ int main() {
 """,
     "branch": r"""
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -65,8 +65,8 @@ int main() {
     "memory": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -87,8 +87,8 @@ int main() {
     "hello": r"""
 #include <stdio.h>
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -103,8 +103,8 @@ int main() {
     "matmul": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -133,8 +133,8 @@ int main() {
     "memread": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -154,8 +154,8 @@ int main() {
     "memwrite": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -174,8 +174,8 @@ int main() {
     "memcpy": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -263,7 +263,8 @@ def main():
     ap.add_argument("--overflow", action="store_true", help="Enable writer slowdown to cause overflow")
 
     # Spike plumbing
-    ap.add_argument("--isa", default="RV64IMACV")
+    ap.add_argument("--isa", default="RV64GC",
+                    help="Spike ISA string. Default RV64GC to match typical pk/toolchain binaries.")
     ap.add_argument("--pk", default=str(Path.home() / "RISCV" / "riscv-pk" / "build" / "pk"))
     ap.add_argument("--inst_us", type=float, default=1.0)
     ap.add_argument("--resident_pc_ge", default="0x80000000")
@@ -394,11 +395,11 @@ def main():
             print("! spike target does not support pthread multicore; falling back to single-core matmul kernel")
             cpath = write_workload(build_dir, "matmul", args.workload_size)
             binpath = build_dir / "matmul_multicore"
-            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
+            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", "-march=rv64gc", "-mabi=lp64d", str(cpath), "-o", str(binpath)], cwd=build_dir)
         else:
             cpath = write_workload(build_dir, args.workload, args.workload_size)
             binpath = build_dir / args.workload
-            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
+            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", "-march=rv64gc", "-mabi=lp64d", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
         # 2) run spike -> trace
         trace_path = traces_dir / "spike.trace"
