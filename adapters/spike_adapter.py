@@ -26,17 +26,13 @@ PC_AFTER_CORE_RE = re.compile(r"0x(?P<pc>[0-9a-fA-F]{8,16})")
 GENERIC_CORE_RE = re.compile(r"(?:core|hart)\D*(?P<core>\d+)", re.IGNORECASE)
 HEX_TOKEN_RE = re.compile(r"0x(?P<hex>[0-9a-fA-F]{8,16})")
 
-# Marker IDs encoded via: addi a0, x0, MARKER_ID
+# Marker IDs encoded via: addi a0, x0, MARKER_ID ; ebreak
 RES_ON_MARKER = 101
 RES_OFF_MARKER = 102
 
 # Match immediate payload for `addi a0, x0, imm` variants.
 ADDI_A0_IMM_RE = re.compile(
     r"\baddi\s+a0\s*,\s*(?:x0|zero)\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
-    re.IGNORECASE,
-)
-LI_A0_IMM_RE = re.compile(
-    r"\bli\s+a0\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
     re.IGNORECASE,
 )
 
@@ -123,22 +119,14 @@ class SpikePlatformAdapter:
     def _extract_marker_id(raw_mnemonic: str) -> Optional[int]:
         if not raw_mnemonic:
             return None
-
         mm = ADDI_A0_IMM_RE.search(raw_mnemonic)
-        if mm is None:
-            mm = LI_A0_IMM_RE.search(raw_mnemonic)
-        if mm is None:
+        if not mm:
             return None
-
         imm_txt = mm.group("imm")
         try:
-            marker_id = int(imm_txt, 0)
+            return int(imm_txt, 0)
         except ValueError:
             return None
-
-        if marker_id in (RES_ON_MARKER, RES_OFF_MARKER):
-            return marker_id
-        return None
 
     def _collect_core_timeline(self) -> Dict[int, Dict[str, List[float]]]:
         """
@@ -147,29 +135,39 @@ class SpikePlatformAdapter:
           - timeline min/max for optional idle gap emission
 
         Residency detection rule:
-          marker instruction `addi/li a0, <id>` toggles residency directly.
+          ebreak consumes marker_id from preceding `addi a0,x0,<id>` on same core.
         """
         inst_us = float(self.cfg.inst_us)
 
+        pending_marker_by_core: Dict[int, Optional[int]] = {}
         on_start_by_core: Dict[int, Optional[float]] = {}
 
         starts_by_core: Dict[int, List[float]] = {}
         ends_by_core: Dict[int, List[float]] = {}
         max_t_by_core: Dict[int, float] = {}
 
-        for core, _mnemonic, inst_count, raw_mnemonic in self._iter_events():
+        for core, mnemonic, inst_count, raw_mnemonic in self._iter_events():
             t1 = float(inst_count) * inst_us
             max_t_by_core[core] = max(max_t_by_core.get(core, 0.0), t1)
 
-            marker_id = self._extract_marker_id(raw_mnemonic)
-            if marker_id == RES_ON_MARKER:
-                on_start_by_core[core] = t1
-            elif marker_id == RES_OFF_MARKER:
-                rs = on_start_by_core.get(core)
-                if rs is not None and t1 > rs:
-                    starts_by_core.setdefault(core, []).append(float(rs))
-                    ends_by_core.setdefault(core, []).append(float(t1))
-                on_start_by_core[core] = None
+            if mnemonic.startswith("addi"):
+                marker_id = self._extract_marker_id(raw_mnemonic)
+                if marker_id is not None:
+                    pending_marker_by_core[core] = marker_id
+                continue
+
+            if mnemonic == "ebreak":
+                marker_id = pending_marker_by_core.get(core)
+                pending_marker_by_core[core] = None
+
+                if marker_id == RES_ON_MARKER:
+                    on_start_by_core[core] = t1
+                elif marker_id == RES_OFF_MARKER:
+                    rs = on_start_by_core.get(core)
+                    if rs is not None and t1 > rs:
+                        starts_by_core.setdefault(core, []).append(float(rs))
+                        ends_by_core.setdefault(core, []).append(float(t1))
+                    on_start_by_core[core] = None
 
         # Close dangling RES_ON markers at end-of-trace for that core.
         for core, rs in on_start_by_core.items():

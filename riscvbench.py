@@ -29,8 +29,8 @@ SRC = {
     "alu": r"""
 #include <stdint.h>
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -45,8 +45,8 @@ int main() {
 """,
     "branch": r"""
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -65,8 +65,8 @@ int main() {
     "memory": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -87,8 +87,8 @@ int main() {
     "hello": r"""
 #include <stdio.h>
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -103,8 +103,8 @@ int main() {
     "matmul": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -133,8 +133,8 @@ int main() {
     "memread": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -154,8 +154,8 @@ int main() {
     "memwrite": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -174,8 +174,8 @@ int main() {
     "memcpy": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
+#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
