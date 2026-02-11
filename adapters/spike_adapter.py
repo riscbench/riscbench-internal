@@ -35,9 +35,17 @@ HEX_TOKEN_RE = re.compile(r"0x(?P<hex>[0-9a-fA-F]{8,16})")
 RES_ON_MARKER = 101
 RES_OFF_MARKER = 102
 
-# Match immediate payload for `addi a0, x0, imm` variants.
+# Match immediate payload for marker forms.
 ADDI_A0_IMM_RE = re.compile(
     r"\baddi\s+a0\s*,\s*(?:x0|zero)\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
+    re.IGNORECASE,
+)
+ADDI_ZERO_IMM_RE = re.compile(
+    r"\baddi\s+(?:x0|zero)\s*,\s*(?:x0|zero)\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
+    re.IGNORECASE,
+)
+LI_ZERO_IMM_RE = re.compile(
+    r"\bli\s+(?:x0|zero)\s*,\s*(?P<imm>-?(?:0x[0-9a-fA-F]+|\d+))\b",
     re.IGNORECASE,
 )
 
@@ -50,6 +58,7 @@ ADDI_ZERO_IMM_RE = re.compile(
 @dataclass
 class SpikeParseConfig:
     inst_us: float = 1.0
+    resident_pc_ge: int = 0x80000000
 
 
 class SpikePlatformAdapter:
@@ -65,10 +74,10 @@ class SpikePlatformAdapter:
         self.spike_trace_path = spike_trace_path
         self.cfg = cfg or SpikeParseConfig()
 
-    def _iter_events(self) -> Iterable[Tuple[int, str, int, str]]:
+    def _iter_events(self) -> Iterable[Tuple[int, str, int, str, Optional[int]]]:
         """
         Yield per-instruction events as:
-          (core, normalized_mnemonic, inst_count, raw_mnemonic)
+          (core, normalized_mnemonic, inst_count, raw_mnemonic, pc)
 
         `inst_count` is per-core instruction index (1-based) and defines timeline:
           time_us = inst_count * inst_us
@@ -82,10 +91,15 @@ class SpikePlatformAdapter:
             for line in f:
                 core: Optional[int] = None
                 mnemonic = ""
+                pc: Optional[int] = None
 
                 m = SPIKE_LINE_RE.search(line)
                 if m:
                     core = int(m.group("core"))
+                    try:
+                        pc = int(m.group("pc"), 16)
+                    except Exception:
+                        pc = None
                     tail = line.split(")", 1)
                     mnemonic = tail[1].strip() if len(tail) == 2 else (m.group("mnemonic") or "")
                 else:
@@ -100,14 +114,17 @@ class SpikePlatformAdapter:
                             except ValueError:
                                 core = None
 
-                    if core is not None and not line.strip().startswith("core"):
-                        # leave as-is; this path still counts instruction-ish lines once a core is identified
-                        pass
-
                     # Require at least one PC-like token on fallback paths to avoid
                     # counting non-commit-log chatter.
                     if core is None or not hex_token_re.findall(line):
                         continue
+
+                    pc_m = PC_AFTER_CORE_RE.search(line)
+                    if pc_m:
+                        try:
+                            pc = int(pc_m.group("pc"), 16)
+                        except Exception:
+                            pc = None
 
                     # Heuristic mnemonic extraction from fallback text.
                     # Usually after ')' token in commit log lines.
@@ -123,7 +140,7 @@ class SpikePlatformAdapter:
                 inst_count = inst_count_by_core[core]
                 raw_mnemonic = (mnemonic or "").strip()
                 norm_mnemonic = raw_mnemonic.split()[0].lower() if raw_mnemonic else ""
-                yield core, norm_mnemonic, inst_count, raw_mnemonic
+                yield core, norm_mnemonic, inst_count, raw_mnemonic, pc
 
     @staticmethod
     def _extract_marker_id(raw_mnemonic: str, marker_re: re.Pattern) -> Optional[int]:
@@ -140,23 +157,28 @@ class SpikePlatformAdapter:
 
     def _collect_core_timeline(self) -> Dict[int, Dict[str, List[float]]]:
         """
-        Parse commit-log once and collect per-core:
-          - candidate residency boundaries from marker pairs
-          - timeline min/max for optional idle gap emission
+        Parse commit-log once and collect per-core timeline.
 
-        Residency detection rule:
-          ebreak consumes marker_id from preceding `addi a0,x0,<id>` on same core.
+        Preferred residency detection is marker-driven (RES_ON/RES_OFF). If markers
+        are absent for a core, fall back to PC-threshold residency using
+        resident_pc_ge.
         """
         inst_us = float(self.cfg.inst_us)
+        resident_pc_ge = int(self.cfg.resident_pc_ge)
 
         pending_marker_by_core: Dict[int, Optional[int]] = {}
-        on_start_by_core: Dict[int, Optional[float]] = {}
+        marker_on_start_by_core: Dict[int, Optional[float]] = {}
 
-        starts_by_core: Dict[int, List[float]] = {}
-        ends_by_core: Dict[int, List[float]] = {}
+        marker_starts_by_core: Dict[int, List[float]] = {}
+        marker_ends_by_core: Dict[int, List[float]] = {}
+
+        fallback_on_start_by_core: Dict[int, Optional[float]] = {}
+        fallback_starts_by_core: Dict[int, List[float]] = {}
+        fallback_ends_by_core: Dict[int, List[float]] = {}
+
         max_t_by_core: Dict[int, float] = {}
 
-        for core, mnemonic, inst_count, raw_mnemonic in self._iter_events():
+        for core, mnemonic, inst_count, raw_mnemonic, pc in self._iter_events():
             t1 = float(inst_count) * inst_us
             max_t_by_core[core] = max(max_t_by_core.get(core, 0.0), t1)
 
@@ -185,35 +207,51 @@ class SpikePlatformAdapter:
                 pending_marker_by_core[core] = None
 
                 if marker_id == RES_ON_MARKER:
-                    on_start_by_core[core] = t1
+                    marker_on_start_by_core[core] = t1
                 elif marker_id == RES_OFF_MARKER:
-                    rs = on_start_by_core.get(core)
+                    rs = marker_on_start_by_core.get(core)
                     if rs is not None and t1 > rs:
-                        starts_by_core.setdefault(core, []).append(float(rs))
-                        ends_by_core.setdefault(core, []).append(float(t1))
-                    on_start_by_core[core] = None
+                        marker_starts_by_core.setdefault(core, []).append(float(rs))
+                        marker_ends_by_core.setdefault(core, []).append(float(t1))
+                    marker_on_start_by_core[core] = None
 
-        # Close dangling RES_ON markers at end-of-trace for that core.
-        for core, rs in on_start_by_core.items():
+        # Close dangling open intervals at trace end.
+        for core, rs in marker_on_start_by_core.items():
             if rs is None:
                 continue
             end_t = max_t_by_core.get(core, rs)
             if end_t > rs:
-                starts_by_core.setdefault(core, []).append(float(rs))
-                ends_by_core.setdefault(core, []).append(float(end_t))
+                marker_starts_by_core.setdefault(core, []).append(float(rs))
+                marker_ends_by_core.setdefault(core, []).append(float(end_t))
+
+        for core, rs in fallback_on_start_by_core.items():
+            if rs is None:
+                continue
+            end_t = max_t_by_core.get(core, rs)
+            if end_t > rs:
+                fallback_starts_by_core.setdefault(core, []).append(float(rs))
+                fallback_ends_by_core.setdefault(core, []).append(float(end_t))
 
         out: Dict[int, Dict[str, List[float]]] = {}
         for core in sorted(max_t_by_core.keys()):
+            marker_spans = list(zip(marker_starts_by_core.get(core, []), marker_ends_by_core.get(core, [])))
+            if marker_spans:
+                starts = [s for s, _ in marker_spans]
+                ends = [e for _, e in marker_spans]
+            else:
+                starts = fallback_starts_by_core.get(core, [])
+                ends = fallback_ends_by_core.get(core, [])
+
             out[core] = {
-                "starts": starts_by_core.get(core, []),
-                "ends": ends_by_core.get(core, []),
+                "starts": starts,
+                "ends": ends,
                 "max_t": [max_t_by_core.get(core, 0.0)],
             }
         return out
 
     def build_residency_intervals(self) -> pd.DataFrame:
         """
-        Build residency intervals strictly from explicit RES_ON/RES_OFF markers.
+        Build residency intervals from marker spans (preferred) or PC-threshold fallback.
         """
         timeline = self._collect_core_timeline()
 
@@ -231,8 +269,8 @@ class SpikePlatformAdapter:
 
     def build_state_intervals(self) -> pd.DataFrame:
         """
-        Build marker-driven state intervals:
-          - active on resident [RES_ON, RES_OFF) spans
+        Build state intervals:
+          - active on resident spans
           - idle in gaps between resident spans on each core timeline
         """
         timeline = self._collect_core_timeline()
@@ -245,7 +283,6 @@ class SpikePlatformAdapter:
             if max_t <= 0.0:
                 continue
 
-            # Ensure intervals are ordered and valid.
             spans = sorted([(s, e) for s, e in zip(starts, ends) if e > s], key=lambda x: x[0])
             t = 0.0
             for s, e in spans:
@@ -292,11 +329,10 @@ def main():
     ap.add_argument("--spike-trace", required=True, help="Spike -l log file (text)")
     ap.add_argument("--out-dir", required=True, help="Directory to write baseline CSVs")
     ap.add_argument("--inst-us", type=float, default=1.0, help="Time per instruction (us) for commit-log timeline")
-    # kept for backward CLI compatibility; marker-driven residency ignores this threshold.
-    ap.add_argument("--resident-pc-ge", type=lambda x: int(x, 0), default=0x80000000, help="(unused) legacy residency PC threshold")
+    ap.add_argument("--resident-pc-ge", type=lambda x: int(x, 0), default=0x80000000, help="Fallback residency PC threshold")
     args = ap.parse_args()
 
-    cfg = SpikeParseConfig(inst_us=args.inst_us)
+    cfg = SpikeParseConfig(inst_us=args.inst_us, resident_pc_ge=args.resident_pc_ge)
     ad = SpikePlatformAdapter(args.spike_trace, cfg=cfg)
     s_path, r_path = ad.export_baseline_csvs(args.out_dir)
 
