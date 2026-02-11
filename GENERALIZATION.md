@@ -69,6 +69,11 @@ This preserves usability when traces do not expose explicit unit-of-work counter
 ## 6) How to run Phase-1 docs-aligned flow
 
 ```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e . --no-build-isolation
+
 python cli.py ingest --trace datasets/traces/trace_A_single_residency.csv --out runs/A
 python cli.py classify --in runs/A --window-us 256 --residency datasets/residency/partial.csv
 python cli.py export --in runs/A --schema v1

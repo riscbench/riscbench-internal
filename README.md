@@ -43,6 +43,19 @@ pdflatex phase1_technical_document.tex
 
 Generated output (typical): `docs/phase1_technical_document.pdf`
 
+### Local Python setup (venv-first)
+
+Use a virtual environment for all local runs:
+
+```bash
+python -m venv .venv
+source .venv/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e . --no-build-isolation
+```
+
+Then run pipeline/smoke commands from the same activated venv.
+
 ---
 
 ## 1) Why this exists

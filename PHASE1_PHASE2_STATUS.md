@@ -56,34 +56,39 @@ This document expands the original status snapshot with:
 ## Quick runnable command set (section-wise friendly)
 
 ```bash
-# 1) Inspect CLI sections
-python cli.py --help
+# 1) Create and activate local venv
+python -m venv .venv
+source .venv/bin/activate
 
-# 2) Run ingestion section independently
-python cli.py ingest --trace datasets/traces/trace_A_single_residency.csv --out runs/A
-
-# 3) Run classify section independently
-python cli.py classify --in runs/A --window-us 256 --residency datasets/residency/partial.csv
-
-# 4) Run export section independently
-python cli.py export --in runs/A --schema v1
-
-# 5) Install package in editable mode
+# 2) Install package in editable mode
+python -m pip install --upgrade pip
 python -m pip install -e . --no-build-isolation
 
-# 6) Run riscvbench smoke flow (example)
+# 3) Inspect CLI sections
+python cli.py --help
+
+# 4) Run ingestion section independently
+python cli.py ingest --trace datasets/traces/trace_A_single_residency.csv --out runs/A
+
+# 5) Run classify section independently
+python cli.py classify --in runs/A --window-us 256 --residency datasets/residency/partial.csv
+
+# 6) Run export section independently
+python cli.py export --in runs/A --schema v1
+
+# 7) Run riscvbench smoke flow (example)
 riscvbench --target cpu --workload hello --workload_size tiny --time_us 64 --events-max 200
 
-# 7) Run golden regression section
+# 8) Run golden regression section
 python tests/run_golden_suite.py --outdir golden_out
 
-# 8) Run invariant section (requires numpy)
+# 9) Run invariant section (requires numpy)
 python tests/check_invariants.py --windows golden_out/A_partial_windows.csv --mode partial --window-us 256
 
-# 9) Run cross-target sweep runner section (help shown without needing pk)
+# 10) Run cross-target sweep runner section (help shown without needing pk)
 python run_cross_target_suite.py --help
 ```
 
 ## Environment caveat
 
-- `sit_engine_phase1.py`/validation scripts require `numpy` (and ingest paths require `pandas`); in this environment those dependencies are unavailable by default, so full runtime execution is dependency-gated.
+- `sit_engine_phase1.py`/validation scripts require `numpy` (and ingest paths require `pandas`); use a local venv and install dependencies there before running full checks. In this container, dependency installation may still be network/proxy-gated.
