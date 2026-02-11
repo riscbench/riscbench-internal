@@ -11,7 +11,7 @@ This document expands the original status snapshot with:
 
 ## Overall progress
 
-- **Phase-1 overall**: **100.0%** \(11 completed = 11 / 11\)  
+- **Phase-1 overall**: **86.4%** \(9 completed + 1 partial + 1 not completed = 9.5 / 11\)  
   Progress color: <span style="color:#22c55e;"><strong>🟩 Green</strong></span>
 - **Phase-2 overall**: **20.0%** \(0 completed + 4 partial + 6 not completed = 2.0 / 10\)  
   Progress color: <span style="color:#ef4444;"><strong>🟥 Red</strong></span>
@@ -31,8 +31,8 @@ This document expands the original status snapshot with:
 | 7 | Validation suite | Invariant and regression/golden checks | `tests/check_invariants.py` and `tests/run_golden_suite.py` exist | Validation split into single-output invariants + dataset-level golden checks; assumes dependencies installed | `python tests/run_golden_suite.py --outdir golden_out` | <span style="color:#22c55e;">100% 🟩</span> |
 | 8 | Reference datasets | Pinned manifest and reference traces/masks | `datasets/manifest.json` and datasets folders exist | Reproducibility depends on immutable dataset pointers; assumes manifest paths remain valid | `python tests/run_golden_suite.py --manifest datasets/manifest.json --outdir golden_out` | <span style="color:#22c55e;">100% 🟩</span> |
 | 9 | CLI pipeline | User pipeline (`ingest -> classify -> export`) | `cli.py` exposes all three stages | Explicit staged pipeline supports troubleshooting and partial reruns | `python cli.py --help` and each subcommand independently | <span style="color:#22c55e;">100% 🟩</span> |
-| 10 | Documentation | Phase-1 docs + requested checklist docs | `README.md`, `docs/phase1_technical_document.tex`, and `GENERALIZATION.md` are present | Documentation now includes architecture, technical details, and Phase-1 generalization assumptions | `python -m cli --help` (operational doc cross-check) | <span style="color:#22c55e;">100% 🟩</span> |
-| 11 | CI hooks | Automated workflow(s) for repeatable validation | `.github/workflows/phase1-ci.yml` is present for automated Phase-1 checks | CI installs dependencies, installs package (`pip install -e .`), runs CLI sanity, `riscvbench` smoke, and golden suite on push/PR | Runs in GitHub Actions on push/PR | <span style="color:#22c55e;">100% 🟩</span> |
+| 10 | Documentation | Phase-1 docs + requested checklist docs | `README.md` and `docs/phase1_technical_document.tex` exist; `GENERALIZATION.md` missing | Assumes README + technical doc are acceptable minimum for current repo state | `python -m cli --help` (operational doc cross-check) | <span style="color:#f59e0b;">50% 🟨</span> |
+| 11 | CI hooks | Automated workflow(s) for repeatable validation | No `.github/workflows` detected in repository snapshot | Assumes CI intentionally deferred or tracked externally; no local CI contract found | Not runnable in-repo (workflow files absent) | <span style="color:#ef4444;">0% 🟥</span> |
 
 ---
 
@@ -48,7 +48,7 @@ This document expands the original status snapshot with:
 | 6 | Invariant validation suite | Phase-2-focused invariant checks and guide | Generic invariant scripts exist under `tests/`, but no Phase-2-specific guide/package | Assumes current checks are foundational and need Phase-2 framing/rules | `python tests/check_invariants.py --help` (currently dependency-gated) | <span style="color:#f59e0b;">50% 🟨</span> |
 | 7 | Parameter sweep runner | Runner for controlled parameter sweeps across targets | `run_cross_target_suite.py` exists, but no explicit Phase-2 sweep governance metadata | Assumes runner is functional baseline pending policy/doc completion | `python run_cross_target_suite.py --help` | <span style="color:#f59e0b;">50% 🟨</span> |
 | 8 | Dataset governance | `Phase-2/DATASETS.md` policy and maintenance process | Not found in repository snapshot | Assumes manifest exists but governance policy is not yet codified for Phase-2 | Not runnable (policy artifact missing) | <span style="color:#ef4444;">0% 🟥</span> |
-| 9 | CI integration | Automated CI gating for Phase-2 replay/validation | No workflow integration found in repository snapshot | Assumes CI may be external or deferred | Not runnable in-repo (Phase-2 CI workflow absent) | <span style="color:#ef4444;">0% 🟥</span> |
+| 9 | CI integration | Automated CI gating for Phase-2 replay/validation | No workflow integration found in repository snapshot | Assumes CI may be external or deferred | Not runnable in-repo (workflow files absent) | <span style="color:#ef4444;">0% 🟥</span> |
 | 10 | Phase-2 validation guide | `Phase-2/VALIDATION.md` with acceptance process | Not found in repository snapshot | Assumes existing scripts are insufficient without formal validation guide | Not runnable (guide missing) | <span style="color:#ef4444;">0% 🟥</span> |
 
 ---
@@ -56,39 +56,28 @@ This document expands the original status snapshot with:
 ## Quick runnable command set (section-wise friendly)
 
 ```bash
-# 1) Create and activate local venv
-python -m venv .venv
-source .venv/bin/activate
-
-# 2) Install package in editable mode
-python -m pip install --upgrade pip
-python -m pip install -e . --no-build-isolation
-
-# 3) Inspect CLI sections
+# 1) Inspect CLI sections
 python cli.py --help
 
-# 4) Run ingestion section independently
+# 2) Run ingestion section independently
 python cli.py ingest --trace datasets/traces/trace_A_single_residency.csv --out runs/A
 
-# 5) Run classify section independently
+# 3) Run classify section independently
 python cli.py classify --in runs/A --window-us 256 --residency datasets/residency/partial.csv
 
-# 6) Run export section independently
+# 4) Run export section independently
 python cli.py export --in runs/A --schema v1
 
-# 7) Run riscvbench smoke flow (example)
-riscvbench --target cpu --workload hello --workload_size tiny --time_us 64 --events-max 200
-
-# 8) Run golden regression section
+# 5) Run golden regression section
 python tests/run_golden_suite.py --outdir golden_out
 
-# 9) Run invariant section (requires numpy)
+# 6) Run invariant section (requires numpy)
 python tests/check_invariants.py --windows golden_out/A_partial_windows.csv --mode partial --window-us 256
 
-# 10) Run cross-target sweep runner section (help shown without needing pk)
+# 7) Run cross-target sweep runner section (help shown without needing pk)
 python run_cross_target_suite.py --help
 ```
 
 ## Environment caveat
 
-- `sit_engine_phase1.py`/validation scripts require `numpy` (and ingest paths require `pandas`); use a local venv and install dependencies there before running full checks. In this container, dependency installation may still be network/proxy-gated.
+- `tests/check_invariants.py` imports `numpy`; in this environment `numpy` is currently missing, so full invariant execution is dependency-gated.
