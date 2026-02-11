@@ -324,13 +324,14 @@ def main():
                     "--out-depth", str(args.out_depth),
                     "--reader-sleep-ns", str(args.reader_sleep_ns),
                     "--writer-sleep-ns", str(args.writer_sleep_ns),
-                    "--isa", args.isa,
                     "--pk", args.pk,
                     "--inst_us", str(args.inst_us),
                     "--resident_pc_ge", str(args.resident_pc_ge),
                     "--trace_lines_max", str(args.trace_lines_max),
                     "--expected-work-rate", str(args.expected_work_rate),
                 ]
+                if args.isa:
+                    cmd += ["--isa", str(args.isa)]
                 if args.events_max is not None:
                     cmd += ["--events-max", str(args.events_max)]
                 if args.underflow:
@@ -410,7 +411,10 @@ def main():
         # require the attached form `-pN`. Use the attached form for portability.
         if compute_threads and int(compute_threads) > 1:
             spike_cmd.append(f"-p{int(compute_threads)}")
-        spike_cmd += ["-l", f"--isa={args.isa}", str(pk), str(binpath)]
+        spike_cmd += ["-l"]
+        if args.isa:
+            spike_cmd += [f"--isa={args.isa}"]
+        spike_cmd += [str(pk), str(binpath)]
 
         with open(trace_path, "w") as trace_out:
             p = subprocess.run(spike_cmd, cwd=run_dir, stdout=trace_out, stderr=subprocess.STDOUT)
@@ -429,6 +433,20 @@ def main():
                 trace_path.write_text("\n".join(core_lines[:events_max]) + "\n")
             else:
                 trace_path.write_text("\n".join(trace_lines[:events_max]) + "\n")
+
+        # Early diagnostic: if commit-log contains too few events, surface likely
+        # Spike/pk/ISA mismatch immediately instead of producing NaN summaries.
+        trace_lines = trace_path.read_text(errors="ignore").splitlines()
+        core_lines = [ln for ln in trace_lines if "core" in ln and ":" in ln]
+        if len(core_lines) < 10:
+            preview = "\n".join(trace_lines[:80])
+            raise SystemExit(
+                "Spike produced too few commit-log events "
+                f"({len(core_lines)}). This usually indicates pk/ISA/binary mismatch.\n"
+                f"spike command: {' '.join(spike_cmd)}\n"
+                "Try running with a compatible pk and/or explicit --isa (e.g. --isa rv64gc).\n"
+                f"Trace preview ({trace_path}):\n{preview}"
+            )
 
         # 3) platform adaptor: spike trace -> baseline CSVs
         adapter_env = dict(os.environ)
