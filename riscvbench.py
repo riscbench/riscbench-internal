@@ -29,8 +29,8 @@ SRC = {
     "alu": r"""
 #include <stdint.h>
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -45,8 +45,8 @@ int main() {
 """,
     "branch": r"""
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -65,8 +65,8 @@ int main() {
     "memory": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -87,8 +87,8 @@ int main() {
     "hello": r"""
 #include <stdio.h>
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -103,8 +103,8 @@ int main() {
     "matmul": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -133,8 +133,8 @@ int main() {
     "memread": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -154,8 +154,8 @@ int main() {
     "memwrite": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -174,8 +174,8 @@ int main() {
     "memcpy": r"""
 #define N DIM
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi a0, x0, 101\n\tebreak" ::: "a0")
-#define SIT_RES_OFF() asm volatile("addi a0, x0, 102\n\tebreak" ::: "a0")
+#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
+#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
@@ -263,7 +263,8 @@ def main():
     ap.add_argument("--overflow", action="store_true", help="Enable writer slowdown to cause overflow")
 
     # Spike plumbing
-    ap.add_argument("--isa", default="RV64IMACV")
+    ap.add_argument("--isa", default=None,
+                    help="Optional Spike ISA string (example: rv64gc). If omitted, uses Spike defaults.")
     ap.add_argument("--pk", default=str(Path.home() / "RISCV" / "riscv-pk" / "build" / "pk"))
     ap.add_argument("--inst_us", type=float, default=1.0)
     ap.add_argument("--resident_pc_ge", default="0x80000000")
@@ -323,13 +324,14 @@ def main():
                     "--out-depth", str(args.out_depth),
                     "--reader-sleep-ns", str(args.reader_sleep_ns),
                     "--writer-sleep-ns", str(args.writer_sleep_ns),
-                    "--isa", args.isa,
                     "--pk", args.pk,
                     "--inst_us", str(args.inst_us),
                     "--resident_pc_ge", str(args.resident_pc_ge),
                     "--trace_lines_max", str(args.trace_lines_max),
                     "--expected-work-rate", str(args.expected_work_rate),
                 ]
+                if args.isa:
+                    cmd += ["--isa", str(args.isa)]
                 if args.events_max is not None:
                     cmd += ["--events-max", str(args.events_max)]
                 if args.underflow:
@@ -394,11 +396,11 @@ def main():
             print("! spike target does not support pthread multicore; falling back to single-core matmul kernel")
             cpath = write_workload(build_dir, "matmul", args.workload_size)
             binpath = build_dir / "matmul_multicore"
-            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
+            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", "-march=rv64gc", "-mabi=lp64d", str(cpath), "-o", str(binpath)], cwd=build_dir)
         else:
             cpath = write_workload(build_dir, args.workload, args.workload_size)
             binpath = build_dir / args.workload
-            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", str(cpath), "-o", str(binpath)], cwd=build_dir)
+            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", "-march=rv64gc", "-mabi=lp64d", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
         # 2) run spike -> trace
         trace_path = traces_dir / "spike.trace"
@@ -409,7 +411,10 @@ def main():
         # require the attached form `-pN`. Use the attached form for portability.
         if compute_threads and int(compute_threads) > 1:
             spike_cmd.append(f"-p{int(compute_threads)}")
-        spike_cmd += ["-l", f"--isa={args.isa}", str(pk), str(binpath)]
+        spike_cmd += ["-l"]
+        if args.isa:
+            spike_cmd += [f"--isa={args.isa}"]
+        spike_cmd += [str(pk), str(binpath)]
 
         with open(trace_path, "w") as trace_out:
             p = subprocess.run(spike_cmd, cwd=run_dir, stdout=trace_out, stderr=subprocess.STDOUT)
@@ -428,6 +433,20 @@ def main():
                 trace_path.write_text("\n".join(core_lines[:events_max]) + "\n")
             else:
                 trace_path.write_text("\n".join(trace_lines[:events_max]) + "\n")
+
+        # Early diagnostic: if commit-log contains too few events, surface likely
+        # Spike/pk/ISA mismatch immediately instead of producing NaN summaries.
+        trace_lines = trace_path.read_text(errors="ignore").splitlines()
+        core_lines = [ln for ln in trace_lines if "core" in ln and ":" in ln]
+        if len(core_lines) < 10:
+            preview = "\n".join(trace_lines[:80])
+            raise SystemExit(
+                "Spike produced too few commit-log events "
+                f"({len(core_lines)}). This usually indicates pk/ISA/binary mismatch.\n"
+                f"spike command: {' '.join(spike_cmd)}\n"
+                "Try running with a compatible pk and/or explicit --isa (e.g. --isa rv64gc).\n"
+                f"Trace preview ({trace_path}):\n{preview}"
+            )
 
         # 3) platform adaptor: spike trace -> baseline CSVs
         adapter_env = dict(os.environ)
