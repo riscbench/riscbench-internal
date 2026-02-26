@@ -1,0 +1,63 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=36mm},decision/.style={diamond,draw,aspect=2.1,align=center,inner sep=2pt},line/.style={-Latex}}
+
+\title{Phase-2 Deliverable: Dataset Governance}
+\author{SIT Engine Architecture}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+Dataset governance defines provenance, immutability, versioning, and review policy for golden traces, residency masks, and replay manifests. It ensures regression baselines are auditable and intentional.
+
+\section{Implementation Fulfillment}
+Current implementation baseline exists in:
+\begin{itemize}[leftmargin=*]
+  \item dataset roots: \codepath{Phase-2/datasets/traces/}, \codepath{Phase-2/datasets/residency/},
+  \item manifest contract: \codepath{Phase-2/datasets/manifest.json} (with \texttt{dataset\_version}),
+  \item replay consumers: \codepath{Phase-2/tests/run_golden_suite.py}, \codepath{Phase-2/tests/check_determinism.py}.
+\end{itemize}
+Known gap: dedicated governance policy doc \codepath{Phase-2/DATASETS.md} is not yet present.
+
+\section{Design \& Architecture}
+Governance architecture should enforce:
+\begin{itemize}[leftmargin=*]
+  \item explicit dataset version bump on trace/mask changes,
+  \item owner/reviewer approval for baseline modifications,
+  \item replay checks as mandatory gate for manifest updates.
+\end{itemize}
+This layer is policy-oriented and must remain orthogonal to engine math and adapter parsing.
+
+\subsection*{Function Flowchart}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Proposed dataset/manifest change};
+\node[box, below=of a] (b) {Require version + provenance update\\(\texttt{dataset\_version}, metadata)};
+\node[box, below=of b] (c) {Run replay + determinism checks};
+\node[decision, below=of c] (d) {All checks pass?};
+\node[box, below left=of d] (e1) {Approve dataset change};
+\node[box, below right=of d] (e2) {Reject and revise};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\draw[line] (d) -- node[left]{yes} (e1);
+\draw[line] (d) -- node[right]{no} (e2);
+\end{tikzpicture}
+\caption{Dataset Governance Flow}
+\end{figure}
+
+\end{document}

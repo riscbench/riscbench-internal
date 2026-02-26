@@ -1,0 +1,19 @@
+{
+  "dataset_version": "phase1-v1",
+  "window_us_default": 256,
+  "traces": [
+    "datasets/traces/trace_A_single_residency.csv",
+    "datasets/traces/trace_B_two_windows_gap.csv",
+    "datasets/traces/trace_C_injected_stalls_v1_stall0.csv",
+    "datasets/traces/trace_C_injected_stalls_v2_stall80.csv",
+    "datasets/traces/trace_C_injected_stalls_v3_stall160.csv",
+    "datasets/traces/trace_D_memory_pressure_breaks.csv",
+    "datasets/traces/trace_E_sync_heavy_4cores.csv"
+  ],
+  "residency_masks": {
+    "all": "datasets/residency/all.csv",
+    "skip_w0": "datasets/residency/skip_w0.csv",
+    "partial": "datasets/residency/partial.csv",
+    "exact_boundary": "datasets/residency/exact_boundary.csv"
+  }
+}

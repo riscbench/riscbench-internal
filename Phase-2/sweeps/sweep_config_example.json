@@ -1,0 +1,19 @@
+{
+  "python": "python3",
+  "shared": {
+    "pk": "/home/dev_srinidhi/opt/riscv/riscv64-unknown-elf/bin/pk",
+    "isa": "RV64GC",
+    "inst_us": 1.0,
+    "resident_pc_ge": "0x80000000",
+    "expected_work_rate": 1.0
+  },
+  "matrix": {
+    "target": ["cpu"],
+    "workload": ["fm_mm", "matmul"],
+    "workload_size": ["tiny", "small"],
+    "time_us": [128.0, 256.0],
+    "branch_mispredict": [false, true],
+    "cache_pressure": [false, true]
+  },
+  "max_cases": 8
+}

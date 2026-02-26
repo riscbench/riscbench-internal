@@ -1,0 +1,59 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=36mm},line/.style={-Latex}}
+
+\title{Phase-2 Deliverable: Parameter Sweep Runner}
+\author{SIT Engine Architecture}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+Parameter sweep runner executes controlled matrix experiments over target/workload/simulator knobs, capturing case-level runtime and pass/fail outcomes without contaminating engine schema outputs.
+
+\section{Implementation Fulfillment}
+Implemented by:
+\begin{itemize}[leftmargin=*]
+  \item sweep engine: \codepath{Phase-2/sweeps/run_param_sweep.py},
+  \item sample config: \codepath{Phase-2/sweeps/sweep_config_example.json},
+  \item result visualizer: \codepath{Phase-2/sweeps/visualize_sweep_results.py}.
+\end{itemize}
+Output staging uses timestamped directories under \codepath{Phase-2/sweeps/results/} with per-case logs, \codepath{sweep\_results.csv}, and \codepath{summary.json}.
+
+\section{Design \& Architecture}
+Sweep architecture is config-driven:
+\begin{itemize}[leftmargin=*]
+  \item \texttt{shared} parameters define common run controls,
+  \item \texttt{matrix} expands Cartesian case combinations,
+  \item each case invokes \codepath{riscvbench.py} as a subprocess.
+\end{itemize}
+Metadata stays in sweep result artifacts and does not modify SIT schema contract.
+
+\subsection*{Function Flowchart}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Load sweep JSON config\\(\texttt{shared} + \texttt{matrix})};
+\node[box, below=of a] (b) {Expand case matrix\\(Cartesian product)};
+\node[box, below=of b] (c) {Run \codepath{riscvbench.py} per case\\and capture logs/return codes};
+\node[box, below=of c] (d) {Emit \codepath{sweep\_results.csv}\\+\codepath{summary.json}};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\end{tikzpicture}
+\caption{Parameter Sweep Runner Flow}
+\end{figure}
+
+\end{document}

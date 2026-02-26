@@ -1,0 +1,60 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=36mm},line/.style={-Latex}}
+
+\title{Phase-2 Deliverable: Spike Simulator Adapter}
+\author{SIT Engine Architecture}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+Spike adapter normalizes Spike commit logs into Phase-1 ingest contract intervals (\texttt{start\_us,end\_us,core,state} and residency intervals). It is the reference target adapter used to verify marker-driven residency semantics and SIT behavior on deterministic workloads.
+
+\section{Implementation Fulfillment}
+Implemented in \codepath{Phase-2/adapters/spike_adapter.py}. Key implementation points:
+\begin{itemize}[leftmargin=*]
+  \item event parsing: \texttt{\_iter\_events()},
+  \item core timeline and state inference: \texttt{\_collect\_core\_timeline()},
+  \item normalized outputs: \texttt{build\_state\_intervals()}, \texttt{build\_residency\_intervals()},
+  \item artifact writer: \texttt{export\_baseline\_csvs()}.
+\end{itemize}
+Execution path is wired through \codepath{Phase-2/riscvbench.py} (\texttt{--target spike}) and validated by \codepath{Phase-2/tests/run_spike_golden_pipeline.py}.
+
+\section{Design \& Architecture}
+Adapter design is marker-first:
+\begin{itemize}[leftmargin=*]
+  \item residency and stall markers are detected from instruction encodings,
+  \item fallback residency can use PC threshold when markers are absent,
+  \item state intervals are emitted in normalized schema and passed to ingest validators.
+\end{itemize}
+Dependencies: \codepath{Phase-2/ingest/ingest_api.py}, \codepath{Phase-2/sit_engine_phase1.py}.
+
+\subsection*{Function Flowchart}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Spike run via \codepath{riscvbench.py}\\produces \codepath{spike.trace}};
+\node[box, below=of a] (b) {\texttt{spike\_adapter.py} parses\\core/pc/insn + markers};
+\node[box, below=of b] (c) {Build normalized state/residency\\interval DataFrames};
+\node[box, below=of c] (d) {Write \codepath{inputs/state\_intervals.csv}\\+\codepath{inputs/residency\_intervals.csv}};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\end{tikzpicture}
+\caption{Spike Adapter Flow}
+\end{figure}
+
+\end{document}

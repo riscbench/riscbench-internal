@@ -1,0 +1,74 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=36mm},line/.style={-Latex}}
+
+\title{Phase-2 Deliverable: Adapter Contract}
+\author{SIT Engine Architecture}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+Adapter contract defines responsibilities and boundaries between simulator-specific parsing and simulator-agnostic SIT computation. The contract prevents semantic leakage by requiring adapters to emit normalized interval artifacts only.
+
+\section{Implementation Fulfillment}
+Contract and conformance are implemented in:
+\begin{itemize}[leftmargin=*]
+  \item formal doc: \codepath{Phase-2/ADAPTERS.md},
+  \item validators/protocol: \codepath{Phase-2/ingest/ingest_api.py},
+  \item adapter implementations:
+  \begin{itemize}
+    \item \codepath{Phase-2/adapters/spike_adapter.py},
+    \item \codepath{Phase-2/adapters/qemu_adapter.py},
+    \item \codepath{Phase-2/adapters/gem5_adapter.py},
+    \item \codepath{Phase-2/adapters/cpu_adapter.py},
+    \item \codepath{Phase-2/adapters/baseline_adapter.py}.
+  \end{itemize}
+\end{itemize}
+Runtime wiring happens in \codepath{Phase-2/riscvbench.py}, which dispatches by \texttt{--target}.
+
+\section{Design \& Architecture}
+\subsection*{Contract Shape}
+\begin{itemize}[leftmargin=*]
+  \item State intervals: \texttt{start\_us,end\_us,core,state[,work\_done]}
+  \item Residency intervals: \texttt{start\_us,end\_us,core[,resident]}
+\end{itemize}
+Engine-owned logic: windowing, SIT equation, summary/export policy.\\
+Adapter-owned logic: source parsing, timeline normalization, state/residency inference, schema validation.
+
+\subsection*{Per-Adapter Design Notes}
+\begin{itemize}[leftmargin=*]
+  \item Spike: instruction-commit log parsing with marker-first residency/stall detection.
+  \item QEMU: dynamic TB execution events (\texttt{Trace ...}) as time base; TB disassembly summarizes state class.
+  \item gem5: exec-trace or periodic-stats mode with threshold-driven normalization.
+  \item CPU: host-runtime synthetic baseline path for smoke validation.
+\end{itemize}
+
+\subsection*{Function Flowchart}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Target raw trace/stats input};
+\node[box, below=of a] (b) {Target adapter normalizes\\state + residency intervals};
+\node[box, below=of b] (c) {\texttt{validate\_state\_df()}\\+\texttt{validate\_resid\_df()}};
+\node[box, below=of c] (d) {Engine consumes contract-only\\inputs (\codepath{sit\_engine\_phase1.py})};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\end{tikzpicture}
+\caption{Adapter Contract Enforcement Flow}
+\end{figure}
+
+\end{document}

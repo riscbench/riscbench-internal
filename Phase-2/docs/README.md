@@ -1,0 +1,22 @@
+# Phase-2 Docs
+
+- [../README.md](../README.md): Phase-2 scope definition, architecture, and workflow.
+- [../ADAPTERS.md](../ADAPTERS.md): Formal adapter contract and boundaries.
+- [Adapter_contract.tex](Adapter_contract.tex): LaTeX technical documentation for the adapter contract deliverable.
+- [phase2_deliverables_matrix.tex](phase2_deliverables_matrix.tex): Comprehensive 10-deliverable Phase-2 fulfillment matrix with TikZ flowcharts.
+- [phase2_open_deliverables_plan.tex](phase2_open_deliverables_plan.tex): Senior-systems closure plan for partial/not-done Phase-2 deliverables.
+- [Spike_simulator_adapter.md](Spike_simulator_adapter.md): Spike adapter flow, logic, and equations.
+- [Spike_simulator_adapter.tex](Spike_simulator_adapter.tex): LaTeX technical explanation with a flowchart figure.
+- [deliverables/](deliverables): Per-deliverable Phase-2 LaTeX docs in Phase-1 style (validation deliverables intentionally excluded).
+  - [deliverables/01_Phase2_README.tex](deliverables/01_Phase2_README.tex)
+  - [deliverables/02_Spike_Simulator_Adapter.tex](deliverables/02_Spike_Simulator_Adapter.tex)
+  - [deliverables/03_Adapter_Contract.tex](deliverables/03_Adapter_Contract.tex)
+  - [deliverables/04_Golden_Microkernel_Traces.tex](deliverables/04_Golden_Microkernel_Traces.tex)
+  - [deliverables/05_Golden_Output_Artifacts.tex](deliverables/05_Golden_Output_Artifacts.tex)
+  - [deliverables/07_Parameter_Sweep_Runner.tex](deliverables/07_Parameter_Sweep_Runner.tex)
+  - [deliverables/08_Dataset_Governance.tex](deliverables/08_Dataset_Governance.tex)
+  - [deliverables/09_CI_Integration.tex](deliverables/09_CI_Integration.tex)
+- [platforms/](platforms): Platform-specific deliverable folders (senior systems perspective, Phase-1 format style).
+  - [platforms/spike/README.md](platforms/spike/README.md)
+  - [platforms/qemu/README.md](platforms/qemu/README.md)
+  - [platforms/gem5/README.md](platforms/gem5/README.md)

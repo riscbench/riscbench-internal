@@ -1,0 +1,52 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=36mm},decision/.style={diamond,draw,aspect=2.1,align=center,inner sep=2pt},line/.style={-Latex}}
+
+\title{Phase-2 QEMU: Deliverable 8 (Dataset Governance)}
+\author{Senior Systems Architecture}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+Dataset governance controls provenance, immutability, and review for QEMU reference traces and masks.
+
+\section{Implementation Fulfillment}
+Current structural assets: \codepath{Phase-2/datasets/manifest.json}, \codepath{Phase-2/datasets/traces/}, \codepath{Phase-2/datasets/residency/}.\\
+Current policy gap: \codepath{Phase-2/DATASETS.md} is not present.
+
+\section{Design \& Architecture}
+Senior-systems requirement: dataset updates must require version bump, owner review, and replay checks to prevent silent baseline drift.
+
+\subsection*{Function Flowchart}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Propose QEMU dataset change};
+\node[box, below=of a] (b) {Update manifest version + provenance};
+\node[box, below=of b] (c) {Run replay and determinism checks};
+\node[decision, below=of c] (d) {Checks pass?};
+\node[box, below left=of d] (e1) {Approve + pin dataset};
+\node[box, below right=of d] (e2) {Reject + revise};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\draw[line] (d) -- node[left]{yes} (e1);
+\draw[line] (d) -- node[right]{no} (e2);
+\end{tikzpicture}
+\caption{QEMU Dataset Governance Flow}
+\end{figure}
+
+\end{document}

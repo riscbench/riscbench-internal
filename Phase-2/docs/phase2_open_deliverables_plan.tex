@@ -1,0 +1,151 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{xurl}
+
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+
+\title{Phase-2 Open Deliverables Closure Plan\\(Senior Systems Perspective)}
+\author{SIT Phase-2}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section*{Scope}
+This document captures current Phase-2 deliverable status and defines closure actions for the items that are partial or not complete.
+
+\section*{Current Status Snapshot}
+\begin{longtable}{p{0.09\linewidth}p{0.40\linewidth}p{0.20\linewidth}p{0.24\linewidth}}
+\toprule
+\textbf{s/n} & \textbf{Deliverable} & \textbf{Status} & \textbf{Evidence} \\
+\midrule
+1 & Phase-2 README & Done & \codepath{Phase-2/README.md} \\
+2 & Spike simulator adapter & Done & \codepath{Phase-2/adapters/spike_adapter.py} \\
+3 & Adapter contract & Done & \codepath{Phase-2/ADAPTERS.md} \\
+4 & Golden micro-kernel traces across simulators & Partial & Framework exists; committed golden bundles are primarily Spike \\
+5 & Golden output artifacts reproducibility & Partial/Good & JSON/CSV + determinism checks exist; no formal Parquet policy \\
+6 & Invariant validation suite & Done & \codepath{Phase-2/tests/check_invariants.py}, \codepath{Phase-2/tests/run_golden_suite.py} \\
+7 & Parameter sweep runner & Done & \codepath{Phase-2/sweeps/run_param_sweep.py} \\
+8 & Dataset governance doc & Not done & Missing \codepath{Phase-2/DATASETS.md} \\
+9 & CI integration for Phase-2 & Not done & Only \codepath{.github/workflows/phase1-ci.yml} exists \\
+\bottomrule
+\end{longtable}
+
+\section{Deliverable 4 (Partial): Golden Micro-kernel Traces Across Simulators}
+\subsection*{Current Gap}
+Golden trace sets are reproducible via tooling, but repository-pinned bundles are not uniformly maintained for QEMU and gem5.
+
+\subsection*{Senior-System Risks}
+\begin{itemize}[leftmargin=*]
+  \item Regression detection becomes target-biased (Spike-heavy confidence).
+  \item Cross-target semantic drift may go unnoticed until late integration.
+\end{itemize}
+
+\subsection*{Closure Work Package}
+\begin{itemize}[leftmargin=*]
+  \item Define canonical golden bundle roots:
+  \begin{itemize}
+    \item \codepath{Phase-2/golden_out_spike_matrix/}
+    \item \codepath{Phase-2/golden_out_qemu_matrix/}
+    \item \codepath{Phase-2/golden_out_gem5_matrix/}
+  \end{itemize}
+  \item Pin one reduced matrix per target (same workloads, sizes, flag modes).
+  \item Commit \codepath{trace_index.csv}, manifest, and invariant summary artifacts for each target.
+\end{itemize}
+
+\subsection*{Done-When Gate}
+All three targets have pinned golden bundles with matching workload/flag grids and replayable manifests.
+
+\section{Deliverable 5 (Partial/Good): Golden Output Artifacts Reproducibility}
+\subsection*{Current Gap}
+Deterministic JSON/CSV replay exists, but artifact packaging policy is implicit and Parquet support is not formalized.
+
+\subsection*{Senior-System Risks}
+\begin{itemize}[leftmargin=*]
+  \item Teams may produce inconsistent artifact layouts across branches.
+  \item Long-term compatibility checks are harder without a documented package contract.
+\end{itemize}
+
+\subsection*{Closure Work Package}
+\begin{itemize}[leftmargin=*]
+  \item Standardize required outputs per golden run:
+  \begin{itemize}
+    \item \codepath{*_windows.csv}
+    \item \codepath{*_summary.json}
+    \item \codepath{plots/invariant_report.csv}
+    \item \codepath{trace_index.csv}
+  \end{itemize}
+  \item Add explicit packaging policy (CSV/JSON mandatory; Parquet optional).
+  \item Record schema/tool metadata in a top-level run metadata file.
+\end{itemize}
+
+\subsection*{Done-When Gate}
+Two reruns of the same manifest produce identical required artifacts and pass deterministic SHA checks under CI.
+
+\section{Deliverable 8 (Not Done): Dataset Governance}
+\subsection*{Current Gap}
+No dedicated governance policy file exists (\codepath{Phase-2/DATASETS.md} missing).
+
+\subsection*{Senior-System Risks}
+\begin{itemize}[leftmargin=*]
+  \item Dataset updates can be made without ownership, compatibility, or review policy.
+  \item Trace/mask changes can silently alter acceptance baselines.
+\end{itemize}
+
+\subsection*{Closure Work Package}
+\begin{itemize}[leftmargin=*]
+  \item Author \codepath{Phase-2/DATASETS.md} with:
+  \begin{itemize}
+    \item Dataset ownership and review requirements.
+    \item Versioning rules for \codepath{datasets/manifest.json} (\texttt{dataset\_version} semantics).
+    \item Compatibility matrix (engine schema version, adapter metadata schema).
+    \item Immutability rules for pinned golden references.
+  \end{itemize}
+  \item Enforce manifest diffs in PR templates/checks.
+\end{itemize}
+
+\subsection*{Done-When Gate}
+Any dataset change requires version bump, owner sign-off, and passing replay/invariant checks.
+
+\section{Deliverable 9 (Not Done): CI Integration for Phase-2}
+\subsection*{Current Gap}
+No dedicated Phase-2 workflow currently executes cross-target smoke, invariants, and determinism checks in CI.
+
+\subsection*{Senior-System Risks}
+\begin{itemize}[leftmargin=*]
+  \item Regressions are discovered only in manual testing.
+  \item Contract drift can merge without automated gating.
+\end{itemize}
+
+\subsection*{Closure Work Package}
+\begin{itemize}[leftmargin=*]
+  \item Add \codepath{.github/workflows/phase2-ci.yml}.
+  \item Gate PRs on fast checks:
+  \begin{itemize}
+    \item \codepath{python3 Phase-2/tests/check_adapter_fixtures.py}
+    \item \codepath{python3 Phase-2/tests/check_determinism.py --targets qemu --workload hello --workload-size test}
+    \item \codepath{python3 Phase-2/run_cross_target_suite.py --targets cpu qemu --workloads hello --workload-size test --allow-nonzero-exit}
+  \end{itemize}
+  \item Add optional self-hosted/nightly lane for Spike and gem5 full replay.
+\end{itemize}
+
+\subsection*{Done-When Gate}
+PR merge is blocked on Phase-2 CI failures; nightly extended jobs publish artifacts and trend deltas.
+
+\section*{Recommended Execution Order}
+\begin{enumerate}[leftmargin=*]
+  \item Deliverable 8 (\codepath{DATASETS.md}) to lock governance and version semantics.
+  \item Deliverable 9 (Phase-2 CI workflow) to enforce checks continuously.
+  \item Deliverable 4 (pin QEMU/gem5 golden bundles) under governance + CI.
+  \item Deliverable 5 (artifact packaging policy formalization).
+\end{enumerate}
+
+\end{document}

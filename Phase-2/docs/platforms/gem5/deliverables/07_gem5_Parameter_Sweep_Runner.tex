@@ -1,0 +1,47 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=36mm},line/.style={-Latex}}
+
+\title{Phase-2 gem5: Deliverable 7 (Parameter Sweep Runner)}
+\author{Senior Systems Architecture}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+This deliverable enables controlled gem5 parameter exploration while preserving clean SIT schema boundaries.
+
+\section{Implementation Fulfillment}
+Sweep tooling is implemented in \codepath{Phase-2/sweeps/run_param_sweep.py} with config examples in \codepath{Phase-2/sweeps/sweep_config_example.json}. Cases invoke \codepath{riscvbench.py} using target=gem5.
+
+\section{Design \& Architecture}
+Sweep metadata (runtime, return code, case config) is stored outside SIT core outputs in dedicated sweep result directories, avoiding schema pollution.
+
+\subsection*{Function Flowchart}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Load sweep config};
+\node[box, below=of a] (b) {Expand gem5 case matrix};
+\node[box, below=of b] (c) {Execute \codepath{riscvbench.py} cases};
+\node[box, below=of c] (d) {Write sweep logs + CSV/JSON summary};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\end{tikzpicture}
+\caption{gem5 Sweep Flow}
+\end{figure}
+
+\end{document}
