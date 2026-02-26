@@ -3,19 +3,19 @@ name: phase1-ci
 on:
   push:
     paths:
-      - 'Phase-1/**'
+      - 'Phase-2/**'
       - '.github/workflows/phase1-ci.yml'
   pull_request:
     paths:
-      - 'Phase-1/**'
+      - 'Phase-2/**'
       - '.github/workflows/phase1-ci.yml'
 
 jobs:
-  validate-phase1:
+  validate-phase2:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: Phase-1
+        working-directory: Phase-2
 
     steps:
       - name: Checkout
