@@ -1,0 +1,6 @@
+flowchart TD
+  A[cli ingest] --> B[trace.csv + manifest.json]
+  B --> C[cli classify]
+  C --> D[windows.csv + summary.json]
+  D --> E[cli export]
+  E --> F[export/windows_v1.csv + summary_v1.json]

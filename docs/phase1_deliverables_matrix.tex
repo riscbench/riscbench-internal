@@ -1,0 +1,404 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{
+  box/.style={rectangle, draw, rounded corners, align=center, inner sep=3pt, minimum width=34mm},
+  decision/.style={diamond, draw, aspect=2.2, align=center, inner sep=2pt},
+  line/.style={-Latex}
+}
+\newcommand{\flowchain}[5]{%
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=8mm and 12mm]
+      \node[box] (n1) {#2};
+      \node[box, below=of n1] (n2) {#3};
+      \node[box, below=of n2] (n3) {#4};
+      \node[box, below=of n3] (n4) {#5};
+      \draw[line] (n1) -- (n2);
+      \draw[line] (n2) -- (n3);
+      \draw[line] (n3) -- (n4);
+    \end{tikzpicture}
+    \caption{#1}
+  \end{figure}
+}
+\newcommand{\flowdecision}[6]{%
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=8mm and 12mm]
+      \node[box] (n1) {#2};
+      \node[box, below=of n1] (n2) {#3};
+      \node[decision, below=of n2] (d) {#4};
+      \node[box, below left=of d] (yl) {#5};
+      \node[box, below right=of d] (nr) {#6};
+      \draw[line] (n1) -- (n2);
+      \draw[line] (n2) -- (d);
+      \draw[line] (d) -- node[left]{yes} (yl);
+      \draw[line] (d) -- node[right]{no} (nr);
+    \end{tikzpicture}
+    \caption{#1}
+  \end{figure}
+}
+
+\title{Phase-1 Deliverables: Technical Fulfillment Matrix}
+\author{SIT Engine Architecture Documentation}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Deliverable 1: SIT Engine Core}
+\subsection*{What It Is}
+Central compute engine implementing the SIT definition over normalized intervals, with residency-gated accumulation and no simulator-specific parsing logic.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Core implementation: \codepath{Phase-1/sit_engine_phase1.py}.
+  \item Window overlap kernel: \texttt{split\_interval\_into\_windows()}.
+  \item Residency masking utilities: \texttt{merge\_intervals()}, \texttt{intersect\_with\_mask()}.
+  \item SIT/statistics generation: \texttt{main()} computes per-window fractions and summary metrics.
+  \item Hardware-agnostic boundary: engine reads normalized data via \texttt{BaselineAdapter}, not raw platform formats.
+  \item Phase-0 (Tenstorrent Wormhole testbench) equivalence helper for input normalization: \codepath{Phase-1/phase0_trace_to_sit.py}.
+\end{itemize}
+
+Done-when mapping: behavior parity under equivalent inputs is exercised through golden/invariant runs (\texttt{tests/run\_golden\_suite.py}, \texttt{tests/check\_invariants.py}).
+
+\subsection*{Design Overview}
+Data path: normalized state/residency intervals $\rightarrow$ residency clip $\rightarrow$ fixed-window accumulation $\rightarrow$ SIT normalization/clamp $\rightarrow$ windows + summary artifacts.
+
+Dependencies: Deliverable 4 (Trace Ingestion API), Deliverable 3 (Residency Model), Deliverable 2 (Time and Windowing), Deliverable 6 (Output Schema v1).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 1 flow: SIT engine core}
+  {Normalized state/residency intervals}
+  {Apply residency mask intersection}
+  {Window overlap accumulation}
+  {Emit windows.csv + summary.json}
+
+\section{Deliverable 2: Time and Windowing}
+\subsection*{What It Is}
+Canonical monotonic time model and fixed-window slicing implementation shared across inputs/platforms.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Fixed-window slicing: \texttt{split\_interval\_into\_windows(start\_us, end\_us, window\_us)} in \codepath{Phase-1/sit_engine_phase1.py}.
+  \item Exact-boundary rule: \texttt{w1 = floor((end\_us - 1e-9)/window\_us)} prevents double-count at window edges.
+  \item Partial-overlap validation:
+  \begin{itemize}
+    \item \texttt{check\_partial\_expected\_resident\_us()} in \codepath{Phase-1/tests/check_invariants.py}
+    \item \texttt{check\_exact\_boundary()} in \codepath{Phase-1/tests/check_invariants.py}
+  \end{itemize}
+\end{itemize}
+
+Done-when mapping: overlap correctness is encoded in invariant checks and executed by \codepath{Phase-1/tests/run_golden_suite.py}.
+
+\subsection*{Design Overview}
+Time semantics are half-open \([start\_us, end\_us)\), deterministic, and independent of source sampling granularity. Every interval is decomposed into window-local overlaps; only positive overlap contributes.
+
+Dependencies: Deliverable 1 (SIT Engine Core), Deliverable 7 (Validation Suite).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 2 flow: time slicing and overlap handling}
+  {Interval start/end timestamps}
+  {Compute window IDs with boundary epsilon}
+  {Calculate overlap per window}
+  {Emit (window\_id, overlap\_us) pieces}
+
+\section{Deliverable 3: Residency Model}
+\subsection*{What It Is}
+Unified representation of residency intervals and residency-conditioned state accounting.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Residency contract validation: \codepath{Phase-1/ingest/ingest_api.py} \texttt{validate\_resid\_df()}.
+  \item Residency merge/intersection logic: \codepath{Phase-1/sit_engine_phase1.py}
+  \begin{itemize}
+    \item \texttt{merge\_intervals()}
+    \item \texttt{intersect\_with\_mask()}
+    \item \texttt{resident\_acc[(core,wid)]}
+  \end{itemize}
+  \item CPU-side residency derivation: \codepath{Phase-1/adapters/cpu_adapter.py} \texttt{to\_residency\_dataframe()}.
+\end{itemize}
+
+Done-when mapping: engine continues accumulation only on intersected segments; non-resident windows are NaN-scored and excluded from resident metrics.
+
+\subsection*{Design Overview}
+Residency acts as a mask over state intervals. If residency is present, states are clipped before accumulation; if absent, windows are treated as fully resident. This preserves a single engine path while supporting both residency-aware and residency-agnostic traces.
+
+Dependencies: Deliverable 4 (Trace Ingestion API), Deliverable 1 (SIT Engine Core), Deliverable 7 (Validation Suite).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 3 flow: residency-gated accumulation}
+  {Residency intervals per core}
+  {Merge residency intervals}
+  {Intersect state with residency mask}
+  {Accumulate only resident overlap}
+
+\section{Deliverable 4: Trace Ingestion API}
+\subsection*{What It Is}
+Formal contract isolating platform parsing from SIT computation so the engine consumes only normalized intervals.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Contract + validators: \codepath{Phase-1/ingest/ingest_api.py}
+  \begin{itemize}
+    \item \texttt{TraceAdapter} protocol
+    \item \texttt{validate\_state\_df()}, \texttt{validate\_resid\_df()}
+    \item required columns and allowed states
+  \end{itemize}
+  \item Engine boundary usage: \codepath{Phase-1/sit_engine_phase1.py} creates \texttt{BaselineAdapter(...)} and calls \texttt{load\_state\_intervals()}, \texttt{load\_residency\_intervals()}.
+\end{itemize}
+
+Done-when mapping: engine has no direct raw-format parser and operates on normalized DataFrames only.
+
+\subsection*{Design Overview}
+Ingress API is the anti-coupling layer. New targets are integrated by implementing adapter contract methods, not by modifying engine internals.
+
+Dependencies: Deliverable 5 (Baseline Adapter), Deliverable 1 (SIT Engine Core), Deliverable 9 (CLI Pipeline).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 4 flow: trace ingestion API contract}
+  {Raw platform trace}
+  {Adapter parses source format}
+  {validate\_state\_df / validate\_resid\_df}
+  {Normalized engine input contract}
+
+\section{Deliverable 5: Baseline Adapter}
+\subsection*{What It Is}
+Reference adapter path used to verify end-to-end ingest $\rightarrow$ SIT $\rightarrow$ export deterministically.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Adapter implementation: \codepath{Phase-1/adapters/baseline_adapter.py}.
+  \item Raw CPU parse delegation: \codepath{Phase-1/adapters/cpu_adapter.py}.
+  \item CLI integration:
+  \begin{itemize}
+    \item \texttt{cmd\_ingest()} in \codepath{Phase-1/cli.py}
+    \item writes \texttt{trace.csv}, optional \texttt{residency.csv}, and \texttt{manifest.json}
+  \end{itemize}
+\end{itemize}
+
+Done-when mapping: deterministic staged pipeline exists and is reproducible from manifest-driven runs.
+
+\subsection*{Design Overview}
+Baseline adapter provides canonical normalization for both already-normalized CSV and raw event traces via CPUAdapter delegation. It is the reference behavior for contract correctness before adding specialized adapters.
+
+Dependencies: Deliverable 4 (Trace Ingestion API), Deliverable 9 (CLI Pipeline), Deliverable 7 (Validation Suite).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 5 flow: baseline adapter pipeline}
+  {CLI ingest trigger}
+  {BaselineAdapter selects csv/raw path}
+  {CPUAdapter or pandas parse + validate}
+  {trace.csv + manifest.json artifacts}
+
+\section{Deliverable 6: Output Schema v1}
+\subsection*{What It Is}
+Versioned machine-readable contract for SIT outputs and metadata, intended to stabilize downstream consumption.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Schema definition + validators: \codepath{Phase-1/schema/v1.py}
+  \begin{itemize}
+    \item \texttt{WINDOWS\_COLUMNS}, \texttt{SUMMARY\_KEYS}
+    \item \texttt{validate\_windows\_v1()}, \texttt{validate\_summary\_v1()}
+  \end{itemize}
+  \item Export artifacts in pipeline: \codepath{Phase-1/cli.py} \texttt{cmd\_export()} copies:
+  \begin{itemize}
+    \item \texttt{export/windows\_v1.csv}
+    \item \texttt{export/summary\_v1.json}
+  \end{itemize}
+  \item Engine summary version flag: \codepath{Phase-1/sit_engine_phase1.py} sets \texttt{schema\_version = 1}.
+\end{itemize}
+
+Current-state note: repository exports CSV+JSON, not parquet. To satisfy the stated parquet/json ship target, add parquet materialization (e.g., \texttt{windows\_v1.parquet}) and wire \texttt{validate\_*\_v1()} into export path before write.
+
+\subsection*{Design Overview}
+Schema module is contract authority; CLI export is the serialization boundary. This isolates internal compute tables from stable external interface versions.
+
+Dependencies: Deliverable 1 (SIT Engine Core), Deliverable 7 (Validation Suite), Deliverable 8 (Reference Datasets), Deliverable 9 (CLI Pipeline).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 6 flow: output schema v1 materialization}
+  {run\_windows.csv + run\_summary.json}
+  {CLI export stage}
+  {Apply schema v1 field/key contract}
+  {export/windows\_v1.csv + summary\_v1.json}
+
+\section{Deliverable 7: Validation Suite}
+\subsection*{What It Is}
+Semantic correctness guardrail using invariants and golden-trace replay to detect behavior regressions.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Invariants: \codepath{Phase-1/tests/check_invariants.py}
+  \begin{itemize}
+    \item SIT bounds \([0,1]\)
+    \item resident fraction sum checks
+    \item non-resident NaN checks
+    \item mask-mode specific checks (\texttt{skip\_w0}, \texttt{partial}, \texttt{exact\_boundary})
+  \end{itemize}
+  \item Golden replay harness: \codepath{Phase-1/tests/run_golden_suite.py}
+  \begin{itemize}
+    \item consumes \codepath{Phase-1/datasets/manifest.json}
+    \item runs base + mask modes
+    \item fails on engine or invariant violation
+  \end{itemize}
+  \item Supplemental validator: \codepath{Phase-1/tools/validation/validate.py}.
+\end{itemize}
+
+Done-when mapping: semantic regressions are detectable at script level today; CI wiring to enforce on PRs is Deliverable 11.
+
+\subsection*{Design Overview}
+Two-layer strategy: deterministic replay across pinned datasets plus local semantic invariants independent of specific numeric trace values.
+
+Dependencies: Deliverable 8 (Reference Datasets), Deliverable 6 (Output Schema v1), Deliverable 11 (CI Hooks).
+
+\subsection*{Flowchart (TikZ)}
+\flowdecision{Deliverable 7 flow: golden and invariant validation}
+  {datasets/manifest.json inputs}
+  {Run golden suite + invariants}
+  {Any semantic/invariant failure?}
+  {PASS: validation suite green}
+  {FAIL: regression detected}
+
+\section{Deliverable 8: Reference Datasets}
+\subsection*{What It Is}
+Pinned minimal dataset bundle used for reproducibility, correctness checks, and regression baselining.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Dataset manifest: \codepath{Phase-1/datasets/manifest.json}
+  \begin{itemize}
+    \item \texttt{dataset\_version = "phase1-v1"}
+    \item trace list under \texttt{datasets/traces/}
+    \item residency masks under \texttt{datasets/residency/}
+  \end{itemize}
+  \item Consumption in harness: \codepath{Phase-1/tests/run_golden_suite.py} \texttt{load\_manifest()}.
+\end{itemize}
+
+Done-when mapping: datasets are version-tagged and consumed by automated replay; engine-version linkage is by convention and should be formalized (e.g., add explicit engine commit/version key in manifest).
+
+\subsection*{Design Overview}
+Manifest-centric governance keeps trace/mask sets declarative and enables deterministic replay selection without hard-coding test paths.
+
+Dependencies: Deliverable 7 (Validation Suite), Deliverable 1 (SIT Engine Core), Deliverable 11 (CI Hooks).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 8 flow: reference dataset usage}
+  {Versioned manifest.json}
+  {Resolve traces + residency masks}
+  {Golden suite consumes dataset bundle}
+  {Deterministic regression verdict}
+
+\section{Deliverable 9: CLI Pipeline}
+\subsection*{What It Is}
+Developer/operator interface for deterministic staged execution: ingest $\rightarrow$ classify $\rightarrow$ export.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Entry point: \codepath{Phase-1/cli.py}
+  \item \texttt{cmd\_ingest()} writes normalized \texttt{trace.csv}, optional \texttt{residency.csv}, and \texttt{manifest.json}.
+  \item \texttt{cmd\_classify()} reads manifest, invokes \codepath{Phase-1/sit_engine_phase1.py}, writes \texttt{windows.csv}, \texttt{summary.json}.
+  \item \texttt{cmd\_export()} emits versioned exports under \texttt{export/}.
+  \item Packaging entry point: \codepath{Phase-1/pyproject.toml} \texttt{[project.scripts] riscvbench = "riscvbench:main"}.
+\end{itemize}
+
+Done-when mapping: staged run artifacts and manifest-based replay are deterministic for equivalent inputs.
+
+\subsection*{Design Overview}
+Pipeline is deliberately explicit and file-backed to simplify debugging, reproducibility, and CI decomposition by stage.
+
+Dependencies: Deliverable 4 (Trace Ingestion API), Deliverable 5 (Baseline Adapter), Deliverable 1 (SIT Engine Core), Deliverable 6 (Output Schema v1).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 9 flow: ingest-classify-export}
+  {ingest}
+  {classify}
+  {export}
+  {Versioned output artifacts}
+
+\section{Deliverable 10: Documentation}
+\subsection*{What It Is}
+Formal documentation set describing architecture, theory boundaries, and operator usage so implementation is reproducible without tribal knowledge.
+
+\subsection*{How It's Fulfilled in Code}
+\begin{itemize}[leftmargin=*]
+  \item Primary guide: \codepath{Phase-1/README.md}
+  \item Generalization note: \codepath{Phase-1/docs/guides/GENERALIZATION.md}
+  \item Technical report (LaTeX): \codepath{Phase-1/docs/phase1_technical_document.tex}
+  \item Docs index/layout: \codepath{Phase-1/docs/README.md}
+  \item Runbook/status support: \codepath{Phase-1/docs/runbooks/Commands.txt}, \codepath{Phase-1/docs/status/PHASE1_PHASE2_STATUS.md}
+\end{itemize}
+
+Done-when mapping: core conceptual and operational docs are present; onboarding completeness should be validated by a new-contributor execution test.
+
+\subsection*{Design Overview}
+Documentation is partitioned by intent:
+\begin{itemize}[leftmargin=*]
+  \item architecture/specification (technical document),
+  \item operational workflow (README/runbooks),
+  \item extension boundaries (generalization guide),
+  \item delivery status (status dashboard).
+\end{itemize}
+
+Dependencies: references all other deliverables; especially Deliverable 4 (contract), 9 (CLI), 7 (validation).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 10 flow: docs to implementation loop}
+  {Read README + GENERALIZATION}
+  {Run ingest/classify/export}
+  {Validate outputs + invariants}
+  {Extend safely without tribal knowledge}
+
+\section{Deliverable 11: CI Hooks}
+\subsection*{What It Is}
+Automated PR gate that runs semantic validations and fails on behavior drift.
+
+\subsection*{How It's Fulfilled in Code}
+Current repository snapshot: \textbf{no} \codepath{.github/workflows/} directory is present. Existing executable hooks that should be wired into CI are:
+\begin{itemize}[leftmargin=*]
+  \item \codepath{Phase-1/tests/run_golden_suite.py}
+  \item \codepath{Phase-1/tests/check_invariants.py}
+  \item \codepath{Phase-1/run_cross_target_suite.py} (optional parity gate)
+\end{itemize}
+
+Expected fulfillment pattern for done-when:
+\begin{itemize}[leftmargin=*]
+  \item add workflow stub, e.g., \codepath{.github/workflows/phase1-ci.yml}
+  \item install dependencies
+  \item run ingest/classify/export smoke
+  \item run golden + invariant suites
+  \item fail workflow on any semantic mismatch
+\end{itemize}
+
+\subsection*{Design Overview}
+CI is a composition layer over Deliverable 7 (Validation Suite) and Deliverable 8 (Reference Datasets). It should remain thin: orchestration, caching, and fail-fast gating only.
+
+Dependencies: Deliverable 7 (Validation Suite), Deliverable 8 (Reference Datasets), Deliverable 6 (Output Schema v1), Deliverable 9 (CLI Pipeline).
+
+\subsection*{Flowchart (TikZ)}
+\flowdecision{Deliverable 11 flow: CI semantic gate}
+  {PR trigger}
+  {CI runs smoke + golden + invariants}
+  {Semantic drift detected?}
+  {Block PR}
+  {Allow merge}
+
+\end{document}

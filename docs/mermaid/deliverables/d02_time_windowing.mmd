@@ -1,0 +1,8 @@
+flowchart TD
+  A[Input interval start_us,end_us] --> B[Compute w0=floor(start/window)]
+  B --> C[Compute w1=floor((end-1e-9)/window)]
+  C --> D[Iterate wid in w0..w1]
+  D --> E[Compute overlap with [wid*window,(wid+1)*window)]
+  E --> F{overlap > 0?}
+  F -->|yes| G[Emit (wid, overlap)]
+  F -->|no| H[Skip]

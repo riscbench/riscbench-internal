@@ -1,0 +1,8 @@
+flowchart TD
+  A[datasets/manifest.json] --> B[run_golden_suite.py]
+  B --> C[Run sit_engine_phase1.py per trace/mask]
+  C --> D[windows.csv outputs]
+  D --> E[check_invariants.py]
+  E --> F{All checks pass?}
+  F -->|yes| G[Golden suite PASS]
+  F -->|no| H[Regression FAIL]

@@ -1,6 +1,20 @@
 {
   "dataset_version": "phase1-v1",
+  "engine": {
+    "name": "sit_engine_phase1",
+    "version": "phase1-v1",
+    "schema_version": 1
+  },
   "window_us_default": 256,
+  "phase0_baseline": {
+    "repo": "git@github.com:Srinidhi-Magesh08/Tenstorrent_test_raw_files.git",
+    "branch": "main",
+    "commit": "4512ce4e1a689f64c866160bf1f8e7e5e3e2ec89",
+    "run_artifact": "phase0_golden/tt_run_2026-02-09/raw_profiler/profile_log_device.csv",
+    "arch": "wormhole_b0",
+    "chip_freq_mhz": 1000,
+    "max_compute_cores": 64
+  },
   "traces": [
     "datasets/traces/trace_A_single_residency.csv",
     "datasets/traces/trace_B_two_windows_gap.csv",
@@ -8,7 +22,8 @@
     "datasets/traces/trace_C_injected_stalls_v2_stall80.csv",
     "datasets/traces/trace_C_injected_stalls_v3_stall160.csv",
     "datasets/traces/trace_D_memory_pressure_breaks.csv",
-    "datasets/traces/trace_E_sync_heavy_4cores.csv"
+    "datasets/traces/trace_E_sync_heavy_4cores.csv",
+    "datasets/traces/trace_F_phase0_wormhole_sample.csv"
   ],
   "residency_masks": {
     "all": "datasets/residency/all.csv",

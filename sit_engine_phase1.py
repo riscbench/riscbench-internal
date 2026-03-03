@@ -145,13 +145,46 @@ def main():
     if residency_by_core is not None:
         all_keys |= set(resident_acc.keys())
 
-    records = []
-    debug_sit_raw: List[float] = []
-    debug_sit_clamped: List[float] = []
+    # FIRST PASS: Calculate global totals for SIT calculation when work_done is unavailable
     total_active_us = 0.0
     total_stall_us = 0.0
     total_idle_us = 0.0
     total_resident_us = 0.0
+    
+    for (core, wid) in sorted(all_keys, key=lambda x: (x[0], x[1])):
+        resident_us = window_us if residency_by_core is None else resident_acc.get((core, wid), 0.0)
+        if resident_us > 0:
+            d = state_acc.get((core, wid), {"active_us": 0.0, "stall_us": 0.0, "idle_us": 0.0})
+            active = float(d["active_us"])
+            stall = float(d["stall_us"])
+            idle = float(d["idle_us"])
+            
+            total = active + stall + idle
+            if total < resident_us:
+                idle += (resident_us - total)  # gap-fill inside residency
+            
+            total_active_us += active
+            total_stall_us += stall
+            total_idle_us += idle
+            total_resident_us += resident_us
+    
+    # Calculate global SIT when work_done is unavailable
+    # This is the CORRECT metric: active_time / resident_time (globally, not per-window)
+    global_sit_fallback = float("nan")
+    if not work_enabled and total_resident_us > 0:
+        global_sit_fallback = total_active_us / total_resident_us
+    
+    # SECOND PASS: Generate output records using global SIT if needed
+    records = []
+    debug_sit_raw: List[float] = []
+    debug_sit_clamped: List[float] = []
+    
+    # Reset for second pass
+    total_active_us = 0.0
+    total_stall_us = 0.0
+    total_idle_us = 0.0
+    total_resident_us = 0.0
+    
     for (core, wid) in sorted(all_keys, key=lambda x: (x[0], x[1])):
         w_start = wid * window_us
         w_end = (wid + 1) * window_us
@@ -180,6 +213,10 @@ def main():
                 sit_raw = (work_done / denom) / float(args.expected_work_rate)
                 if not math.isfinite(sit_raw) or (sit_raw <= 0.0 and active > 0.0):
                     sit_raw = active_f  # fallback when work_done is missing/zero
+            elif not work_enabled:
+                # FIX: Use GLOBAL SIT (total_active / total_resident) instead of per-window active_f
+                # This ensures all windows get the same SIT value (the global metric)
+                sit_raw = global_sit_fallback
             else:
                 sit_raw = active_f  # fallback
             sit = max(0.0, min(1.0, sit_raw))

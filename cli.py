@@ -203,9 +203,13 @@ def cmd_classify(args) -> int:
 def cmd_export(args) -> int:
     """
     Phase-1 export:
-      - Copies artifacts into versioned names (schema v1)
+      - Validates artifacts against schema v1
+      - Writes versioned CSV/JSON and parquet (best effort)
       - Prints a clean summary block like the reference CLI
     """
+    import pandas as pd
+    from schema.v1 import validate_summary_v1, validate_windows_v1
+
     outdir = Path(args.in_dir)
     windows = outdir / "windows.csv"
     summary = outdir / "summary.json"
@@ -216,12 +220,25 @@ def cmd_export(args) -> int:
     export_dir = outdir / "export"
     ensure_dir(export_dir)
 
-    # Copy with explicit schema version names
-    shutil.copyfile(windows, export_dir / "windows_v1.csv")
-    shutil.copyfile(summary, export_dir / "summary_v1.json")
+    # Validate and materialize versioned artifacts.
+    try:
+        windows_v1 = validate_windows_v1(pd.read_csv(windows))
+        summary_v1 = validate_summary_v1(json.loads(summary.read_text(encoding="utf-8")))
+    except Exception as e:
+        print(f"schema validation error: {e}")
+        return 2
 
-    # Load summary for printing
-    s = json.loads(summary.read_text(encoding="utf-8"))
+    windows_v1.to_csv(export_dir / "windows_v1.csv", index=False)
+    (export_dir / "summary_v1.json").write_text(json.dumps(summary_v1, indent=2), encoding="utf-8")
+
+    # Parquet is optional because pyarrow/fastparquet may not be installed.
+    try:
+        windows_v1.to_parquet(export_dir / "windows_v1.parquet", index=False)
+    except Exception as e:
+        info(f"parquet export skipped ({e.__class__.__name__}: {e})")
+
+    # Use validated summary for printing
+    s = summary_v1
 
     def pct(x: float) -> str:
         if x != x:  # NaN

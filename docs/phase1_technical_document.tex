@@ -13,28 +13,16 @@
 \usepackage{listings}
 \usepackage{graphicx}
 \usepackage{float}
+\usepackage{tikz}
+\usepackage{amsmath}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
 
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue,citecolor=blue}
 
-\definecolor{mermaidbg}{RGB}{248,249,250}
-\definecolor{mermaidframe}{RGB}{210,214,220}
-
-\lstdefinelanguage{mermaid}{
-  morekeywords={flowchart,sequenceDiagram,graph,subgraph,participant,autonumber,classDef,classStyle,style,click,linkStyle},
-  sensitive=true,
-  morecomment=[l]{%%},
-  morestring=[b]"
-}
-
-\lstdefinestyle{mermaidstyle}{
-  language=mermaid,
-  basicstyle=\ttfamily\small,
-  backgroundcolor=\color{mermaidbg},
-  frame=single,
-  rulecolor=\color{mermaidframe},
-  breaklines=true,
-  showstringspaces=false,
-  tabsize=2
+\tikzset{
+  box/.style={rectangle, draw, rounded corners, align=center, inner sep=3pt, minimum width=32mm},
+  decision/.style={diamond, draw, aspect=2.2, align=center, inner sep=2pt},
+  line/.style={-Latex}
 }
 
 \title{RISCBench Phase-1\\Technical Stack and Design Specification}
@@ -57,6 +45,21 @@ This document provides a full technical specification for Phase-1, covering:
 \end{itemize}
 
 The system implements a Sustained Instantaneous Throughput (SIT) analysis pipeline using trace inputs normalized through adapters and processed into deterministic windowed metrics.
+
+\subsection{Phase-0 Baseline Context}
+Phase-0 reference behavior was produced using the Tenstorrent Wormhole testbench. Phase-1 keeps this baseline explicit through:
+\begin{itemize}[leftmargin=1.4em]
+  \item \texttt{phase0\_trace\_to\_sit.py} for trace normalization into Phase-1 ingestable form,
+  \item invariant + golden validation to detect semantic drift from baseline behavior.
+\end{itemize}
+\noindent Verified baseline metadata:
+\begin{itemize}[leftmargin=1.4em]
+  \item source repo: \url{git@github.com:Srinidhi-Magesh08/Tenstorrent_test_raw_files.git}
+  \item branch/commit: \texttt{main} @ \texttt{4512ce4e1a689f64c866160bf1f8e7e5e3e2ec89}
+  \item baseline run artifact: \texttt{phase0\_golden/tt\_run\_2026-02-09/raw\_profiler/profile\_log\_device.csv}
+  \item run header: \texttt{ARCH=wormhole\_b0}, \texttt{CHIP\_FREQ[MHz]=1000}, \texttt{Max Compute Cores=64}
+  \item converted sample trace in Phase-1 dataset bundle: \texttt{datasets/traces/trace\_F\_phase0\_wormhole\_sample.csv}
+\end{itemize}
 
 \section{Stack Inventory by Layer}
 \subsection{Interface and Orchestration Stack}
@@ -94,25 +97,57 @@ The system implements a Sustained Instantaneous Throughput (SIT) analysis pipeli
   \item \textbf{Schema Contract:} \texttt{schema/v1.py}
   \item \textbf{Invariant Validation:} \texttt{tests/check\_invariants.py}
   \item \textbf{Golden Regression:} \texttt{tests/run\_golden\_suite.py}
+  \item \textbf{Phase-0 Parity Check:} \texttt{tests/check\_phase0\_parity.py}
 \end{itemize}
 
-\section{Architecture Diagram (Mermaid)}
-\subsection{Mermaid Source}
-\lstinputlisting[style=mermaidstyle]{mermaid/architecture.mmd}
+\section{Architecture Diagram (TikZ)}
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[node distance=8mm and 10mm]
+    \node[box] (raw) {Raw Trace Sources\\CSV / CPU raw / Spike-derived};
+    \node[box, below=of raw] (adp) {Adapters\\baseline / cpu / spike};
+    \node[box, below=of adp] (norm) {Normalized Interval Frames\\state + optional residency};
+    \node[box, below=of norm] (eng) {SIT Engine\\windowing + residency gating};
+    \node[box, below left=of eng] (win) {windows.csv};
+    \node[box, below right=of eng] (sum) {summary.json};
+    \node[box, below=of win] (expw) {export/windows\_v1.csv};
+    \node[box, below=of sum] (exps) {export/summary\_v1.json};
+    \node[box, right=22mm of eng] (val) {Validation\\invariants + golden suite};
 
-\subsection{Rendered Diagram Placeholder}
-Render \texttt{mermaid/architecture.mmd} to an image (for example PNG) and place it at:
-\texttt{mermaid/architecture.png}. Then uncomment the include below.
-
-% \begin{figure}[H]
-%   \centering
-%   \includegraphics[width=\textwidth]{mermaid/architecture.png}
-%   \caption{Phase-1 High-Level Architecture}
-% \end{figure}
+    \draw[line] (raw) -- (adp);
+    \draw[line] (adp) -- (norm);
+    \draw[line] (norm) -- (eng);
+    \draw[line] (eng) -- (win);
+    \draw[line] (eng) -- (sum);
+    \draw[line] (win) -- (expw);
+    \draw[line] (sum) -- (exps);
+    \draw[dashed] (val.west) -- (win.east);
+    \draw[dashed] (val.west) -- (sum.east);
+  \end{tikzpicture}
+  \caption{Phase-1 High-Level Architecture}
+\end{figure}
 
 \section{End-to-End Workflow Specification}
-\subsection{Mermaid Sequence Diagram Source}
-\lstinputlisting[style=mermaidstyle]{mermaid/workflow_sequence.mmd}
+\subsection{Pipeline Sequence (TikZ)}
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[node distance=8mm and 12mm]
+    \node[box] (u) {User};
+    \node[box, below=of u] (ing) {CLI ingest\\parse + normalize};
+    \node[box, below=of ing] (art1) {Artifacts\\trace.csv + manifest.json};
+    \node[box, below=of art1] (cls) {CLI classify\\run SIT engine};
+    \node[box, below=of cls] (art2) {Artifacts\\windows.csv + summary.json};
+    \node[box, below=of art2] (exp) {CLI export\\schema v1 materialization};
+    \node[box, below=of exp] (art3) {Artifacts\\windows\_v1.csv + summary\_v1.json};
+    \draw[line] (u) -- (ing);
+    \draw[line] (ing) -- (art1);
+    \draw[line] (art1) -- (cls);
+    \draw[line] (cls) -- (art2);
+    \draw[line] (art2) -- (exp);
+    \draw[line] (exp) -- (art3);
+  \end{tikzpicture}
+  \caption{End-to-End Workflow}
+\end{figure}
 
 \subsection{Workflow Stages}
 \begin{longtable}{>{\raggedright\arraybackslash}p{0.20\textwidth} >{\raggedright\arraybackslash}p{0.74\textwidth}}
@@ -134,7 +169,27 @@ Export & Applies schema-versioned materialization and writes \texttt{export/wind
 \end{itemize}
 
 \subsection{Windowing and Boundary Rules}
-\lstinputlisting[style=mermaidstyle]{mermaid/windowing_logic.mmd}
+\begin{figure}[H]
+  \centering
+  \begin{tikzpicture}[node distance=8mm and 12mm]
+    \node[box] (i) {Input interval\\\texttt{[start\_us, end\_us)}};
+    \node[box, below=of i] (w0) {w0 = floor(start/window)};
+    \node[box, below=of w0] (w1) {w1 = floor((end - 1e-9)/window)};
+    \node[box, below=of w1] (iter) {Iterate windows w0..w1};
+    \node[box, below=of iter] (ov) {overlap = max(0, min(end,w\_end)-max(start,w\_start))};
+    \node[decision, below=of ov] (d) {overlap > 0?};
+    \node[box, below left=of d] (emit) {Emit (window\_id, overlap)};
+    \node[box, below right=of d] (skip) {Skip window};
+    \draw[line] (i) -- (w0);
+    \draw[line] (w0) -- (w1);
+    \draw[line] (w1) -- (iter);
+    \draw[line] (iter) -- (ov);
+    \draw[line] (ov) -- (d);
+    \draw[line] (d) -- node[left]{yes} (emit);
+    \draw[line] (d) -- node[right]{no} (skip);
+  \end{tikzpicture}
+  \caption{Windowing and Boundary-Exact Overlap Logic}
+\end{figure}
 
 \textbf{Boundary rule:} last-window selection uses an epsilon offset on end time to avoid assigning an interval ending exactly on a boundary to the next window.
 
@@ -160,7 +215,7 @@ If resident time exists, compute:
 \text{sit\_raw} =
 \begin{cases}
 \frac{\left(\frac{\text{work\_done}}{\text{resident\_us}}\right)}{\text{expected\_work\_rate}} & \text{if work\_done exists} \\
-\text{active\_frac} & \text{otherwise}
+\frac{\text{total\_active\_us}}{\text{total\_resident\_us}} & \text{otherwise (global fallback)}
 \end{cases}
 \]
 \[
@@ -193,6 +248,7 @@ runs/<run_id>/
 \begin{itemize}[leftmargin=1.4em]
   \item Invariant checks enforce semantic correctness on window outputs.
   \item Golden suite enforces reproducibility across representative datasets.
+  \item Phase-0 parity check enforces strict regression on the Wormhole-derived sample trace.
   \item Recommended CI: smoke pipeline $\rightarrow$ invariants $\rightarrow$ golden suite.
 \end{itemize}
 
@@ -203,16 +259,10 @@ python cli.py classify --in runs/A --window-us 256 --residency datasets/residenc
 python cli.py export --in runs/A --schema v1
 python tests/check_invariants.py --windows out/A_partial_windows.csv --mode partial --window-us 256
 python tests/run_golden_suite.py --outdir golden_out
+python tests/check_phase0_parity.py --windows golden_out/trace_F_phase0_wormhole_sample__base_windows.csv --summary golden_out/trace_F_phase0_wormhole_sample__base_summary.json
 \end{lstlisting}
 
-\section{Mermaid Rendering Guidance (Optional)}
-To produce image files from the Mermaid source files:
-\begin{lstlisting}[basicstyle=\ttfamily\small,frame=single]
-mmdc -i docs/mermaid/architecture.mmd -o docs/mermaid/architecture.png
-mmdc -i docs/mermaid/workflow_sequence.mmd -o docs/mermaid/workflow_sequence.png
-mmdc -i docs/mermaid/windowing_logic.mmd -o docs/mermaid/windowing_logic.png
-\end{lstlisting}
-
-These images can then be included in this LaTeX document with \texttt{\textbackslash includegraphics}.
+\section{Diagram Rendering Guidance}
+This document uses native TikZ diagrams, so no external Mermaid conversion step is required.
 
 \end{document}

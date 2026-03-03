@@ -1,0 +1,8 @@
+flowchart TD
+  A[run_windows.csv + run_summary.json] --> B[CLI export]
+  B --> C[Materialize windows_v1.csv]
+  B --> D[Materialize summary_v1.json]
+  C --> E[Downstream tooling]
+  D --> E
+  F[schema/v1.py contract] -.governs fields.-> C
+  F -.governs keys.-> D

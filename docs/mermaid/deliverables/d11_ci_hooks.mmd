@@ -1,0 +1,9 @@
+flowchart TD
+  A[PR opened/updated] --> B[CI workflow trigger]
+  B --> C[Setup Python + dependencies]
+  C --> D[Smoke pipeline run]
+  D --> E[run_golden_suite.py]
+  E --> F[check_invariants.py]
+  F --> G{All checks pass?}
+  G -->|yes| H[Merge allowed]
+  G -->|no| I[PR blocked: semantic drift]

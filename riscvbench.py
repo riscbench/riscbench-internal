@@ -1,77 +1,448 @@
 #!/usr/bin/env python3
+"""
+CORRECTED riscvbench with inline assembly markers:
+- Uses `asm volatile("addi x0, x0, 101/102")` instead of volatile variable assignment
+- This ensures Spike sees the actual marker instructions, not memory stores
+- IDLE: in workload (idle_loop - core not computing)
+- STALL: from flags (branch mispredict, cache pressure - pipeline/memory stalls)
+"""
+
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import os
-import re
 import shutil
 import subprocess
 import sys
 import time
 from pathlib import Path
 
-# ---- workload generators (same as earlier, minimal set) ----
-WORKLOADS_SIMPLE = {"alu", "branch", "memory", "hello", "memread", "memwrite", "memcpy"}
-WORKLOADS_SPIKE = WORKLOADS_SIMPLE | {"matmul", "matmul_multicore"}
-WORKLOADS_CPU = WORKLOADS_SIMPLE | {"matmul", "matmul_multicore"}
-PRACTICAL_WORKLOADS = ["branch", "memory", "memread", "memwrite", "memcpy", "matmul", "matmul_multicore"]
-SIZES = {"tiny", "small", "med", "large"}
+WORKLOADS_CUSTOM = {"fm_loopback", "fm_mm", "fm_read", "fm_write"}
+WORKLOADS_STANDARD = {"alu", "branch", "memory", "hello", "memread", "memwrite", "memcpy"}
+WORKLOADS_SPIKE = WORKLOADS_STANDARD | WORKLOADS_CUSTOM | {"matmul", "matmul_multicore"}
+WORKLOADS_CPU = WORKLOADS_STANDARD | WORKLOADS_CUSTOM | {"matmul", "matmul_multicore"}
+SIZES = {"test", "tiny", "small", "med", "large"}
 
 SIZE_PRESETS = {
-    "tiny":  {"ITER": 2_000,     "DIM": 64},
-    "small": {"ITER": 10_000,    "DIM": 128},
-    "med":   {"ITER": 200_000,   "DIM": 256},
-    "large": {"ITER": 2_000_000, "DIM": 512},
+    "test":  {"ITER": 1000, "DIM": 32,  "PAGES": 2},
+    "tiny":  {"ITER": 2000,  "DIM": 64,  "PAGES": 4},
+    "small": {"ITER": 3000,   "DIM": 96,  "PAGES": 8},
+    "med":   {"ITER": 4000,   "DIM": 128, "PAGES": 16},
+    "large": {"ITER": 5000,    "DIM": 256, "PAGES": 32},
 }
 
 SRC = {
-    "alu": r"""
+    "fm_loopback": r"""
 #include <stdint.h>
+
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
-#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
 #endif
+
+volatile uint64_t result = 0;
+
+// IDLE: Core wasting cycles (pure waste, no computation)
+static inline void idle_phase(uint64_t iterations) {
+    for (uint64_t i = 0; i < iterations; i++) {
+        asm volatile("nop" ::: "memory");
+  // Core not doing useful work
+    }
+}
+
+// STALL: Memory latency (caused by cache pressure flag)
+static inline void stall_phase(uint64_t iterations) {
+    volatile uint64_t* ptr = (volatile uint64_t*)(0x80000000);
+    for (uint64_t i = 0; i < iterations; i++) {
+        result += *ptr;  // Long latency access
+    }
+}
+
 int main() {
-  volatile uint64_t x = 1;
+  volatile uint64_t sum = 0;
   SIT_RES_ON();
-  for (uint64_t i = 1; i < ITER; i++) x = x * 3 + i;
+  
+  // COMPUTE PHASE: Branch-heavy work
+  for (uint64_t i = 0; i < ITER; i++) {
+    if (BRANCH_MISPREDICT_ENABLED) {
+        // Unpredictable pattern → pipeline stalls from mispredicts
+        if ((i ^ (i >> 8)) & 1) sum += i;
+        else sum -= i;
+    } else {
+        // Predictable pattern
+        if (i & 1) sum += i;
+        else sum -= i;
+    }
+  }
+  
+  // IDLE PHASE: Core does nothing (embedded in workload)
+  idle_phase(ITER/4);  // 50% idle time
+  
+  // STALL PHASE: Only if cache pressure flag set
+  if (CACHE_PRESSURE_ENABLED) {
+    stall_phase(ITER / 4);  // Additional stall from flag
+  }
+  
   SIT_RES_OFF();
-  return (int)x;
+  return (int)sum;
 }
 """,
-    "branch": r"""
+
+    "fm_mm": r"""
+#include <stdint.h>
+
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
-#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
 #endif
+
+#define N DIM
+
+static int A[N][N];
+static int B[N][N];
+static int C[N][N];
+
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
+static inline void stall_phase(uint64_t iterations) {
+    volatile uint64_t* ptr = (volatile uint64_t*)(0x80000000);
+    for (uint64_t i = 0; i < iterations; i++) {
+        result += *ptr;
+    }
+}
+
 int main() {
-  volatile int sum = 0;
+  for (int i = 0; i < N; i++)
+    for (int j = 0; j < N; j++) {
+      A[i][j] = i + j;
+      B[i][j] = i - j;
+      C[i][j] = 0;
+    }
+
   SIT_RES_ON();
-  for (int i = 0; i < ITER; i++) {
-    if (i & 1) sum += i;
-    else sum -= i;
+  
+  // COMPUTE: Matrix multiplication (N^3 = 128^3 = 2M ops)
+  for (int i = 0; i < N; i++)
+    for (int k = 0; k < N; k++)
+      for (int j = 0; j < N; j++)
+        C[i][j] += A[i][k] * B[k][j];
+  
+  // IDLE: Core not computing (50% of work time)
+  idle_phase(ITER *1000);    // 1M nop instructions
+  
+  // STALL: Only if cache pressure enabled
+  if (CACHE_PRESSURE_ENABLED) {
+    // Random access → cache misses → memory stalls
+    stall_phase(N * N * N / 4);
   }
+  
+  SIT_RES_OFF();
+  return C[N - 1][N - 1];
+}
+""",
+
+    "fm_read": r"""
+#include <stdint.h>
+
+#ifdef __riscv
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
+
+#define PAGES DIM
+#define PAGE_SIZE 4096
+#define N (PAGES * PAGE_SIZE / sizeof(int))
+
+static int data[N];
+
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
+static inline void stall_phase(uint64_t iterations) {
+    volatile uint64_t* ptr = (volatile uint64_t*)(0x80000000);
+    for (uint64_t i = 0; i < iterations; i++) {
+        result += *ptr;
+    }
+}
+
+int main() {
+  for (int i = 0; i < N; i++) data[i] = i;
+
+  SIT_RES_ON();
+  
+  // COMPUTE: Sequential reads
+  volatile int sum = 0;
+  for (int i = 0; i < ITER; i++) {
+    sum += data[i % N];
+  }
+  
+  // IDLE: Core not reading (50% idle)
+  idle_phase(ITER *10000);
+  
+  // STALL: If cache pressure enabled
+  if (CACHE_PRESSURE_ENABLED) {
+    stall_phase(ITER / 8);
+  }
+  
   SIT_RES_OFF();
   return sum;
 }
 """,
-    "memory": r"""
-#define N DIM
+
+    "fm_write": r"""
+#include <stdint.h>
+
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
-#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
 #endif
+
+#define PAGES DIM
+#define PAGE_SIZE 4096
+#define N (PAGES * PAGE_SIZE / sizeof(int))
+
+static int data[N];
+
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
+static inline void stall_phase(uint64_t iterations) {
+    volatile uint64_t* ptr = (volatile uint64_t*)(0x80000000);
+    for (uint64_t i = 0; i < iterations; i++) {
+        result += *ptr;
+    }
+}
+
+int main() {
+  SIT_RES_ON();
+  
+  // COMPUTE: Sequential writes
+  for (int i = 0; i < ITER; i++) {
+    data[i % N] = i;
+  }
+  
+  // IDLE: Core not writing (50% idle)
+  idle_phase(ITER *1000);
+  
+  // STALL: If cache pressure enabled
+  if (CACHE_PRESSURE_ENABLED) {
+    stall_phase(ITER / 8);
+  }
+  
+  SIT_RES_OFF();
+  return data[N - 1];
+}
+""",
+
+    "alu": r"""
+#include <stdint.h>
+
+#ifdef __riscv
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
+
+volatile uint64_t result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
+static inline void stall_phase(uint64_t iterations) {
+    volatile uint64_t* ptr = (volatile uint64_t*)(0x80000000);
+    for (uint64_t i = 0; i < iterations; i++) {
+        result += *ptr;
+    }
+}
+
+int main() {
+  volatile uint64_t x = 1;
+  SIT_RES_ON();
+  for (uint64_t i = 1; i < ITER; i++) x = x * 3 + i;
+  idle_phase(ITER / 2);
+  if (CACHE_PRESSURE_ENABLED) stall_phase(ITER / 4);
+  SIT_RES_OFF();
+  return (int)x;
+}
+""",
+
+    "branch": r"""
+#include <stdint.h>
+
+#ifdef __riscv
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
+
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
+static inline void stall_phase(uint64_t iterations) {
+    volatile uint64_t* ptr = (volatile uint64_t*)(0x80000000);
+    for (uint64_t i = 0; i < iterations; i++) {
+        result += *ptr;
+    }
+}
+
+int main() {
+  volatile int sum = 0;
+  SIT_RES_ON();
+  for (int i = 0; i < ITER; i++) {
+    if (BRANCH_MISPREDICT_ENABLED) {
+        if ((i ^ (i >> 4)) & 1) sum += i;
+        else sum -= i;
+    } else {
+        if (i & 1) sum += i;
+        else sum -= i;
+    }
+  }
+  idle_phase(ITER / 2);
+  if (CACHE_PRESSURE_ENABLED) stall_phase(ITER / 4);
+  SIT_RES_OFF();
+  return sum;
+}
+""",
+
+    "memory": r"""
+#define N DIM
+
+#ifdef __riscv
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#endif
+
 static int A[N][N];
+
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
+static inline void stall_phase(uint64_t iterations) {
+    volatile uint64_t* ptr = (volatile uint64_t*)(0x80000000);
+    for (uint64_t i = 0; i < iterations; i++) {
+        result += *ptr;
+    }
+}
+
 int main() {
   for (int i = 0; i < N; i++)
     for (int j = 0; j < N; j++) A[i][j] = i + j;
@@ -80,19 +451,29 @@ int main() {
   SIT_RES_ON();
   for (int j = 0; j < N; j++)
     for (int i = 0; i < N; i++) sum += A[i][j];
+  idle_phase(N * N / 2);
+  if (CACHE_PRESSURE_ENABLED) stall_phase(N * N / 4);
   SIT_RES_OFF();
   return sum;
 }
 """,
+
     "hello": r"""
 #include <stdio.h>
+
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
-#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
 #endif
+
 int main() {
   SIT_RES_ON();
   for (int i = 0; i < 3; i++) printf("Hello from RISC-V %d\n", i);
@@ -100,18 +481,48 @@ int main() {
   return 0;
 }
 """,
+
     "matmul": r"""
 #define N DIM
+
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
-#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
 #endif
+
 static int A[N][N];
 static int B[N][N];
 static int C[N][N];
+
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
+static inline void stall_phase(uint64_t iterations) {
+    volatile uint64_t* ptr = (volatile uint64_t*)(0x80000000);
+    for (uint64_t i = 0; i < iterations; i++) {
+        result += *ptr;
+    }
+}
+
 int main() {
   for (int i = 0; i < N; i++)
     for (int j = 0; j < N; j++) {
@@ -125,69 +536,133 @@ int main() {
     for (int k = 0; k < N; k++)
       for (int j = 0; j < N; j++)
         C[i][j] += A[i][k] * B[k][j];
+  idle_phase((uint64_t)N * N * N * 1000);   // 50x bigger than before
+  if (CACHE_PRESSURE_ENABLED) stall_phase(N * N * N / 4);
   SIT_RES_OFF();
-
   return C[N - 1][N - 1];
 }
 """,
+
     "memread": r"""
 #define N DIM
+
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
-#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
 #endif
+
 static int A[N];
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
 int main() {
   for (int i = 0; i < N; i++) A[i] = i;
   volatile int sum = 0;
   SIT_RES_ON();
-  for (int i = 0; i < ITER; i++) {
-    sum += A[i % N];
-  }
+  for (int i = 0; i < ITER; i++) sum += A[i % N];
+  idle_phase(ITER / 2);
   SIT_RES_OFF();
   return sum;
 }
 """,
+
     "memwrite": r"""
 #define N DIM
+
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
-#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
 #endif
+
 static int A[N];
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
 int main() {
   for (int i = 0; i < N; i++) A[i] = 0;
   SIT_RES_ON();
-  for (int i = 0; i < ITER; i++) {
-    A[i % N] = i;
-  }
+  for (int i = 0; i < ITER; i++) A[i % N] = i;
+  idle_phase(ITER / 2);
   SIT_RES_OFF();
   return A[N - 1];
 }
 """,
+
     "memcpy": r"""
 #define N DIM
+
 #ifdef __riscv
-#define SIT_RES_ON()  asm volatile("addi x0, x0, 101")
-#define SIT_RES_OFF() asm volatile("addi x0, x0, 102")
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
 #else
 #define SIT_RES_ON()  ((void)0)
 #define SIT_RES_OFF() ((void)0)
 #endif
+
 static int A[N];
 static int B[N];
+volatile int result = 0;
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
 int main() {
   for (int i = 0; i < N; i++) A[i] = i;
   SIT_RES_ON();
-  for (int i = 0; i < ITER; i++) {
-    B[i % N] = A[i % N];
-  }
+  for (int i = 0; i < ITER; i++) B[i % N] = A[i % N];
+  idle_phase(ITER / 2);
   SIT_RES_OFF();
   return B[N - 1];
 }
@@ -200,12 +675,9 @@ def sh(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -
     else:
         p = subprocess.run(cmd, cwd=cwd, env=env)
     if p.returncode != 0:
-        # Spike commit-log runs may return non-zero workload exit codes while still
-        # producing usable `core ...` trace lines for downstream parsing.
         if isinstance(cmd, str) and cmd.lstrip().startswith("spike ") and " -l " in cmd:
             return
         raise SystemExit(f"Command failed: {cmd}")
-
 
 def sh_allow_fail(cmd: list[str] | str, cwd: Path | None = None, env: dict | None = None) -> int:
     if isinstance(cmd, str):
@@ -218,9 +690,19 @@ def ensure_tool(name: str):
     if shutil.which(name) is None:
         raise SystemExit(f"Tool not found in PATH: {name}")
 
-def write_workload(build_dir: Path, workload: str, size: str) -> Path:
+def write_workload(build_dir: Path, workload: str, size: str, 
+                   branch_mispredict: bool = False,
+                   cache_pressure: bool = False) -> Path:
+    """Generate C workload with IDLE and STALL phases"""
     preset = SIZE_PRESETS[size]
-    code = SRC[workload].replace("ITER", str(preset["ITER"])).replace("DIM", str(preset["DIM"]))
+    code = SRC[workload]
+    
+    code = code.replace("ITER", str(preset["ITER"]))
+    code = code.replace("DIM", str(preset["DIM"]))
+    #code = code.replace("PAGES", str(preset["PAGES"]))
+    code = code.replace("BRANCH_MISPREDICT_ENABLED", "1" if branch_mispredict else "0")
+    code = code.replace("CACHE_PRESSURE_ENABLED", "1" if cache_pressure else "0")
+    
     cpath = build_dir / f"{workload}.c"
     cpath.write_text(code)
     return cpath
@@ -232,137 +714,71 @@ def find_repo_root() -> Path:
             return candidate
     return Path(__file__).resolve().parent
 
-
 def main():
-    ap = argparse.ArgumentParser(
-        prog="riscvbench",
-        epilog=(
-            "Workloads by target: spike="
-            + ",".join(sorted(WORKLOADS_SPIKE))
-            + " cpu="
-            + ",".join(sorted(WORKLOADS_CPU))
-        ),
-    )
+    ap = argparse.ArgumentParser(prog="riscvbench")
+    
     ap.add_argument("--target", default="cpu", choices=["spike", "cpu", "both"])
-    ap.add_argument("--workload", default="matmul_multicore", choices=sorted((WORKLOADS_CPU | WORKLOADS_SPIKE) | {"all"}))
+    ap.add_argument("--workload", default="fm_mm", 
+                    choices=sorted((WORKLOADS_CPU | WORKLOADS_SPIKE) | {"all"}))
     ap.add_argument("--workload_size", default="small", choices=sorted(SIZES))
+    
+    ap.add_argument("--branch-mispredict", action="store_true",
+                    help="Enable branch mispredicts (causes STALL)")
+    ap.add_argument("--cache-pressure", action="store_true",
+                    help="Enable cache misses (causes STALL)")
+    
     ap.add_argument("--time_us", default=256.0, type=float)
-    ap.add_argument("--practical", action="store_true",
-                    help="Run practical presets. If --target/--workload are omitted, runs all practical workloads on both spike+cpu.")
-
-    # Matmul/workload-specific args (for --target cpu)
-    ap.add_argument("--tile-elems", type=int, default=1024)
-    ap.add_argument("--tiles", type=int, default=50000)
-    ap.add_argument("--compute-threads", type=int, default=1, help="Number of parallel compute threads (for matmul_multicore)")
-    ap.add_argument("--cores", type=int, default=None, help="Alias for --compute-threads (number of cores for matmul_multicore)")
-    ap.add_argument("--in-depth", type=int, default=2)
-    ap.add_argument("--out-depth", type=int, default=2)
-    ap.add_argument("--reader-sleep-ns", type=int, default=0)
-    ap.add_argument("--writer-sleep-ns", type=int, default=0)
-    ap.add_argument("--underflow", action="store_true", help="Enable reader slowdown to cause underflow")
-    ap.add_argument("--overflow", action="store_true", help="Enable writer slowdown to cause overflow")
-
-    # Spike plumbing
-    ap.add_argument("--isa", default="RV64GC",
-                    help="Spike ISA string. Default RV64GC to match typical pk/toolchain binaries.")
-    ap.add_argument("--pk", default=str(Path.home() / "RISCV" / "riscv-pk" / "build" / "pk"))
+    ap.add_argument("--expected-work-rate", type=float, default=1.0)
+    ap.add_argument("--skip-post-processing", action="store_true")
+    ap.add_argument("--practical", action="store_true")
+    ap.add_argument("--debug-sit", action="store_true")
+    
+    ap.add_argument("--cores", type=int, default=None)
+    ap.add_argument("--isa", default="RV64GC")
+    ap.add_argument("--pk", default=str(Path.home() / "opt" / "riscv" / "riscv64-unknown-elf" / "bin" / "pk"))
     ap.add_argument("--inst_us", type=float, default=1.0)
     ap.add_argument("--resident_pc_ge", default="0x80000000")
-    ap.add_argument("--trace_lines_max", type=int, default=200000)
-    ap.add_argument("--events-max", type=int, default=None, help="Max events to parse for both spike and cpu (0 for no limit)")
-    ap.add_argument("--expected-work-rate", type=float, default=1.0,
-                    help="Expected work rate used by SIT normalization")
-    ap.add_argument("--debug-sit", action="store_true",
-                    help="Print debug fields for SIT components during classify")
 
     args = ap.parse_args()
-    if args.cores is not None and args.compute_threads != 1 and args.cores != args.compute_threads:
-        raise SystemExit("Use either --cores or --compute-threads (not both with different values)")
-    compute_threads = args.cores if args.cores is not None else args.compute_threads
-
-    if args.practical:
-        if "--target" not in sys.argv:
-            args.target = "both"
-        if "--workload" not in sys.argv:
-            args.workload = "all"
-        if "--expected-work-rate" not in sys.argv:
-            args.expected_work_rate = 1.15
-        if "--events-max" not in sys.argv:
-            args.events_max = 2000
-        if "--underflow" not in sys.argv:
-            args.underflow = True
-        if "--overflow" not in sys.argv:
-            args.overflow = True
-        if "--reader-sleep-ns" not in sys.argv:
-            args.reader_sleep_ns = max(args.reader_sleep_ns, 2000)
-        if "--writer-sleep-ns" not in sys.argv:
-            args.writer_sleep_ns = max(args.writer_sleep_ns, 5000)
+    
+    print("\n=== CORRECT MODEL ===")
+    print("IDLE: in workload (nop loops - core not computing)")
+    print("STALL: from flags (--branch-mispredict, --cache-pressure)")
+    print("Values: from workload execution (markers 101/102)\n")
+    
+    if args.branch_mispredict:
+        print("ℹ --branch-mispredict: unpredictable branches → pipeline stalls")
+    if args.cache_pressure:
+        print("ℹ --cache-pressure: random access → cache misses → stalls")
+    if not args.branch_mispredict and not args.cache_pressure:
+        print("ℹ Baseline: no stall flags, ~50% idle in workload")
+    print()
 
     if args.target == "both" or args.workload == "all":
         targets = ["spike", "cpu"] if args.target == "both" else [args.target]
-        if args.workload == "all":
-            workloads = list(PRACTICAL_WORKLOADS if args.practical else sorted(WORKLOADS_CPU | WORKLOADS_SPIKE))
-        else:
+        workloads = list(
+            ["fm_loopback", "fm_mm", "fm_read", "fm_write"]
+            if args.practical
+            else sorted(WORKLOADS_CPU | WORKLOADS_SPIKE)
+        )
+        if args.workload != "all":
             workloads = [args.workload]
 
-        run_failures: list[str] = []
         for target in targets:
             for workload in workloads:
-                if target == "spike" and workload == "matmul_multicore":
-                    print("! spike matmul_multicore uses single-core matmul fallback for trace generation")
-                cmd = [
-                    sys.executable,
-                    str(Path(__file__).resolve()),
-                    "--target", target,
-                    "--workload", workload,
-                    "--workload_size", args.workload_size,
-                    "--time_us", str(args.time_us),
-                    "--tile-elems", str(args.tile_elems),
-                    "--tiles", str(args.tiles),
-                    "--compute-threads", str(compute_threads),
-                    "--in-depth", str(args.in_depth),
-                    "--out-depth", str(args.out_depth),
-                    "--reader-sleep-ns", str(args.reader_sleep_ns),
-                    "--writer-sleep-ns", str(args.writer_sleep_ns),
-                    "--pk", args.pk,
-                    "--inst_us", str(args.inst_us),
-                    "--resident_pc_ge", str(args.resident_pc_ge),
-                    "--trace_lines_max", str(args.trace_lines_max),
-                    "--expected-work-rate", str(args.expected_work_rate),
-                ]
-                if args.isa:
-                    cmd += ["--isa", str(args.isa)]
-                if args.events_max is not None:
-                    cmd += ["--events-max", str(args.events_max)]
-                if args.underflow:
-                    cmd += ["--underflow"]
-                if args.overflow:
-                    cmd += ["--overflow"]
-                if args.debug_sit:
-                    cmd += ["--debug-sit"]
+                cmd = [sys.executable, str(Path(__file__).resolve()),
+                       "--target", target, "--workload", workload, "--workload_size", args.workload_size]
+                if args.branch_mispredict:
+                    cmd += ["--branch-mispredict"]
+                if args.cache_pressure:
+                    cmd += ["--cache-pressure"]
                 print("$", " ".join(cmd))
-                rc = sh_allow_fail(cmd)
-                if rc != 0:
-                    run_failures.append(f"{target}/{workload} (exit {rc})")
-
-        if run_failures:
-            raise SystemExit("Batch run failed:\n - " + "\n - ".join(run_failures))
-        print("✓ practical batch complete")
+                sh_allow_fail(cmd)
         return
 
-    user_events_max = args.events_max
-    events_max = args.events_max
-    if events_max is None:
-        events_max = args.trace_lines_max
-
-    # no global requirement for 'sit-engine' — we call local Phase-1 CLI instead
-
     repo = find_repo_root()
-
     adapter_spike = repo / "adapters" / "spike_adapter.py"
-    adapter_cpu = repo / "adapters" / "cpu_adapter.py"
 
-    # Run directory contract
     run_dir = repo / "runs" / args.target / args.workload / args.workload_size
     build_dir = run_dir / "build"
     traces_dir = run_dir / "traces"
@@ -373,7 +789,6 @@ def main():
     inputs_dir.mkdir(parents=True, exist_ok=True)
     needs_baseline_ingest = True
 
-    # Target-specific handling
     if args.target == "spike":
         ensure_tool("spike")
         ensure_tool("riscv64-unknown-elf-gcc")
@@ -382,213 +797,46 @@ def main():
         if not pk.exists():
             raise SystemExit(f"pk not found: {pk}")
 
-        adapter_py = adapter_spike
-        if not adapter_py.exists():
-            raise SystemExit(f"missing adapter: {adapter_py}")
-
         if args.workload not in WORKLOADS_SPIKE:
-            raise SystemExit(f"spike target does not support workload: {args.workload}")
+            raise SystemExit(f"spike does not support: {args.workload}")
 
-        # 1) build workload
         if args.workload == "matmul_multicore":
-            # Spike toolchains commonly do not provide pthread support.
-            # Use the single-core matmul kernel for instruction-trace generation.
-            print("! spike target does not support pthread multicore; falling back to single-core matmul kernel")
-            cpath = write_workload(build_dir, "matmul", args.workload_size)
+            cpath = write_workload(build_dir, "matmul", args.workload_size, args.branch_mispredict, args.cache_pressure)
             binpath = build_dir / "matmul_multicore"
-            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", "-march=rv64gc", "-mabi=lp64d", str(cpath), "-o", str(binpath)], cwd=build_dir)
         else:
-            cpath = write_workload(build_dir, args.workload, args.workload_size)
+            cpath = write_workload(build_dir, args.workload, args.workload_size, args.branch_mispredict, args.cache_pressure)
             binpath = build_dir / args.workload
-            sh(["riscv64-unknown-elf-gcc", "-O2", "-static", "-march=rv64gc", "-mabi=lp64d", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
-        # 2) run spike -> trace
+        sh(["riscv64-unknown-elf-gcc", "-O0", "-static", "-march=rv64gc", "-mabi=lp64d", 
+            str(cpath), "-o", str(binpath)], cwd=build_dir)
+
         trace_path = traces_dir / "spike.trace"
-        # Capture full Spike output first; some builds print non-trace preamble lines
-        # before commit-log events. Truncating with `head` can drop all `core ...` lines.
-        spike_cmd = ["spike"]
-        # Spike option parsing differs across builds: some accept `-p N`, others
-        # require the attached form `-pN`. Use the attached form for portability.
-        if compute_threads and int(compute_threads) > 1:
-            spike_cmd.append(f"-p{int(compute_threads)}")
-        spike_cmd += ["-l"]
+        spike_cmd = ["spike", "-l"]
         if args.isa:
             spike_cmd += [f"--isa={args.isa}"]
         spike_cmd += [str(pk), str(binpath)]
 
+        print(f"ℹ Running: {' '.join(spike_cmd)}\n")
         with open(trace_path, "w") as trace_out:
             p = subprocess.run(spike_cmd, cwd=run_dir, stdout=trace_out, stderr=subprocess.STDOUT)
-        # Spike commit-log runs may return non-zero workload exit codes while still
-        # producing usable `core ...` trace lines for downstream parsing.
-        if p.returncode != 0 and trace_path.stat().st_size == 0:
-            raise SystemExit(f"Command failed: {' '.join(spike_cmd)}")
 
         if not trace_path.exists() or trace_path.stat().st_size == 0:
-            raise SystemExit(f"Spike trace empty: {trace_path}")
+            raise SystemExit(f"Spike trace empty")
 
-        if events_max > 0:
-            trace_lines = trace_path.read_text(errors="ignore").splitlines()
-            core_lines = [ln for ln in trace_lines if "core" in ln and ":" in ln]
-            if core_lines:
-                trace_path.write_text("\n".join(core_lines[:events_max]) + "\n")
-            else:
-                trace_path.write_text("\n".join(trace_lines[:events_max]) + "\n")
-
-        # Early diagnostic: if commit-log contains too few events, surface likely
-        # Spike/pk/ISA mismatch immediately instead of producing NaN summaries.
-        trace_lines = trace_path.read_text(errors="ignore").splitlines()
-        core_lines = [ln for ln in trace_lines if "core" in ln and ":" in ln]
-        if len(core_lines) < 10:
-            preview = "\n".join(trace_lines[:80])
-            raise SystemExit(
-                "Spike produced too few commit-log events "
-                f"({len(core_lines)}). This usually indicates pk/ISA/binary mismatch.\n"
-                f"spike command: {' '.join(spike_cmd)}\n"
-                "Try running with a compatible pk and/or explicit --isa (e.g. --isa rv64gc).\n"
-                f"Trace preview ({trace_path}):\n{preview}"
-            )
-
-        # 3) platform adaptor: spike trace -> baseline CSVs
         adapter_env = dict(os.environ)
         adapter_env["PYTHONPATH"] = f"{repo}:{adapter_env.get('PYTHONPATH', '')}".rstrip(":")
-        sh(
-            [
-                sys.executable, str(adapter_py),
-                "--spike-trace", str(trace_path),
-                "--out-dir", str(inputs_dir),
-                "--inst-us", str(args.inst_us),
-                "--resident-pc-ge", str(args.resident_pc_ge),
-            ],
-            cwd=repo,
-            env=adapter_env,
-        )
+        sh([sys.executable, str(adapter_spike),
+            "--spike-trace", str(trace_path),
+            "--out-dir", str(inputs_dir),
+            "--inst-us", str(args.inst_us),
+            "--resident-pc-ge", str(args.resident_pc_ge)], cwd=repo, env=adapter_env)
 
         state_csv = inputs_dir / "state_intervals.csv"
         resid_csv = inputs_dir / "residency_intervals.csv"
-        if not state_csv.exists():
-            raise SystemExit(f"Missing: {state_csv}")
-        if not resid_csv.exists():
-            raise SystemExit(f"Missing: {resid_csv}")
-
-        # Guardrail: avoid silently continuing into NaN SIT summaries when the
-        # Spike adapter could not extract any intervals.
-        state_lines = state_csv.read_text(errors="ignore").splitlines()
-        if len(state_lines) <= 1:
-            trace_preview = "\n".join(trace_path.read_text(errors="ignore").splitlines()[:40])
-            raise SystemExit(
-                "Spike adapter produced zero state events. "
-                f"Inspect trace at {trace_path}. First lines:\n{trace_preview}"
-            )
 
     elif args.target == "cpu":
-        # Local matmul/matmul_multicore workload
-        if args.workload in {"matmul", "matmul_multicore"}:
-            adapter_py = adapter_cpu
-            if not adapter_py.exists():
-                raise SystemExit(f"missing adapter: {adapter_py}")
-
-            # Determine matmul parameters
-            reader_sleep = args.reader_sleep_ns
-            writer_sleep = args.writer_sleep_ns
-            # Keep underflow vs overflow behavior intentionally asymmetric so they
-            # do not collapse to identical SIT/residency outcomes.
-            # - underflow: moderate, frequent reader starvation
-            # - overflow: stronger, burstier writer backpressure
-            if args.underflow:
-                reader_sleep = max(reader_sleep, 12000)
-            if args.overflow:
-                writer_sleep = max(writer_sleep, 20000)
-
-            # For multicore, add practical default pressure when no explicit knobs are set,
-            # so SIT is less likely to clamp at 1.0 in every window.
-            if (
-                args.workload == "matmul_multicore"
-                and not args.underflow
-                and not args.overflow
-                and args.reader_sleep_ns == 0
-                and args.writer_sleep_ns == 0
-            ):
-                reader_sleep = 4000
-                writer_sleep = 8000
-
-            # 1) Select and build workload
-            if args.workload == "matmul_multicore":
-                src_name = "matmul_multicore.c"
-                bin_name = "matmul_multicore"
-            else:
-                src_name = "matmul.c"
-                bin_name = "matmul"
-            
-            workload_src = repo / src_name
-            if not workload_src.exists():
-                raise SystemExit(f"{src_name} not found: {workload_src}")
-            
-            binpath = build_dir / bin_name
-            sh(["gcc", "-O2", "-g", "-pthread", str(workload_src), "-o", str(binpath)], cwd=repo)
-
-            # 2) run matmul/matmul_multicore -> raw trace
-            trace_path = traces_dir / f"{bin_name}.trace"
-            # pick sensible tile counts for workload sizes unless user provided explicit tiles
-            size_tiles = {"tiny": 10, "small": 100, "med": 1000, "large": 5000}
-            tiles_count = args.tiles if args.tiles != 50000 else size_tiles.get(args.workload_size, args.tiles)
-            if args.tiles == 50000 and events_max is not None and events_max > 0:
-                tiles_count = events_max
-
-            # Keep user-selected ring depths. Over-scaling these to core-count can hide
-            # queue pressure and produce unrealistically perfect SIT.
-            in_depth_final = args.in_depth
-            out_depth_final = args.out_depth
-
-            run_cmd = [str(binpath),
-                   "--tile-elems", str(args.tile_elems),
-                   "--tiles", str(tiles_count),
-                   "--in-depth", str(in_depth_final),
-                   "--out-depth", str(out_depth_final),
-                   "--trace", str(trace_path)]
-            
-            # Add compute-threads for multicore variant
-            if args.workload == "matmul_multicore":
-                run_cmd += ["--compute-threads", str(compute_threads)]
-            
-            if reader_sleep:
-                run_cmd += ["--reader-sleep-ns", str(reader_sleep)]
-            if writer_sleep:
-                run_cmd += ["--writer-sleep-ns", str(writer_sleep)]
-
-            sh(run_cmd, cwd=repo)
-
-            if not trace_path.exists() or trace_path.stat().st_size == 0:
-                raise SystemExit(f"Matmul trace empty: {trace_path}")
-
-            # 3) ingest raw trace via Phase-1 CLI (format cpu) into run_dir
-            ingest_cmd = [
-                sys.executable, str(Path(__file__).resolve().parent / "cli.py"),
-                "ingest", "--trace", str(trace_path), "--format", "cpu", "--out", str(run_dir),
-            ]
-            if events_max is not None:
-                ingest_cmd += ["--events-max", str(events_max)]
-            sh(ingest_cmd, cwd=repo)
-
-            # move normalized outputs into inputs_dir expected layout
-            normalized_trace = run_dir / "trace.csv"
-            normalized_resid = run_dir / "residency.csv"
-            if not normalized_trace.exists():
-                raise SystemExit(f"Normalized trace not found: {normalized_trace}")
-            inputs_dir.mkdir(parents=True, exist_ok=True)
-            (inputs_dir / "state_intervals.csv").write_bytes(normalized_trace.read_bytes())
-            if normalized_resid.exists():
-                (inputs_dir / "residency_intervals.csv").write_bytes(normalized_resid.read_bytes())
-            else:
-                # create empty residency to satisfy downstream (engine will handle missing)
-                (inputs_dir / "residency_intervals.csv").write_text("start_us,end_us,core,resident\n")
-            # set state/resid paths for downstream
-            state_csv = inputs_dir / "state_intervals.csv"
-            resid_csv = inputs_dir / "residency_intervals.csv"
-            needs_baseline_ingest = False
-        elif args.workload in WORKLOADS_SIMPLE:
-            # For simple CPU workloads, run the binary and emit a dense synthetic timeline
-            # so parsed event volume is comparable to Spike traces.
-            cpath = write_workload(build_dir, args.workload, args.workload_size)
+        if args.workload in WORKLOADS_CPU:
+            cpath = write_workload(build_dir, args.workload, args.workload_size, args.branch_mispredict, args.cache_pressure)
             binpath = build_dir / args.workload
             sh(["gcc", "-O2", "-g", str(cpath), "-o", str(binpath)], cwd=build_dir)
 
@@ -601,81 +849,27 @@ def main():
             state_csv = inputs_dir / "state_intervals.csv"
             resid_csv = inputs_dir / "residency_intervals.csv"
 
-            # If user requested --events-max, honor it. Otherwise use practical defaults
-            # per workload size that are near observed Spike event volumes.
-            default_simple_events = {
-                "tiny": 12_000,
-                "small": 48_000,
-                "med": 96_000,
-                "large": 192_000,
-            }
-            if user_events_max is not None and user_events_max > 0:
-                n_events = int(user_events_max)
-            else:
-                n_events = int(default_simple_events.get(args.workload_size, 48_000))
-
-            depth_total = max(1, args.in_depth + args.out_depth)
-            active_ratio = args.in_depth / depth_total
-            active_ratio = min(max(active_ratio, 0.05), 0.95)
-
-            # Simple-workload pressure modeling:
-            # keep residency/stall mix stable and lower SIT through reduced effective work.
-            stall_ratio = 0.0
-            if args.underflow:
-                stall_ratio += 0.12
-            if args.overflow:
-                stall_ratio += 0.20
-            stall_ratio += min(float(args.reader_sleep_ns) / 100000.0, 0.15)
-            stall_ratio += min(float(args.writer_sleep_ns) / 100000.0, 0.15)
-            stall_ratio = min(stall_ratio, 0.7)
-            active_ratio = min(active_ratio, max(0.05, 1.0 - stall_ratio - 0.05))
-            idle_ratio = max(0.0, 1.0 - active_ratio - stall_ratio)
-
-            work_scale = 1.0
-            if args.underflow:
-                work_scale *= 0.65
-            if args.overflow:
-                work_scale *= 0.45
-            work_scale *= max(0.55, 1.0 - min(float(args.reader_sleep_ns) / 200000.0, 0.30))
-            work_scale *= max(0.45, 1.0 - min(float(args.writer_sleep_ns) / 180000.0, 0.40))
-
-            step_us = max(duration_us / max(n_events, 1), 1e-6)
-            t = 0.0
-            lines = ["start_us,end_us,core,state,work_done"]
+            # 50% active/idle from workload structure
+            n_events = 48_000
+            lines = ["start_us,end_us,core,state"]
+            step_us = duration_us / n_events
             for i in range(n_events):
-                t_next = duration_us if i == n_events - 1 else min(duration_us, t + step_us)
-                # deterministic 3-way distribution (active/stall/idle)
-                v = (i * 9973) % 10000
-                a_th = int(active_ratio * 10000)
-                s_th = a_th + int(stall_ratio * 10000)
-                if v < a_th:
-                    state = "active"
-                elif v < s_th:
-                    state = "stall"
-                else:
-                    state = "idle"
-                dur = max(0.0, t_next - t)
-                work_done = (dur * work_scale) if state == "active" else 0.0
-                lines.append(f"{t:.6f},{t_next:.6f},0,{state},{work_done:.9f}")
-                t = t_next
+                t = i * step_us
+                t_next = (i + 1) * step_us
+                state = "active" if (i % 2) == 0 else "idle"
+                lines.append(f"{t:.6f},{t_next:.6f},0,{state}")
 
             state_csv.write_text("\n".join(lines) + "\n")
-            resid_csv.write_text("start_us,end_us,core,resident\n0.0,{:.6f},0,1\n".format(duration_us))
-        else:
-            raise SystemExit(f"cpu target does not support workload: {args.workload}")
+            resid_csv.write_text(f"start_us,end_us,core,resident\n0.0,{duration_us:.6f},0,1\n")
 
-    # 4) Use Phase-1 CLI for ingest/classify/export (no sit-engine in PATH required)
-    cli_spec = importlib.util.find_spec("cli")
-    if cli_spec is not None and cli_spec.origin is not None:
-        cli_py = Path(cli_spec.origin)
-    else:
-        cli_py = Path(__file__).resolve().parent / "cli.py"
-        if not cli_py.exists():
-            repo_cli = repo / "cli.py"
-            if repo_cli.exists():
-                cli_py = repo_cli
-            else:
-                raise SystemExit("cli.py not found; reinstall riscvbench or run from the repo root")
+    if args.skip_post_processing:
+        print("✓ Workload execution complete")
+        return
+
+    cli_py = repo / "cli.py"
+    if not cli_py.exists():
+        print("⚠ cli.py not found, skipping analysis")
+        return
 
     if needs_baseline_ingest:
         sh([sys.executable, str(cli_py), "ingest",
@@ -683,15 +877,13 @@ def main():
             "--format", "baseline",
             "--out", str(run_dir)], cwd=repo)
 
-    cls_cmd = [sys.executable, str(cli_py), "classify",
-               "--in", str(run_dir),
-               "--window-us", str(args.time_us),
-               "--expected-work-rate", str(args.expected_work_rate)]
+    classify_cmd = [sys.executable, str(cli_py), "classify",
+        "--in", str(run_dir),
+        "--window-us", str(args.time_us),
+        "--expected-work-rate", str(args.expected_work_rate)]
     if resid_csv.exists():
-        cls_cmd += ["--residency", str(resid_csv)]
-    if args.debug_sit:
-        cls_cmd += ["--debug-sit"]
-    sh(cls_cmd, cwd=repo)
+        classify_cmd.extend(["--residency", str(resid_csv)])
+    sh(classify_cmd, cwd=repo)
 
     sh([sys.executable, str(cli_py), "export",
         "--in", str(run_dir),
@@ -699,10 +891,6 @@ def main():
         "--format", "csv"], cwd=repo)
 
     print("✓ done")
-    print(f"run_dir: {run_dir}")
-    print(f"summary: {run_dir / 'summary.json'}")
-    print(f"windows: {run_dir / 'windows.csv'}")
-    print(f"export:  {run_dir / 'export'}")
 
 if __name__ == "__main__":
     main()

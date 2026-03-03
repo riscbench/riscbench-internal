@@ -1,0 +1,8 @@
+flowchart TD
+  A[Residency intervals per core] --> B[Merge to canonical mask]
+  C[State interval] --> D[Intersect state with mask]
+  B --> D
+  D --> E{Any overlap?}
+  E -->|no| F[No SIT accumulation]
+  E -->|yes| G[Accumulate active/stall/idle]
+  G --> H[Compute resident_us and fractions]
