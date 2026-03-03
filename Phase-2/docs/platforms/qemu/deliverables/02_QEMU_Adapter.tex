@@ -1,0 +1,114 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{
+  box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=44mm},
+  decision/.style={diamond,draw,aspect=2.2,align=center,inner sep=2pt},
+  line/.style={-Latex}
+}
+
+\title{Phase-2 QEMU: Deliverable 2 (Adapter)}
+\author{SIT Engine Documentation}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+The QEMU adapter transforms raw platform execution signals into normalized contract intervals consumable by the shared SIT engine.
+
+\section{Implementation Fulfillment}
+Implemented in \codepath{Phase-2/adapters/qemu_adapter.py} and invoked through \texttt{riscvbench.main()} target branch for QEMU.
+
+\section{Design \& Architecture}
+\subsection*{Function Attributes}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{QemuPlatformAdapter.\_iter\_events()}: Inputs=raw trace/stat stream; Outputs=ordered adapter events; Side effects=extracts core/time/mnemonic markers; Failure modes=format drift, parse drop.
+  \item \texttt{QemuPlatformAdapter.\_collect\_core\_timeline()}: Inputs=event stream + config; Outputs=per-core timeline; Side effects=builds state/residency transitions; Failure modes=marker mismatch or discontinuity.
+  \item \texttt{build\_state\_intervals()}: Inputs=timeline structure; Outputs=state intervals DataFrame; Side effects=normalizes active/stall/idle intervals; Failure modes=empty/invalid ranges.
+  \item \texttt{build\_residency\_intervals()}: Inputs=timeline structure; Outputs=residency intervals DataFrame; Side effects=emits resident spans; Failure modes=missing residency windows.
+  \item \texttt{export\_baseline\_csvs()}: Inputs=validated DataFrames + out dir; Outputs=state/residency CSV files; Side effects=writes ingest contract artifacts; Failure modes=I/O failure/validation fail.
+\end{itemize}
+\subsection*{Function Execution Details}
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{QemuPlatformAdapter.\_iter\_events()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: raw trace/stat stream.
+    \item Processing flow: extracts core/time/mnemonic markers.
+    \item Output attributes: ordered adapter events.
+    \item Failure behavior: format drift, parse drop.
+  \end{itemize}
+  \item \texttt{QemuPlatformAdapter.\_collect\_core\_timeline()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: event stream + config.
+    \item Processing flow: builds state/residency transitions.
+    \item Output attributes: per-core timeline.
+    \item Failure behavior: marker mismatch or discontinuity.
+  \end{itemize}
+  \item \texttt{build\_state\_intervals()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: timeline structure.
+    \item Processing flow: normalizes active/stall/idle intervals.
+    \item Output attributes: state intervals DataFrame.
+    \item Failure behavior: empty/invalid ranges.
+  \end{itemize}
+  \item \texttt{build\_residency\_intervals()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: timeline structure.
+    \item Processing flow: emits resident spans.
+    \item Output attributes: residency intervals DataFrame.
+    \item Failure behavior: missing residency windows.
+  \end{itemize}
+  \item \texttt{export\_baseline\_csvs()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: validated DataFrames + out dir.
+    \item Processing flow: writes ingest contract artifacts.
+    \item Output attributes: state/residency CSV files.
+    \item Failure behavior: I/O failure/validation fail.
+  \end{itemize}
+\end{enumerate}
+
+
+\subsection*{Diagram A: End-to-End Design Flow}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Run QEMU execution path};
+\node[box, below=of a] (b) {Parse raw events from platform logs};
+\node[box, below=of b] (c) {Construct normalized core timelines};
+\node[box, below=of c] (d) {Build contract DataFrames};
+\node[box, below=of d] (e) {Validate + export adapter CSV outputs};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\draw[line] (d) -- (e);
+\end{tikzpicture}
+\caption{QEMU Deliverable 02: End-to-End Design Flow}
+\end{figure}
+
+\subsection*{Diagram B: Function Interaction and Attribute Flow}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (fa) {\texttt{QemuPlatformAdapter.\_iter\_events()}};
+\node[box, below=of fa] (fb) {\texttt{QemuPlatformAdapter.\_collect\_core\_timeline()}};
+\node[box, below=of fb] (fc) {\texttt{build\_state\_intervals()} + \texttt{build\_residency\_intervals()}};
+\node[box, below=of fc] (fd) {\texttt{export\_baseline\_csvs()} with ingest validators};
+\draw[line] (fa) -- (fb);
+\draw[line] (fb) -- (fc);
+\draw[line] (fc) -- (fd);
+\end{tikzpicture}
+\caption{QEMU Deliverable 02: Function Interaction and Attribute Flow}
+\end{figure}
+
+\end{document}

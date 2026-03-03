@@ -1,8 +1,0 @@
-{
-  "trace": "D:\\Python\\phase_1\\Complete_ingestapitosit\\datasets\\traces\\trace_A_single_residency.csv",
-  "format": "baseline",
-  "events": 3,
-  "cores": [
-    0
-  ]
-}

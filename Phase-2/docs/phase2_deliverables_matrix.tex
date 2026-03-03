@@ -1,0 +1,349 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{array}
+\usepackage{longtable}
+\usepackage{booktabs}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{
+  box/.style={rectangle, draw, rounded corners, align=center, inner sep=3pt, minimum width=35mm},
+  decision/.style={diamond, draw, aspect=2.2, align=center, inner sep=2pt},
+  line/.style={-Latex}
+}
+\newcommand{\flowchain}[5]{%
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=8mm and 12mm]
+      \node[box] (n1) {#2};
+      \node[box, below=of n1] (n2) {#3};
+      \node[box, below=of n2] (n3) {#4};
+      \node[box, below=of n3] (n4) {#5};
+      \draw[line] (n1) -- (n2);
+      \draw[line] (n2) -- (n3);
+      \draw[line] (n3) -- (n4);
+    \end{tikzpicture}
+    \caption{#1}
+  \end{figure}
+}
+\newcommand{\flowdecision}[6]{%
+  \begin{figure}[H]
+    \centering
+    \begin{tikzpicture}[node distance=8mm and 12mm]
+      \node[box] (n1) {#2};
+      \node[box, below=of n1] (n2) {#3};
+      \node[decision, below=of n2] (d) {#4};
+      \node[box, below left=of d] (yl) {#5};
+      \node[box, below right=of d] (nr) {#6};
+      \draw[line] (n1) -- (n2);
+      \draw[line] (n2) -- (d);
+      \draw[line] (d) -- node[left]{yes} (yl);
+      \draw[line] (d) -- node[right]{no} (nr);
+    \end{tikzpicture}
+    \caption{#1}
+  \end{figure}
+}
+
+\title{Phase-2 Deliverables: Technical Fulfillment Matrix}
+\author{SIT Engine Architecture Documentation}
+\date{\today}
+
+\begin{document}
+\maketitle
+\tableofcontents
+\newpage
+
+\section{Deliverable 1: Phase-2 README}
+\subsection*{Technical Description}
+Scope-definition document for Phase-2 objectives, architecture boundaries, and operational workflow. It provides the top-level contract for target expansion, sweeps, and adapter growth.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Scope artifact: \codepath{Phase-2/README.md}
+  \item Cross-reference from Phase-1: \codepath{Phase-1/README.md}
+  \item Docs index entry: \codepath{Phase-2/docs/README.md}
+\end{itemize}
+
+Done-when mapping: scope doc exists and is cross-linked from Phase-1.
+
+\subsection*{Design \& Architecture}
+README anchors the Phase-2 dependency graph (CLI, adapters, ingest contract, engine, validation, sweeps) and sets extension guidance before implementation details in adapter-specific docs.
+
+Dependencies: Deliverable 3 (Adapter Contract), Deliverable 9 (CI Integration), Deliverable 10 (Validation Guide).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 1 flow: Phase-2 README governance}
+  {Define Phase-2 scope and acceptance}
+  {Link core modules and workflows}
+  {Cross-link from Phase-1}
+  {Use as implementation baseline}
+
+\section{Deliverable 2: Spike Simulator Adapter}
+\subsection*{Technical Description}
+Platform adapter that converts Spike commit traces into normalized interval inputs required by the SIT engine.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Implementation: \codepath{Phase-2/adapters/spike_adapter.py}
+  \item Key APIs:
+  \begin{itemize}
+    \item \texttt{\_iter\_events()}
+    \item \texttt{\_collect\_core\_timeline()}
+    \item \texttt{build\_state\_intervals()}
+    \item \texttt{build\_residency\_intervals()}
+    \item \texttt{export\_baseline\_csvs()}
+  \end{itemize}
+  \item Contract validators: \codepath{Phase-2/ingest/ingest_api.py}
+  \item Technical docs: \codepath{Phase-2/docs/Spike_simulator_adapter.md}, \codepath{Phase-2/docs/Spike_simulator_adapter.tex}
+\end{itemize}
+
+Done-when mapping: Spike-derived workloads reproduce expected SIT signatures through replay/validation paths.
+
+\subsection*{Design \& Architecture}
+Marker-first residency detection with PC-threshold fallback, per-core instruction timeline normalization, and state inference inside residency boundaries.
+
+Dependencies: Deliverable 3 (Adapter Contract), Deliverable 6 (Invariant Validation), Deliverable 5 (Golden Outputs).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 2 flow: Spike adapter}
+  {Spike -l trace input}
+  {Parse core/pc/insn + infer residency/state}
+  {Validate normalized intervals}
+  {Emit state\_intervals.csv + residency\_intervals.csv}
+
+\section{Deliverable 3: Adapter Contract}
+\subsection*{Technical Description}
+Formal boundary defining adapter responsibilities and prohibited semantic leakage into engine logic.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Contract protocol + validators: \codepath{Phase-2/ingest/ingest_api.py}
+  \item Adapter implementations:
+  \begin{itemize}
+    \item \codepath{Phase-2/adapters/baseline_adapter.py}
+    \item \codepath{Phase-2/adapters/cpu_adapter.py}
+    \item \codepath{Phase-2/adapters/spike_adapter.py}
+    \item \codepath{Phase-2/adapters/gem5_adapter.py}
+    \item \codepath{Phase-2/adapters/adapter_template.py}
+  \end{itemize}
+  \item Contract docs: \codepath{Phase-2/ADAPTERS.md}, \codepath{Phase-2/docs/Adapter_contract.tex}
+\end{itemize}
+
+Done-when mapping: all adapters conform to normalized schema and engine consumes only contract outputs.
+
+\subsection*{Design \& Architecture}
+Adapters handle parsing/normalization/validation; engine handles window math and SIT metrics. This separation preserves target extensibility and testability.
+
+Dependencies: Deliverable 2 (Spike Adapter), Deliverable 6 (Invariant Validation), Deliverable 9 (CI Integration).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 3 flow: Adapter contract enforcement}
+  {Raw trace per target}
+  {Adapter normalizes to contract}
+  {validate\_state\_df / validate\_resid\_df}
+  {Engine receives contract-only inputs}
+
+\section{Deliverable 4: Golden Micro-kernel Traces}
+\subsection*{Technical Description}
+Curated trace set for representative micro-kernel behaviors used to anchor deterministic correctness and signature comparisons.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Practical workload generation: \codepath{Phase-2/riscvbench.py}
+  \item Cross-target runner: \codepath{Phase-2/run_cross_target_suite.py}
+  \item Current dataset traces in repo: \codepath{Phase-2/datasets/traces/}
+\end{itemize}
+
+Current-state gap: no explicit ``Phase-2 golden micro-kernel trace bundle'' governance doc exists yet (artifact naming/versioning policy is implicit).
+
+\subsection*{Design \& Architecture}
+Trace generation is workload-driven and target-specific, then normalized through adapters for engine parity checks.
+
+Dependencies: Deliverable 5 (Golden Outputs), Deliverable 8 (Dataset Governance), Deliverable 9 (CI Integration).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 4 flow: micro-kernel trace generation}
+  {Select workload + target}
+  {Run riscvbench / suite}
+  {Capture trace artifacts}
+  {Register for golden replay}
+
+\section{Deliverable 5: Golden Output Artifacts}
+\subsection*{Technical Description}
+Pinned expected outputs from replaying golden traces, used for regression comparison over time.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Golden replay harness: \codepath{Phase-2/tests/run_golden_suite.py}
+  \item Engine outputs: \codepath{Phase-2/sit_engine_phase1.py}
+  \item Output staging: per-run artifacts under \codepath{Phase-2/runs/} and configured output directories
+\end{itemize}
+
+Current-state gap: explicit Phase-2 golden output packaging/versioning document is not yet formalized.
+
+\subsection*{Design \& Architecture}
+Golden outputs are derived artifacts: traces + masks + fixed engine version + fixed params $\rightarrow$ deterministic windows/summary outputs.
+
+Dependencies: Deliverable 4 (Golden Traces), Deliverable 6 (Invariant Validation), Deliverable 8 (Dataset Governance).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 5 flow: golden output materialization}
+  {Golden trace + mask inputs}
+  {Run engine with fixed config}
+  {Produce windows/summary outputs}
+  {Store as regression reference}
+
+\section{Deliverable 6: Invariant Validation Suite}
+\subsection*{Technical Description}
+Semantic checks over output artifacts to guarantee SIT correctness invariants independent of raw-value exactness.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Invariants: \codepath{Phase-2/tests/check_invariants.py}
+  \item Golden orchestration: \codepath{Phase-2/tests/run_golden_suite.py}
+  \item Supplemental cross-target execution checks: \codepath{Phase-2/run_cross_target_suite.py}
+\end{itemize}
+
+Done-when mapping: semantic regressions are programmatically detectable.
+
+\subsection*{Design \& Architecture}
+Two-layer validation:
+\begin{itemize}[leftmargin=*]
+  \item invariant predicates on a single output,
+  \item replay-driven regression across manifest datasets and mask modes.
+\end{itemize}
+
+Dependencies: Deliverable 8 (Dataset Governance), Deliverable 5 (Golden Outputs), Deliverable 9 (CI Integration).
+
+\subsection*{Flowchart (TikZ)}
+\flowdecision{Deliverable 6 flow: invariant validation}
+  {Engine output artifacts}
+  {Run invariant + golden checks}
+  {Any semantic violation?}
+  {PASS}
+  {FAIL}
+
+\section{Deliverable 7: Parameter Sweep Runner}
+\subsection*{Technical Description}
+Automated matrix execution across tunable parameters to explore behavior, stress boundary cases, and produce comparable result sets.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Sweep engine: \codepath{Phase-2/sweeps/run_param_sweep.py}
+  \item Example config: \codepath{Phase-2/sweeps/sweep_config_example.json}
+  \item Workload execution target: \codepath{Phase-2/riscvbench.py}
+\end{itemize}
+
+Done-when mapping: repeatable case matrix execution with structured CSV/JSON sweep results.
+
+\subsection*{Design \& Architecture}
+Config-driven matrix expansion (\texttt{shared} + \texttt{matrix}) builds cases, runs commands, captures per-case logs, and emits sweep summary CSV/JSON.
+
+Dependencies: Deliverable 1 (Phase-2 README), Deliverable 9 (CI Integration), Deliverable 10 (Validation Guide).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 7 flow: parameter sweep}
+  {Load sweep JSON config}
+  {Expand matrix into cases}
+  {Execute riscvbench per case}
+  {Write logs + sweep\_results.csv + summary.json}
+
+\section{Deliverable 8: Dataset Governance}
+\subsection*{Technical Description}
+Policy layer defining dataset versioning, provenance, lifecycle, and compatibility with engine/validation versions.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Existing manifest artifact: \codepath{Phase-2/datasets/manifest.json}
+  \item Dataset folders: \codepath{Phase-2/datasets/traces/}, \codepath{Phase-2/datasets/residency/}
+\end{itemize}
+
+Current-state gap: dedicated governance doc (for example \codepath{Phase-2/DATASETS.md}) is not present.
+
+\subsection*{Design \& Architecture}
+Manifest provides structural baseline; governance should add ownership, update policy, semantic version rules, and compatibility constraints with engine and tests.
+
+Dependencies: Deliverable 4 (Golden Traces), Deliverable 5 (Golden Outputs), Deliverable 6 (Validation Suite), Deliverable 9 (CI Integration).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 8 flow: dataset governance}
+  {Author/update dataset manifest}
+  {Version + review dataset changes}
+  {Bind dataset to validation replay}
+  {Accept/reject governance compliance}
+
+\section{Deliverable 9: CI Integration}
+\subsection*{Technical Description}
+Automated PR/branch gate wiring replay and invariant checks into continuous integration.
+
+\subsection*{Implementation Fulfillment}
+Current-state snapshot: no dedicated \codepath{.github/workflows/} workflow files are present for Phase-2 in this repository.
+
+Available executable hooks for CI wiring:
+\begin{itemize}[leftmargin=*]
+  \item \codepath{Phase-2/tests/run_golden_suite.py}
+  \item \codepath{Phase-2/tests/check_invariants.py}
+  \item \codepath{Phase-2/run_cross_target_suite.py}
+\end{itemize}
+
+Done-when mapping: PR fails automatically on semantic drift.
+
+\subsection*{Design \& Architecture}
+CI layer should remain orchestration-only: environment setup, deterministic command execution, artifact capture, fail-fast policy.
+
+Dependencies: Deliverable 6 (Validation Suite), Deliverable 8 (Dataset Governance), Deliverable 10 (Validation Guide).
+
+\subsection*{Flowchart (TikZ)}
+\flowdecision{Deliverable 9 flow: CI integration}
+  {PR/update trigger}
+  {Run smoke + golden + invariants}
+  {Any regression detected?}
+  {Block merge}
+  {Allow merge}
+
+\section{Deliverable 10: Phase-2 Validation Guide}
+\subsection*{Technical Description}
+Operator/developer guide describing acceptance checks, required commands, expected outputs, and triage process for failures.
+
+\subsection*{Implementation Fulfillment}
+\begin{itemize}[leftmargin=*]
+  \item Partial coverage from:
+  \begin{itemize}
+    \item \codepath{Phase-2/README.md}
+    \item \codepath{Phase-2/docs/Spike_simulator_adapter.md}
+    \item \codepath{Phase-2/docs/Adapter_contract.tex}
+  \end{itemize}
+\end{itemize}
+
+Current-state gap: a dedicated \codepath{Phase-2/VALIDATION.md} guide is not present.
+
+\subsection*{Design \& Architecture}
+Guide should unify execution protocol across:
+\begin{itemize}[leftmargin=*]
+  \item target runs,
+  \item golden replay,
+  \item invariants,
+  \item sweep smoke checks,
+  \item failure triage criteria.
+\end{itemize}
+
+Dependencies: Deliverable 6 (Validation Suite), Deliverable 8 (Dataset Governance), Deliverable 9 (CI Integration), Deliverable 1 (Phase-2 README).
+
+\subsection*{Flowchart (TikZ)}
+\flowchain{Deliverable 10 flow: validation guide usage}
+  {Read validation procedure}
+  {Run prescribed checks}
+  {Compare against acceptance criteria}
+  {Promote or block change}
+
+\end{document}

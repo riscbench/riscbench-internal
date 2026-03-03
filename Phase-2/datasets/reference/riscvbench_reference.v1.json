@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "source": {
+    "xlsx_path": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/RISCBench Numbers.xlsx",
+    "xlsx_sha256": "d05e05677d38f9967f67e1aedcfade1b65002dd53e09d52abcb8026b545f1f7b",
+    "generated_utc": "2026-03-03T17:03:20.133655+00:00",
+    "sheet_names": [
+      "1024",
+      "128x128 FLOPS",
+      "256x256 FLOPS",
+      "512x512 FLOPS",
+      "640",
+      "64x64 FLOPS",
+      "768",
+      "Bandwidths",
+      "Extra",
+      "Matmult Analysis"
+    ]
+  },
+  "phase1": {
+    "required_trace_file": "datasets/traces/trace_F_phase0_wormhole_sample.csv",
+    "required_parity_fixture_trace_file": "datasets/traces/trace_F_phase0_wormhole_sample.csv"
+  },
+  "phase2": {
+    "required_dims": [
+      64,
+      128,
+      256,
+      512,
+      640,
+      768,
+      1024
+    ],
+    "flops_gflops_stats_by_dim": {
+      "64": {
+        "count": 85,
+        "min": 42.55701909,
+        "median": 170.1516831,
+        "max": 1443.128959,
+        "mean": 190.76579745858825
+      },
+      "128": {
+        "count": 99,
+        "min": 38.16648654,
+        "median": 196.8245054,
+        "max": 748.1621894,
+        "mean": 196.14216237060606
+      },
+      "256": {
+        "count": 100,
+        "min": 52.34371612,
+        "median": 200.532201,
+        "max": 347.2367832,
+        "mean": 200.0065487812
+      },
+      "512": {
+        "count": 100,
+        "min": 127.1510764,
+        "median": 200.57738999999998,
+        "max": 269.2371278,
+        "mean": 200.559012548
+      },
+      "640": {
+        "count": 100,
+        "min": 137.0462792122896,
+        "median": 201.05068336329464,
+        "max": 268.9551836901455,
+        "mean": 200.81712698112435
+      },
+      "768": {
+        "count": 100,
+        "min": 139.3209766290153,
+        "median": 198.21984802075914,
+        "max": 263.5608279909094,
+        "mean": 200.06919711000305
+      },
+      "1024": {
+        "count": 100,
+        "min": 142.87805831605357,
+        "median": 201.16292491616107,
+        "max": 266.2618211606891,
+        "mean": 201.32401505337532
+      }
+    },
+    "bandwidth_gbps_stats": {
+      "loopback_test_dram_bw": {
+        "count": 15,
+        "min": 2.2869905080960353,
+        "median": 4.251512350184076,
+        "max": 4.584124006444012,
+        "mean": 3.954405193992577
+      },
+      "independent_read_test_dram_bw": {
+        "count": 22,
+        "min": 4.0156862745098,
+        "median": 4.71402024198536,
+        "max": 4.8646080760095,
+        "mean": 4.691126445318106
+      },
+      "independent_write_test_dram_bw": {
+        "count": 22,
+        "min": 3.85687382297551,
+        "median": 4.32938863723531,
+        "max": 4.5359911406423,
+        "mean": 4.325270165249676
+      },
+      "sram_bandwidth_for_one_core_using_matmult": {
+        "count": 0,
+        "min": NaN,
+        "median": NaN,
+        "max": NaN,
+        "mean": NaN
+      }
+    }
+  }
+}

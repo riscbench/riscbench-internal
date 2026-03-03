@@ -1,0 +1,20 @@
+# Python cache/env
+__pycache__/
+**/__pycache__/
+*.pyc
+.venv/
+
+# Build/packaging artifacts
+build/
+*.egg-info/
+
+# Generated outputs and local experiment runs
+golden_out/
+traces/
+runs/spike/
+runs/alu/
+runs/A/
+runs/demoA/
+
+# Local perf binaries
+perf_cpu_workload/*.exe

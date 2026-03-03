@@ -1,0 +1,106 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{
+  box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=44mm},
+  decision/.style={diamond,draw,aspect=2.2,align=center,inner sep=2pt},
+  line/.style={-Latex}
+}
+
+\title{Phase-2 Deliverable: Golden Micro-kernel Traces}
+\author{SIT Engine Documentation}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+Golden traces are reproducible baseline inputs generated from deterministic micro-kernel runs, used to anchor replay correctness and regression detection.
+
+\section{Implementation Fulfillment}
+Generated using \codepath{Phase-2/tests/run_spike_golden_pipeline.py}, \codepath{Phase-2/tests/run_qemu_golden_pipeline.py}, and target execution via \texttt{riscvbench.main()}.
+
+\section{Design \& Architecture}
+\subsection*{Function Attributes}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{run\_spike\_golden\_pipeline.main()}: Inputs=workload matrix + flags + sizes; Outputs=spike trace bundle + manifest; Side effects=orchestrates spike golden matrix; Failure modes=tool missing, run failure.
+  \item \texttt{run\_qemu\_golden\_pipeline.main()}: Inputs=workload matrix + flags + sizes; Outputs=qemu trace bundle + manifest; Side effects=orchestrates qemu golden matrix; Failure modes=qemu exit/pipeline failure.
+  \item \texttt{build\_manifest()}: Inputs=trace paths + mask paths + window; Outputs=manifest JSON; Side effects=pins replay inputs; Failure modes=invalid path/schema.
+  \item \texttt{run\_golden\_suite.main()}: Inputs=manifest + outdir; Outputs=golden windows/summaries; Side effects=validates trace replay utility; Failure modes=invariant/replay failure.
+\end{itemize}
+\subsection*{Function Execution Details}
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{run\_spike\_golden\_pipeline.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: workload matrix + flags + sizes.
+    \item Processing flow: orchestrates spike golden matrix.
+    \item Output attributes: spike trace bundle + manifest.
+    \item Failure behavior: tool missing, run failure.
+  \end{itemize}
+  \item \texttt{run\_qemu\_golden\_pipeline.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: workload matrix + flags + sizes.
+    \item Processing flow: orchestrates qemu golden matrix.
+    \item Output attributes: qemu trace bundle + manifest.
+    \item Failure behavior: qemu exit/pipeline failure.
+  \end{itemize}
+  \item \texttt{build\_manifest()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: trace paths + mask paths + window.
+    \item Processing flow: pins replay inputs.
+    \item Output attributes: manifest JSON.
+    \item Failure behavior: invalid path/schema.
+  \end{itemize}
+  \item \texttt{run\_golden\_suite.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: manifest + outdir.
+    \item Processing flow: validates trace replay utility.
+    \item Output attributes: golden windows/summaries.
+    \item Failure behavior: invariant/replay failure.
+  \end{itemize}
+\end{enumerate}
+
+
+\subsection*{Diagram A: End-to-End Design Flow}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Select deterministic workload matrix};
+\node[box, below=of a] (b) {Execute target pipelines and collect traces};
+\node[box, below=of b] (c) {Normalize traces and record trace index};
+\node[box, below=of c] (d) {Build versioned manifest inputs};
+\node[box, below=of d] (e) {Replay to verify golden trace usefulness};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\draw[line] (d) -- (e);
+\end{tikzpicture}
+\caption{Deliverable 04: End-to-End Design Flow}
+\end{figure}
+
+\subsection*{Diagram B: Function Interaction and Attribute Flow}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (fa) {pipeline \texttt{main()} iterates matrix cases};
+\node[box, below=of fa] (fb) {\texttt{riscvbench.main()} runs per case};
+\node[box, below=of fb] (fc) {\texttt{build\_manifest()} writes manifest JSON};
+\node[box, below=of fc] (fd) {\texttt{run\_golden\_suite.main()} verifies replayability};
+\draw[line] (fa) -- (fb);
+\draw[line] (fb) -- (fc);
+\draw[line] (fc) -- (fd);
+\end{tikzpicture}
+\caption{Deliverable 04: Function Interaction and Attribute Flow}
+\end{figure}
+
+\end{document}

@@ -1,0 +1,114 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage{lmodern}
+\usepackage{hyperref}
+\usepackage{enumitem}
+\usepackage{xurl}
+\usepackage{tikz}
+\usepackage{float}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+\hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
+\newcommand{\codepath}[1]{\path{#1}}
+\tikzset{
+  box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=44mm},
+  decision/.style={diamond,draw,aspect=2.2,align=center,inner sep=2pt},
+  line/.style={-Latex}
+}
+
+\title{Phase-2 gem5: Deliverable 3 (Adapter Contract)}
+\author{SIT Engine Documentation}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\section{Technical Description}
+This deliverable proves gem5 adapter conformance to the shared ingest contract and prevents SIM-specific SIT policy leakage.
+
+\section{Implementation Fulfillment}
+Contract is defined in \codepath{Phase-2/ADAPTERS.md} and validated by \texttt{validate\_state\_df()} and \texttt{validate\_resid\_df()} before engine ingestion.
+
+\section{Design \& Architecture}
+\subsection*{Function Attributes}
+\begin{itemize}[leftmargin=*]
+  \item \texttt{Gem5PlatformAdapter.\_iter\_events()}: Inputs=gem5 raw records; Outputs=platform events; Side effects=platform parse only; Failure modes=parser drift.
+  \item \texttt{Gem5PlatformAdapter.\_collect\_core\_timeline()}: Inputs=events + parse config; Outputs=normalized timeline; Side effects=classification and normalization only; Failure modes=timeline inconsistencies.
+  \item \texttt{validate\_state\_df()}: Inputs=state interval DataFrame; Outputs=validated state DataFrame; Side effects=schema/domain enforcement; Failure modes=invalid states/columns.
+  \item \texttt{validate\_resid\_df()}: Inputs=residency interval DataFrame; Outputs=validated residency DataFrame; Side effects=residency schema enforcement; Failure modes=invalid intervals.
+  \item \texttt{sit\_engine\_phase1.main()}: Inputs=validated contract input; Outputs=windows/summary outputs; Side effects=engine-owned SIT policy only; Failure modes=policy/config failure.
+\end{itemize}
+\subsection*{Function Execution Details}
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{Gem5PlatformAdapter.\_iter\_events()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: gem5 raw records.
+    \item Processing flow: platform parse only.
+    \item Output attributes: platform events.
+    \item Failure behavior: parser drift.
+  \end{itemize}
+  \item \texttt{Gem5PlatformAdapter.\_collect\_core\_timeline()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: events + parse config.
+    \item Processing flow: classification and normalization only.
+    \item Output attributes: normalized timeline.
+    \item Failure behavior: timeline inconsistencies.
+  \end{itemize}
+  \item \texttt{validate\_state\_df()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: state interval DataFrame.
+    \item Processing flow: schema/domain enforcement.
+    \item Output attributes: validated state DataFrame.
+    \item Failure behavior: invalid states/columns.
+  \end{itemize}
+  \item \texttt{validate\_resid\_df()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: residency interval DataFrame.
+    \item Processing flow: residency schema enforcement.
+    \item Output attributes: validated residency DataFrame.
+    \item Failure behavior: invalid intervals.
+  \end{itemize}
+  \item \texttt{sit\_engine\_phase1.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: validated contract input.
+    \item Processing flow: engine-owned SIT policy only.
+    \item Output attributes: windows/summary outputs.
+    \item Failure behavior: policy/config failure.
+  \end{itemize}
+\end{enumerate}
+
+
+\subsection*{Diagram A: End-to-End Design Flow}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (a) {Parse platform records};
+\node[box, below=of a] (b) {Normalize fields into contract schema};
+\node[box, below=of b] (c) {Validate state + residency schema};
+\node[box, below=of c] (d) {Run engine-owned SIT computation};
+\node[box, below=of d] (e) {Reject any contract boundary violation};
+\draw[line] (a) -- (b);
+\draw[line] (b) -- (c);
+\draw[line] (c) -- (d);
+\draw[line] (d) -- (e);
+\end{tikzpicture}
+\caption{gem5 Deliverable 03: End-to-End Design Flow}
+\end{figure}
+
+\subsection*{Diagram B: Function Interaction and Attribute Flow}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (fa) {\texttt{Gem5PlatformAdapter.\_iter\_events()}};
+\node[box, below=of fa] (fb) {\texttt{Gem5PlatformAdapter.\_collect\_core\_timeline()}};
+\node[box, below=of fb] (fc) {\texttt{validate\_state\_df()} + \texttt{validate\_resid\_df()}};
+\node[box, below=of fc] (fd) {\texttt{sit\_engine\_phase1.main()}};
+\draw[line] (fa) -- (fb);
+\draw[line] (fb) -- (fc);
+\draw[line] (fc) -- (fd);
+\end{tikzpicture}
+\caption{gem5 Deliverable 03: Function Interaction and Attribute Flow}
+\end{figure}
+
+\end{document}
