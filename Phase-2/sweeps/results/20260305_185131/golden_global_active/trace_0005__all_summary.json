@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "window_us": 256.0,
+  "windows_total": 31252,
+  "resident_windows_total": 31252,
+  "cores": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "sit_median": 0.002500375,
+  "sit_p95": 0.002500375,
+  "residency_idle_avg": 0.9974657871896199,
+  "residency_stall_avg": 3.399782413925509e-05,
+  "residency_active_avg": 0.002500214986240881,
+  "used_residency_file": true,
+  "expected_work_rate": 1.0,
+  "work_done_present": false,
+  "no_work_sit_mode": "global_active",
+  "no_work_global_active_sit": 0.002500375
+}

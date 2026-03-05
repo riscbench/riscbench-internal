@@ -1,5 +1,30 @@
 # RISCVBench Phase-2
 
+If you are new and want to understand or extend Phase-2, use this reading order:
+
+1. `Phase-2/README.md` (this file): architecture, workflow, toolchain assumptions
+2. `Phase-2/ADAPTERS.md`: strict adapter contract and no-leakage boundary
+3. `Phase-2/DATASETS.md`: governance, versioning, and replay gates for dataset changes
+4. `Phase-2/VALIDATION.md`: contributor-facing validation and debugging guide
+5. `Phase-2/docs/README.md`: deliverable-by-deliverable documentation map
+6. `Phase-2/docs/platforms/KEY_REFERENCES_AND_ALL_CHECKS.md`: single key-reference + run-all-checks entrypoint
+7. `Phase-2/docs/platforms/{spike,qemu,gem5}/README.md`: platform runbooks + validation commands
+
+## Deliverable status (checked on 2026-03-05)
+
+| Deliverable | Status | Evidence |
+|---|---|---|
+| Phase-2 README | Done | Scope + workflow are documented in this file and indexed from `Phase-2/docs/README.md`. |
+| Spike simulator adapter | Done | `Phase-2/adapters/spike_adapter.py`; fixture guard in `Phase-2/tests/check_adapter_fixtures.py`. |
+| Adapter contract | Done | `Phase-2/ADAPTERS.md` defines boundaries and no-leakage rules. |
+| Golden micro-kernel traces | Done | Versioned baseline traces in `Phase-2/datasets/traces/` and pinned sweep bundles in `Phase-2/sweeps/pinned/`. |
+| Golden output artifacts | Done | Golden replay scripts in `Phase-2/tests/run_golden_suite.py`, `Phase-2/tests/run_spike_golden_pipeline.py`, `Phase-2/tests/run_qemu_golden_pipeline.py`, `Phase-2/tests/run_gem5_golden_pipeline.py`. |
+| Invariant validation suite | Done | Invariants and checks in `Phase-2/tests/check_invariants.py`, `Phase-2/tests/check_flag_monotonicity.py`, `Phase-2/tests/check_no_work_sit_modes.py`. |
+| Parameter sweep runner | Done | Sweep matrix engine in `Phase-2/sweeps/run_param_sweep.py`; platform wrappers in `Phase-2/tools/run_{spike,qemu,gem5}_property_suite.sh`. |
+| Dataset governance | Done | Policy and gates in `Phase-2/DATASETS.md`; dataset manifest in `Phase-2/datasets/manifest.json`. |
+| CI integration | Done | Phase-2 workflow gate in `.github/workflows/phase2-ci.yml`. |
+| Phase-2 validation guide | Done | `Phase-2/VALIDATION.md` plus platform run-all-checks entrypoint in `Phase-2/docs/platforms/KEY_REFERENCES_AND_ALL_CHECKS.md`. |
+
 ## Deliverable: Phase-2 README (Scope Definition)
 
 ### Technical Description
@@ -45,11 +70,60 @@ Dependencies:
 - pandas/numpy for parsing + validation paths
 - external simulators/tools for target runs (Spike/gem5/CPU toolchain)
 
+### Using `riscvbench` Inside a Virtualenv
+
+Create and use a Phase-2 virtual environment:
+
+```bash
+cd Phase-2
+python3 -m venv .venv-phase2
+source .venv-phase2/bin/activate
+python -m pip install --upgrade pip
+python -m pip install -e .
+riscvbench --help
+```
+
+Example (`riscvbench` from the active venv):
+
+```bash
+cd Phase-2
+source .venv-phase2/bin/activate
+riscvbench --target qemu --workload fm_mm --workload_size test --time_us 256 --expected-work-rate 1.0 --allow-nonzero-exit
+```
+
+### Platform Factor Taxonomy (SIT Interpretation)
+
+Use these explicit factor buckets when describing what influences SIT:
+
+- Workload/orchestration factors
+- Runtime/OS factors
+- Microarchitectural timing factors
+- Measurement overhead
+
+Platform-specific interpretation:
+
+- Spike:
+  - Functional ISA execution
+  - Not modeled (no microarchitectural timing)
+  - Instruction-stream structure (workload-driven)
+  - Marker-defined residency intervals
+- QEMU:
+  - Host-accelerated functional emulation
+  - Approximate timing (non-cycle-accurate)
+  - Workload-driven orchestration gaps only for synthetic flag/residency variants
+  - Runtime/OS factors are platform-dependent contributors
+- gem5:
+  - Microarchitectural timing factors (cycle-modeled), including cache hierarchy latency / miss penalties, branch misprediction penalties, pipeline stalls / contention, and memory system pressure (DRAM / NoC modeled)
+- Hardware:
+  - Real system execution effects, including real cache / memory contention, real branch predictor behavior, OS scheduling jitter (if applicable), and instrumentation overhead
+
+Methodological note: Spike and QEMU do not model microarchitectural timing; gem5 and hardware platforms may.
+
 ### Flowchart
 ```mermaid
 flowchart TD
   A[Workload + Target Config] --> B[riscvbench.py / cli.py]
-  B --> C[Run Target: cpu | spike | gem5]
+  B --> C[Run Target: cpu, spike, qemu, gem5]
   C --> D[Adapter Parse]
   D --> E[ingest_api validators]
   E --> F[sit_engine_phase1.py]
@@ -177,7 +251,9 @@ Main outputs:
 Notes:
 
 - `--all-sizes` expands to `test,tiny,small,med,large`.
-- `--emulated-flags` controls whether branch-mispredict/cache-pressure variants are included.
+- `--emulated-flags` controls synthetic perturbation variants for workload/orchestration factors.
+- For Spike/QEMU, `branch_mispredict` and `cache_pressure` variants are interpreted as workload/orchestration factors (not microarchitectural timing).
+- On gem5/hardware targets, those variants may also surface microarchitectural timing factors when timing is modeled.
 - Monotonic flag checks run by default in matrix pipelines (baseline vs flag variants on `base` summaries). Use `--skip-monotonic-check` to disable.
 - `--common-mode` selects which residency mask mode is used for the combined graphs (`base`, `all`, `skip_w0`, `partial`, `exact_boundary`).
 - The runner executes combinations one-by-one and prints explicit per-case progress (`case i/N`).

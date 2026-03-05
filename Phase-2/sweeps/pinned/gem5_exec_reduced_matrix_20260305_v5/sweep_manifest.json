@@ -1,0 +1,32 @@
+{
+  "dataset_version": "gem5-sweep-practical-exec-v1",
+  "window_us_default": 256.0,
+  "traces": [
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0001.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0002.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0003.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0004.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0005.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0006.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0007.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0008.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0009.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0010.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0011.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0012.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0013.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0014.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0015.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0016.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0017.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0018.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0019.csv",
+    "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/sweeps/results/20260305_185834/traces/trace_0020.csv"
+  ],
+  "residency_masks": {
+    "all": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/datasets/residency/all.csv",
+    "skip_w0": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/datasets/residency/skip_w0.csv",
+    "partial": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/datasets/residency/partial.csv",
+    "exact_boundary": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/datasets/residency/exact_boundary.csv"
+  }
+}

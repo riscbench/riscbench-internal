@@ -1,0 +1,37 @@
+{
+  "adapter_meta": {
+    "adapter_mode": "commit_log",
+    "adapter_name": "spike_adapter",
+    "allow_nonzero_exit": false,
+    "input_trace_sha256": "f86f658d24a67ec8a220ae9d3031e57526eee6181116e53e5b29f671ae8dface",
+    "inst_us": 1.0,
+    "normalized_output_sha256": {
+      "combined_sha256": "4f9bb110653408be5f325b58e6676ebb224838e4e96bd40684f705fcf45aca5f",
+      "residency_intervals_sha256": "f57e7a23e610da112475aa3b0fe138428a308a67233d08ca2f98e2ba1c65a674",
+      "state_intervals_sha256": "e8b61defbb4b89e776bbfa4dd5340b50f17c1c1a5a3c225be7b6e35ecc57959a"
+    },
+    "repo_commit": "5ae78fc81c68620f76807966dad79fdc649429d6",
+    "thresholds": {
+      "resident_pc_ge": "0x80000000"
+    },
+    "tool_version": "spike: unrecognized option --version",
+    "window_us": 256.0
+  },
+  "cores": [
+    0
+  ],
+  "expected_work_rate": 1.0,
+  "no_work_global_active_sit": 0.31351510975489716,
+  "no_work_sit_mode": "global_active",
+  "residency_active_avg": 0.31336194629062536,
+  "residency_idle_avg": 0.1298144397493559,
+  "residency_stall_avg": 0.5568236139600188,
+  "resident_windows_total": 1271,
+  "schema_version": 1,
+  "sit_median": 0.31351510975489716,
+  "sit_p95": 0.31351510975489716,
+  "used_residency_file": true,
+  "window_us": 256.0,
+  "windows_total": 1271,
+  "work_done_present": false
+}

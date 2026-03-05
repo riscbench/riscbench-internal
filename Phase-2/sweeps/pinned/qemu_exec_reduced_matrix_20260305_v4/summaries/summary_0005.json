@@ -1,0 +1,37 @@
+{
+  "adapter_meta": {
+    "adapter_mode": "dynamic_tb_trace",
+    "adapter_name": "qemu_adapter",
+    "allow_nonzero_exit": true,
+    "input_trace_sha256": "24eccff05b7300c5bd2d91302e247dfd88054436467a4e21be7a6578d69e8998",
+    "inst_us": 1.0,
+    "normalized_output_sha256": {
+      "combined_sha256": "2d817a4f9b1574ea81167edfedfe3497569bc9115c9fb9f33c29dc55c5edcbbb",
+      "residency_intervals_sha256": "864a79786f6e83f2477dbcdf4ae276181f4f1b71b1ce95d50b0e610ea7e39828",
+      "state_intervals_sha256": "08931a898a95020b3fed2934903c9147d6cc4d049e2bf2cebc4c94b952cffce1"
+    },
+    "repo_commit": "5ae78fc81c68620f76807966dad79fdc649429d6",
+    "thresholds": {
+      "resident_pc_ge": "0x80000000"
+    },
+    "tool_version": "qemu-riscv64 version 4.2.1 (Debian 1:4.2-3ubuntu6.30)",
+    "window_us": 256.0
+  },
+  "cores": [
+    0
+  ],
+  "expected_work_rate": 1.0,
+  "no_work_global_active_sit": 0.9678246564737759,
+  "no_work_sit_mode": "global_active",
+  "residency_active_avg": 0.9568900602409638,
+  "residency_idle_avg": 0.029894348736409053,
+  "residency_stall_avg": 0.013215591022627092,
+  "resident_windows_total": 82,
+  "schema_version": 1,
+  "sit_median": 0.9678246564737759,
+  "sit_p95": 0.9678246564737759,
+  "used_residency_file": true,
+  "window_us": 256.0,
+  "windows_total": 82,
+  "work_done_present": false
+}

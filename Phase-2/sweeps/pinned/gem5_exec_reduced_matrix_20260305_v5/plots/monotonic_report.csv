@@ -1,0 +1,6 @@
+workload,workload_size,variants_checked,status,reason
+fm_loopback,test,"branch_mispredict,cache_pressure,both",pass,
+fm_mm,test,"branch_mispredict,cache_pressure,both",pass,
+fm_read,test,"branch_mispredict,cache_pressure,both",pass,
+fm_sparse,test,"branch_mispredict,cache_pressure,both",pass,
+fm_write,test,"branch_mispredict,cache_pressure,both",pass,

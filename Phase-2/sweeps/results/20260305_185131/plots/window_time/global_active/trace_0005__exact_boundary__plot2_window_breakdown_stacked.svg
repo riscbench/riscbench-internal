@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1390" height="640">
+<rect width="100%" height="100%" fill="white"/>
+<text x="695.0" y="28" text-anchor="middle" font-family="sans-serif" font-size="20">Plot 2 - Window Breakdown (Stacked Bar) (QEMU)</text>
+<text x="695.0" y="46" text-anchor="middle" font-family="sans-serif" font-size="12">Stacked categories: resident compute, idle, memory-attributed, non-resident (time in us)</text>
+<line x1="90" y1="518" x2="1070" y2="518" stroke="#222"/>
+<line x1="90" y1="72" x2="90" y2="518" stroke="#222"/>
+<line x1="90" y1="518.00" x2="1070" y2="518.00" stroke="#ededed"/>
+<line x1="84" y1="518.00" x2="90" y2="518.00" stroke="#222"/>
+<text x="80" y="522.00" text-anchor="end" font-family="sans-serif" font-size="11">0.0</text>
+<line x1="90" y1="428.80" x2="1070" y2="428.80" stroke="#ededed"/>
+<line x1="84" y1="428.80" x2="90" y2="428.80" stroke="#222"/>
+<text x="80" y="432.80" text-anchor="end" font-family="sans-serif" font-size="11">51.2</text>
+<line x1="90" y1="339.60" x2="1070" y2="339.60" stroke="#ededed"/>
+<line x1="84" y1="339.60" x2="90" y2="339.60" stroke="#222"/>
+<text x="80" y="343.60" text-anchor="end" font-family="sans-serif" font-size="11">102.4</text>
+<line x1="90" y1="250.40" x2="1070" y2="250.40" stroke="#ededed"/>
+<line x1="84" y1="250.40" x2="90" y2="250.40" stroke="#222"/>
+<text x="80" y="254.40" text-anchor="end" font-family="sans-serif" font-size="11">153.6</text>
+<line x1="90" y1="161.20" x2="1070" y2="161.20" stroke="#ededed"/>
+<line x1="84" y1="161.20" x2="90" y2="161.20" stroke="#222"/>
+<text x="80" y="165.20" text-anchor="end" font-family="sans-serif" font-size="11">204.8</text>
+<line x1="90" y1="72.00" x2="1070" y2="72.00" stroke="#ededed"/>
+<line x1="84" y1="72.00" x2="90" y2="72.00" stroke="#222"/>
+<text x="80" y="76.00" text-anchor="end" font-family="sans-serif" font-size="11">256.0</text>
+<line x1="90.60" y1="518" x2="90.60" y2="524" stroke="#222"/>
+<text x="90.60" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="90.60" y1="518" x2="90.60" y2="524" stroke="#222"/>
+<text x="90.60" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="91.80" y1="518" x2="91.80" y2="524" stroke="#222"/>
+<text x="91.80" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="91.80" y1="518" x2="91.80" y2="524" stroke="#222"/>
+<text x="91.80" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="93.00" y1="518" x2="93.00" y2="524" stroke="#222"/>
+<text x="93.00" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="93.00" y1="518" x2="93.00" y2="524" stroke="#222"/>
+<text x="93.00" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="93.00" y1="518" x2="93.00" y2="524" stroke="#222"/>
+<text x="93.00" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="94.20" y1="518" x2="94.20" y2="524" stroke="#222"/>
+<text x="94.20" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<line x1="94.20" y1="518" x2="94.20" y2="524" stroke="#222"/>
+<text x="94.20" y="542" text-anchor="middle" font-family="sans-serif" font-size="11">0</text>
+<rect x="90.08" y="72.00" width="1.03" height="446.00" fill="#f2b701" />
+<rect x="91.28" y="72.00" width="1.03" height="446.00" fill="#f2b701" />
+<rect x="92.48" y="72.00" width="1.03" height="446.00" fill="#f2b701" />
+<rect x="93.68" y="72.00" width="1.03" height="446.00" fill="#f2b701" />
+<rect x="1096" y="98" width="18" height="12" fill="#2ca02c" />
+<text x="1122" y="108" font-family="sans-serif" font-size="12">resident compute</text>
+<rect x="1096" y="122" width="18" height="12" fill="#f2b701" />
+<text x="1122" y="132" font-family="sans-serif" font-size="12">idle</text>
+<rect x="1096" y="146" width="18" height="12" fill="#d62728" />
+<text x="1122" y="156" font-family="sans-serif" font-size="12">memory-attributed</text>
+<rect x="1096" y="170" width="18" height="12" fill="#7f7f7f" />
+<text x="1122" y="180" font-family="sans-serif" font-size="12">non-resident</text>
+<text x="1096" y="228" font-family="sans-serif" font-size="11" fill="#444">Trace note: non-resident component is zero across windows for this residency mode.</text>
+<text x="580.0" y="606" text-anchor="middle" font-family="sans-serif" font-size="13">Window index</text>
+<text x="24" y="295.0" transform="rotate(-90 24 295.0)" text-anchor="middle" font-family="sans-serif" font-size="13">Time (us)</text>
+</svg>

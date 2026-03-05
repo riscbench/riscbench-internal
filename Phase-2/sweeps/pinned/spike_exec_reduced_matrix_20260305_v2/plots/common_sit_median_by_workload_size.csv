@@ -1,0 +1,5 @@
+flag_mode,sit_median_mean,workload_size
+none,0.322220,test
+branch_mispredict,0.222164,test
+cache_pressure,0.179574,test
+both,0.089157,test

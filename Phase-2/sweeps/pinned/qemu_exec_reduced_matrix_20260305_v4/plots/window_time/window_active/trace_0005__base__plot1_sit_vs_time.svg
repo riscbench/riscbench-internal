@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1450" height="720">
+<rect width="100%" height="100%" fill="white"/>
+<text x="725.0" y="28" text-anchor="middle" font-family="sans-serif" font-size="20">Plot 1 - SIT vs Elapsed Time (QEMU)</text>
+<text x="725.0" y="46" text-anchor="middle" font-family="sans-serif" font-size="12">Source metric: sit_no_work_window_active</text>
+<line x1="90" y1="515" x2="1190" y2="515" stroke="#222"/>
+<line x1="90" y1="72" x2="90" y2="515" stroke="#222"/>
+<line x1="90.00" y1="72" x2="90.00" y2="515" stroke="#ededed"/>
+<line x1="90.00" y1="515" x2="90.00" y2="521" stroke="#222"/>
+<text x="90.00" y="539" text-anchor="middle" font-family="sans-serif" font-size="11">0.0</text>
+<line x1="273.33" y1="72" x2="273.33" y2="515" stroke="#ededed"/>
+<line x1="273.33" y1="515" x2="273.33" y2="521" stroke="#222"/>
+<text x="273.33" y="539" text-anchor="middle" font-family="sans-serif" font-size="11">4,523</text>
+<line x1="456.67" y1="72" x2="456.67" y2="515" stroke="#ededed"/>
+<line x1="456.67" y1="515" x2="456.67" y2="521" stroke="#222"/>
+<text x="456.67" y="539" text-anchor="middle" font-family="sans-serif" font-size="11">9,045</text>
+<line x1="640.00" y1="72" x2="640.00" y2="515" stroke="#ededed"/>
+<line x1="640.00" y1="515" x2="640.00" y2="521" stroke="#222"/>
+<text x="640.00" y="539" text-anchor="middle" font-family="sans-serif" font-size="11">13,568</text>
+<line x1="823.33" y1="72" x2="823.33" y2="515" stroke="#ededed"/>
+<line x1="823.33" y1="515" x2="823.33" y2="521" stroke="#222"/>
+<text x="823.33" y="539" text-anchor="middle" font-family="sans-serif" font-size="11">18,091</text>
+<line x1="1006.67" y1="72" x2="1006.67" y2="515" stroke="#ededed"/>
+<line x1="1006.67" y1="515" x2="1006.67" y2="521" stroke="#222"/>
+<text x="1006.67" y="539" text-anchor="middle" font-family="sans-serif" font-size="11">22,613</text>
+<line x1="1190.00" y1="72" x2="1190.00" y2="515" stroke="#ededed"/>
+<line x1="1190.00" y1="515" x2="1190.00" y2="521" stroke="#222"/>
+<text x="1190.00" y="539" text-anchor="middle" font-family="sans-serif" font-size="11">27,136</text>
+<line x1="90" y1="515.00" x2="1190" y2="515.00" stroke="#ededed"/>
+<line x1="84" y1="515.00" x2="90" y2="515.00" stroke="#222"/>
+<text x="80" y="519.00" text-anchor="end" font-family="sans-serif" font-size="11">0.0000</text>
+<line x1="90" y1="426.40" x2="1190" y2="426.40" stroke="#ededed"/>
+<line x1="84" y1="426.40" x2="90" y2="426.40" stroke="#222"/>
+<text x="80" y="430.40" text-anchor="end" font-family="sans-serif" font-size="11">0.2000</text>
+<line x1="90" y1="337.80" x2="1190" y2="337.80" stroke="#ededed"/>
+<line x1="84" y1="337.80" x2="90" y2="337.80" stroke="#222"/>
+<text x="80" y="341.80" text-anchor="end" font-family="sans-serif" font-size="11">0.4000</text>
+<line x1="90" y1="249.20" x2="1190" y2="249.20" stroke="#ededed"/>
+<line x1="84" y1="249.20" x2="90" y2="249.20" stroke="#222"/>
+<text x="80" y="253.20" text-anchor="end" font-family="sans-serif" font-size="11">0.6000</text>
+<line x1="90" y1="160.60" x2="1190" y2="160.60" stroke="#ededed"/>
+<line x1="84" y1="160.60" x2="90" y2="160.60" stroke="#222"/>
+<text x="80" y="164.60" text-anchor="end" font-family="sans-serif" font-size="11">0.8000</text>
+<line x1="90" y1="72.00" x2="1190" y2="72.00" stroke="#ededed"/>
+<line x1="84" y1="72.00" x2="90" y2="72.00" stroke="#222"/>
+<text x="80" y="76.00" text-anchor="end" font-family="sans-serif" font-size="11">1.0000</text>
+<polyline fill="none" stroke="#1f77b4" stroke-width="1.6" points="90.00,515.00 100.38,515.00 110.75,515.00 121.13,515.00 131.51,515.00 141.89,515.00 152.26,515.00 162.64,515.00 173.02,515.00 183.40,515.00 193.77,515.00 204.15,515.00 214.53,515.00 224.91,515.00 235.28,515.00 245.66,515.00 256.04,515.00 266.42,515.00 276.79,515.00 287.17,515.00 297.55,515.00 307.92,515.00 318.30,515.00 328.68,515.00 339.06,515.00 349.43,246.78 359.81,96.23 370.19,97.96 380.57,96.23 390.94,94.50 401.32,97.96 411.70,96.23 422.08,96.23 432.45,97.96 442.83,96.23 453.21,94.50 463.58,97.96 473.96,96.23 484.34,96.23 494.72,97.96 505.09,96.23 515.47,96.23 525.85,96.23 536.23,96.23 546.60,84.11 556.98,72.00 567.36,72.00 577.74,72.00 588.11,72.00 598.49,72.00 608.87,72.00 619.25,72.00 629.62,72.00 640.00,72.00 650.38,72.00 660.75,72.00 671.13,72.00 681.51,72.00 691.89,72.00 702.26,72.00 712.64,72.00 723.02,72.00 733.40,72.00 743.77,72.00 754.15,72.00 764.53,72.00 774.91,72.00 785.28,72.00 795.66,72.00 806.04,72.00 816.42,72.00 826.79,72.00 837.17,72.00 847.55,72.00 857.92,72.00 868.30,72.00 878.68,72.00 889.06,72.00 899.43,72.00 909.81,72.00 920.19,72.00 930.57,72.00 940.94,72.00 951.32,72.00 961.70,72.00 972.08,72.00 982.45,72.00 992.83,72.00 1003.21,72.00 1013.58,72.00 1023.96,72.00 1034.34,72.00 1044.72,72.00 1055.09,72.00 1065.47,72.00 1075.85,72.00 1086.23,72.00 1096.60,72.00 1106.98,72.00 1117.36,72.00 1127.74,72.00 1138.11,72.00 1148.49,72.00 1158.87,72.00 1169.25,269.27 1179.62,515.00 1190.00,515.00"/>
+<line x1="1214" y1="96" x2="1236" y2="96" stroke="#1f77b4" stroke-width="2.2"/>
+<text x="1242" y="100" font-family="sans-serif" font-size="12">SIT timeline</text>
+<text x="640.0" y="588" text-anchor="middle" font-family="sans-serif" font-size="13">Elapsed time (us)</text>
+<text x="24" y="293.5" transform="rotate(-90 24 293.5)" text-anchor="middle" font-family="sans-serif" font-size="13">SIT (instructions/us)</text>
+<text x="90" y="642" text-anchor="start" font-family="sans-serif" font-size="12" fill="#111">Caption: SIT variations reflect workload-level orchestration behavior and not hardware latency effects.</text>
+<text x="90" y="664" text-anchor="start" font-family="sans-serif" font-size="11" fill="#444">Expected in this view: residency bursts in active windows and orchestration gaps between phases.</text>
+</svg>
