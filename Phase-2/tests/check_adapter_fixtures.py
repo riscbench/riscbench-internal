@@ -12,6 +12,7 @@ ROOT_DIR = Path(__file__).resolve().parents[1]
 if str(ROOT_DIR) not in sys.path:
     sys.path.insert(0, str(ROOT_DIR))
 
+from adapters.gem5_adapter import Gem5ParseConfig, Gem5PlatformAdapter
 from adapters.qemu_adapter import QEMU_INSN_RE, QemuParseConfig, QemuPlatformAdapter
 from adapters.spike_adapter import SpikeParseConfig, SpikePlatformAdapter
 
@@ -72,10 +73,27 @@ def run_spike_fixture(repo: Path) -> None:
         compare_csv(Path(resid_path), exp_resid, "spike residency")
 
 
+def run_gem5_fixture(repo: Path) -> None:
+    fixture_dir = repo / "tests" / "fixtures" / "gem5"
+    trace = fixture_dir / "gem5.trace"
+    exp_state = fixture_dir / "expected_state_intervals.csv"
+    exp_resid = fixture_dir / "expected_residency_intervals.csv"
+
+    if not trace.exists():
+        raise AssertionError(f"gem5 fixture trace missing: {trace}")
+
+    with tempfile.TemporaryDirectory(prefix="gem5_fixture_") as td:
+        out_dir = Path(td)
+        ad = Gem5PlatformAdapter(str(trace), cfg=Gem5ParseConfig(inst_us=1.0, resident_pc_ge=0x80000000))
+        state_path, resid_path = ad.export_baseline_csvs(str(out_dir))
+        compare_csv(Path(state_path), exp_state, "gem5 state")
+        compare_csv(Path(resid_path), exp_resid, "gem5 residency")
+
+
 
 def main() -> int:
     ap = argparse.ArgumentParser(description="Adapter parser stability checks against raw fixture snapshots")
-    ap.add_argument("--fixtures", nargs="+", default=["qemu", "spike"], choices=["qemu", "spike"])
+    ap.add_argument("--fixtures", nargs="+", default=["qemu", "spike", "gem5"], choices=["qemu", "spike", "gem5"])
     args = ap.parse_args()
 
     repo = ROOT_DIR
@@ -88,6 +106,9 @@ def main() -> int:
         elif fixture == "spike":
             run_spike_fixture(repo)
             print("PASS fixture: spike")
+        elif fixture == "gem5":
+            run_gem5_fixture(repo)
+            print("PASS fixture: gem5")
 
     print("PASS adapter fixture checks")
     return 0

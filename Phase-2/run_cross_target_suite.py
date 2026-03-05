@@ -9,7 +9,7 @@ import subprocess
 import sys
 from pathlib import Path
 
-PRACTICAL_WORKLOADS = ["fm_loopback", "fm_mm", "fm_read", "fm_write", "matmul"]
+PRACTICAL_WORKLOADS = ["fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write", "matmul"]
 VALID_TARGETS = ("spike", "cpu", "qemu", "gem5")
 
 

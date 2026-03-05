@@ -12,7 +12,7 @@
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
 \newcommand{\codepath}[1]{\path{#1}}
 
-\title{Phase-2 Open Deliverables Closure Plan\\(Senior Systems Perspective)}
+\title{Phase-2 Open Deliverables Closure Plan}
 \author{SIT Phase-2}
 \date{\today}
 
@@ -34,8 +34,8 @@ This document captures current Phase-2 deliverable status and defines closure ac
 5 & Golden output artifacts reproducibility & Partial/Good & JSON/CSV + determinism checks exist; no formal Parquet policy \\
 6 & Invariant validation suite & Done & \codepath{Phase-2/tests/check_invariants.py}, \codepath{Phase-2/tests/run_golden_suite.py} \\
 7 & Parameter sweep runner & Done & \codepath{Phase-2/sweeps/run_param_sweep.py} \\
-8 & Dataset governance doc & Not done & Missing \codepath{Phase-2/DATASETS.md} \\
-9 & CI integration for Phase-2 & Not done & Only \codepath{.github/workflows/phase1-ci.yml} exists \\
+8 & Dataset governance doc & Done & \codepath{Phase-2/DATASETS.md} \\
+9 & CI integration for Phase-2 & Done & \codepath{.github/workflows/phase2-ci.yml} \\
 \bottomrule
 \end{longtable}
 
@@ -43,7 +43,7 @@ This document captures current Phase-2 deliverable status and defines closure ac
 \subsection*{Current Gap}
 Golden trace sets are reproducible via tooling, but repository-pinned bundles are not uniformly maintained for QEMU and gem5.
 
-\subsection*{Senior-System Risks}
+\subsection*{Key Risks}
 \begin{itemize}[leftmargin=*]
   \item Regression detection becomes target-biased (Spike-heavy confidence).
   \item Cross-target semantic drift may go unnoticed until late integration.
@@ -68,7 +68,7 @@ All three targets have pinned golden bundles with matching workload/flag grids a
 \subsection*{Current Gap}
 Deterministic JSON/CSV replay exists, but artifact packaging policy is implicit and Parquet support is not formalized.
 
-\subsection*{Senior-System Risks}
+\subsection*{Key Risks}
 \begin{itemize}[leftmargin=*]
   \item Teams may produce inconsistent artifact layouts across branches.
   \item Long-term compatibility checks are harder without a documented package contract.
@@ -90,11 +90,11 @@ Deterministic JSON/CSV replay exists, but artifact packaging policy is implicit 
 \subsection*{Done-When Gate}
 Two reruns of the same manifest produce identical required artifacts and pass deterministic SHA checks under CI.
 
-\section{Deliverable 8 (Not Done): Dataset Governance}
+\section{Deliverable 8 (Done): Dataset Governance}
 \subsection*{Current Gap}
-No dedicated governance policy file exists (\codepath{Phase-2/DATASETS.md} missing).
+Closed: governance policy is now defined in \codepath{Phase-2/DATASETS.md}.
 
-\subsection*{Senior-System Risks}
+\subsection*{Key Risks}
 \begin{itemize}[leftmargin=*]
   \item Dataset updates can be made without ownership, compatibility, or review policy.
   \item Trace/mask changes can silently alter acceptance baselines.
@@ -113,13 +113,13 @@ No dedicated governance policy file exists (\codepath{Phase-2/DATASETS.md} missi
 \end{itemize}
 
 \subsection*{Done-When Gate}
-Any dataset change requires version bump, owner sign-off, and passing replay/invariant checks.
+Completed. Dataset changes are now governed by \codepath{Phase-2/DATASETS.md} with version bump and replay/determinism gates.
 
-\section{Deliverable 9 (Not Done): CI Integration for Phase-2}
+\section{Deliverable 9 (Done): CI Integration for Phase-2}
 \subsection*{Current Gap}
-No dedicated Phase-2 workflow currently executes cross-target smoke, invariants, and determinism checks in CI.
+Closed: dedicated Phase-2 workflow now exists at \codepath{.github/workflows/phase2-ci.yml}.
 
-\subsection*{Senior-System Risks}
+\subsection*{Key Risks}
 \begin{itemize}[leftmargin=*]
   \item Regressions are discovered only in manual testing.
   \item Contract drift can merge without automated gating.
@@ -138,12 +138,10 @@ No dedicated Phase-2 workflow currently executes cross-target smoke, invariants,
 \end{itemize}
 
 \subsection*{Done-When Gate}
-PR merge is blocked on Phase-2 CI failures; nightly extended jobs publish artifacts and trend deltas.
+Completed. PR runs now execute adapter fixture checks, qemu determinism smoke, and CPU/QEMU cross-target smoke checks.
 
 \section*{Recommended Execution Order}
 \begin{enumerate}[leftmargin=*]
-  \item Deliverable 8 (\codepath{DATASETS.md}) to lock governance and version semantics.
-  \item Deliverable 9 (Phase-2 CI workflow) to enforce checks continuously.
   \item Deliverable 4 (pin QEMU/gem5 golden bundles) under governance + CI.
   \item Deliverable 5 (artifact packaging policy formalization).
 \end{enumerate}

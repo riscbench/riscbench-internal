@@ -12,7 +12,7 @@ from typing import Dict, List
 
 from run_spike_golden_pipeline import build_common_outputs, run_monotonic_matrix_checks
 
-DEFAULT_QEMU_WORKLOADS = ["fm_loopback", "fm_mm", "fm_read", "fm_write", "matmul"]
+DEFAULT_QEMU_WORKLOADS = ["fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write", "matmul"]
 ALL_SIZES = ["test", "tiny", "small", "med", "large"]
 FLAG_MODES = ["none", "branch_mispredict", "cache_pressure", "both"]
 

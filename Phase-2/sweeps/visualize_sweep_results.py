@@ -3,11 +3,12 @@ from __future__ import annotations
 
 import argparse
 import csv
+import json
 import math
 import re
 from collections import defaultdict
 from pathlib import Path
-from typing import Dict, List, Tuple
+from typing import Callable, Dict, List, Tuple
 
 
 METRIC_PATTERNS = {
@@ -26,6 +27,23 @@ COLORS = [
     "#8c564b",
 ]
 
+DEFAULT_WORKLOAD_SIZE_ORDER = ["test", "tiny", "small", "med", "large"]
+DEFAULT_WORKLOAD_ORDER = ["fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write", "matmul", "hello"]
+FLAG_MODE_ORDER = {"none": 0, "branch_mispredict": 1, "cache_pressure": 2, "both": 3}
+FLAG_MODE_DISPLAY = {
+    "none": "Workload/orchestration factors: baseline",
+    "branch_mispredict": "Workload/orchestration factors: control-flow perturbation",
+    "cache_pressure": "Workload/orchestration factors: memory-pressure perturbation",
+    "both": "Workload/orchestration factors: combined perturbations",
+}
+FLAG_MODE_DISPLAY_COMPACT = {
+    "none": "baseline",
+    "branch_mispredict": "branch perturbation",
+    "cache_pressure": "memory-pressure perturbation",
+    "both": "combined perturbations",
+}
+METHODOLOGY_NOTE = "Spike and QEMU do not model microarchitectural timing; gem5 and hardware platforms may."
+
 
 def to_float(raw: str | None) -> float:
     if raw is None:
@@ -35,7 +53,41 @@ def to_float(raw: str | None) -> float:
         return float("nan")
     if v.lower() == "nan":
         return float("nan")
-    return float(v)
+    try:
+        return float(v)
+    except ValueError:
+        return float("nan")
+
+
+def to_bool(raw: str | None) -> bool:
+    if raw is None:
+        return False
+    v = raw.strip().lower()
+    return v in {"1", "true", "yes", "y", "on"}
+
+
+def derive_flag_mode(row: Dict[str, str]) -> str:
+    branch = to_bool(row.get("branch_mispredict"))
+    cache = to_bool(row.get("cache_pressure"))
+    if branch and cache:
+        return "both"
+    if branch:
+        return "branch_mispredict"
+    if cache:
+        return "cache_pressure"
+    return "none"
+
+
+def display_group_name(name: str) -> str:
+    return FLAG_MODE_DISPLAY.get(name, name)
+
+
+def display_group_name_compact(name: str) -> str:
+    return FLAG_MODE_DISPLAY_COMPACT.get(name, name)
+
+
+def has_factor_groups(names: List[str]) -> bool:
+    return any(name in FLAG_MODE_DISPLAY for name in names)
 
 
 def load_sweep_rows(path: Path) -> List[Dict[str, str]]:
@@ -60,15 +112,52 @@ def parse_case_metrics(case_log: Path) -> Dict[str, float]:
     return out
 
 
+def parse_summary_metrics(summary_json: Path) -> Dict[str, float]:
+    out: Dict[str, float] = {k: float("nan") for k in METRIC_PATTERNS}
+    if not summary_json.exists():
+        return out
+    try:
+        obj = json.loads(summary_json.read_text(encoding="utf-8"))
+    except Exception:
+        return out
+    try:
+        out["sit_median"] = float(obj.get("sit_median", float("nan")))
+    except (TypeError, ValueError):
+        out["sit_median"] = float("nan")
+    try:
+        out["sit_p95"] = float(obj.get("sit_p95", float("nan")))
+    except (TypeError, ValueError):
+        out["sit_p95"] = float("nan")
+    try:
+        out["residency_idle"] = 100.0 * float(obj.get("residency_idle_avg", float("nan")))
+    except (TypeError, ValueError):
+        out["residency_idle"] = float("nan")
+    try:
+        out["residency_stall"] = 100.0 * float(obj.get("residency_stall_avg", float("nan")))
+    except (TypeError, ValueError):
+        out["residency_stall"] = float("nan")
+    return out
+
+
 def merge_rows(rows: List[Dict[str, str]], results_dir: Path) -> List[Dict[str, str]]:
     merged: List[Dict[str, str]] = []
     for row in rows:
         case_id = int(row["case_id"])
         case_log = results_dir / f"case_{case_id:04d}.log"
-        metrics = parse_case_metrics(case_log)
+        summary_path_raw = (row.get("summary_path", "") or "").strip()
+        metrics = parse_summary_metrics(Path(summary_path_raw)) if summary_path_raw else {}
+        if not metrics:
+            metrics = parse_case_metrics(case_log)
+        else:
+            # Backfill any missing fields from case logs for mixed/legacy rows.
+            log_metrics = parse_case_metrics(case_log)
+            for k in METRIC_PATTERNS:
+                if not math.isfinite(metrics.get(k, float("nan"))):
+                    metrics[k] = log_metrics.get(k, float("nan"))
         out = dict(row)
         for k, v in metrics.items():
             out[k] = "" if math.isnan(v) else f"{v:.6f}"
+        out["flag_mode"] = derive_flag_mode(out)
         merged.append(out)
     return merged
 
@@ -88,6 +177,21 @@ def _ticks(vmin: float, vmax: float, n: int = 5) -> List[float]:
         return [vmin]
     step = (vmax - vmin) / float(max(1, n - 1))
     return [vmin + i * step for i in range(n)]
+
+
+def _approx_text_width_px(text: str, font_size: int = 12) -> int:
+    # Conservative width estimate for sans-serif labels in SVG.
+    return int(math.ceil(len(text) * font_size * 0.62))
+
+
+def _legend_width_px(
+    group_names: List[str],
+    font_size: int = 12,
+    display_name_fn: Callable[[str], str] = display_group_name,
+) -> int:
+    if not group_names:
+        return 0
+    return max(_approx_text_width_px(display_name_fn(name), font_size) for name in group_names)
 
 
 def _line_chart_svg(
@@ -115,9 +219,13 @@ def _line_chart_svg(
     if ymin == ymax:
         ymax = ymin + 1.0
 
-    W, H = 920, 520
-    ml, mr, mt, mb = 80, 220, 40, 70
-    pw, ph = W - ml - mr, H - mt - mb
+    H = 520
+    ml, mt, mb = 80, 40, 70
+    pw = 620
+    legend_pad = 54  # line sample + gap before legend text
+    mr = max(220, legend_pad + _legend_width_px(list(valid_series.keys()), 12) + 20)
+    W = ml + pw + mr
+    ph = H - mt - mb
 
     def sx(x: float) -> float:
         return ml + ((x - xmin) / (xmax - xmin)) * pw
@@ -129,6 +237,10 @@ def _line_chart_svg(
     lines.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}">')
     lines.append('<rect width="100%" height="100%" fill="white"/>')
     lines.append(f'<text x="{W/2:.1f}" y="24" text-anchor="middle" font-family="sans-serif" font-size="18">{title}</text>')
+    if has_factor_groups(list(valid_series.keys())):
+        lines.append(
+            f'<text x="{W/2:.1f}" y="38" text-anchor="middle" font-family="sans-serif" font-size="11">{METHODOLOGY_NOTE}</text>'
+        )
 
     # Axes
     lines.append(f'<line x1="{ml}" y1="{mt+ph}" x2="{ml+pw}" y2="{mt+ph}" stroke="#222"/>')
@@ -159,9 +271,105 @@ def _line_chart_svg(
         ly = legend_y + idx * 22
         lx = ml + pw + 20
         lines.append(f'<line x1="{lx}" y1="{ly}" x2="{lx+24}" y2="{ly}" stroke="{color}" stroke-width="3"/>')
-        lines.append(f'<text x="{lx+30}" y="{ly+4}" font-family="sans-serif" font-size="12">{name}</text>')
+        lines.append(
+            f'<text x="{lx+30}" y="{ly+4}" font-family="sans-serif" font-size="12">{display_group_name(name)}</text>'
+        )
 
     lines.append(f'<text x="{ml + pw/2:.1f}" y="{H-24}" text-anchor="middle" font-family="sans-serif" font-size="13">{x_label}</text>')
+    lines.append(
+        f'<text x="24" y="{mt + ph/2:.1f}" transform="rotate(-90 24 {mt + ph/2:.1f})" '
+        f'text-anchor="middle" font-family="sans-serif" font-size="13">{y_label}</text>'
+    )
+    lines.append("</svg>")
+    out_path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def _categorical_line_chart_svg(
+    out_path: Path,
+    title: str,
+    x_label: str,
+    y_label: str,
+    x_labels: List[str],
+    series: Dict[str, List[Tuple[str, float]]],
+    display_name_fn: Callable[[str], str] = display_group_name,
+) -> None:
+    valid_series: Dict[str, List[Tuple[str, float]]] = {}
+    x_map = {name: i for i, name in enumerate(x_labels)}
+    for name, pts in series.items():
+        pts2 = [(x, y) for x, y in pts if x in x_map and math.isfinite(y)]
+        if pts2:
+            valid_series[name] = sorted(pts2, key=lambda p: x_map[p[0]])
+
+    if not valid_series:
+        return
+
+    all_y = [y for pts in valid_series.values() for _, y in pts]
+    ymin, ymax = min(all_y), max(all_y)
+    if ymin == ymax:
+        ymax = ymin + 1.0
+
+    H = 560
+    ml, mt, mb = 80, 44, 90
+    pw = 640
+    legend_pad = 54  # line sample + gap before legend text
+    mr = max(260, legend_pad + _legend_width_px(list(valid_series.keys()), 12, display_name_fn) + 24)
+    W = ml + pw + mr
+    ph = H - mt - mb
+
+    step = pw / max(1, len(x_labels) - 1) if len(x_labels) > 1 else 1.0
+
+    def sx(label: str) -> float:
+        idx = x_map[label]
+        if len(x_labels) == 1:
+            return ml + pw / 2.0
+        return ml + idx * step
+
+    def sy(v: float) -> float:
+        return mt + ph - ((v - ymin) / (ymax - ymin)) * ph
+
+    lines: List[str] = [
+        f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}">',
+        '<rect width="100%" height="100%" fill="white"/>',
+        f'<text x="{W/2:.1f}" y="24" text-anchor="middle" font-family="sans-serif" font-size="18">{title}</text>',
+        f'<line x1="{ml}" y1="{mt+ph}" x2="{ml+pw}" y2="{mt+ph}" stroke="#222"/>',
+        f'<line x1="{ml}" y1="{mt}" x2="{ml}" y2="{mt+ph}" stroke="#222"/>',
+    ]
+    if has_factor_groups(list(valid_series.keys())):
+        lines.insert(
+            3,
+            f'<text x="{W/2:.1f}" y="40" text-anchor="middle" font-family="sans-serif" font-size="11">{METHODOLOGY_NOTE}</text>',
+        )
+
+    for i in range(5):
+        t = ymin + (ymax - ymin) * (i / 4.0)
+        y = sy(t)
+        lines.append(f'<line x1="{ml}" y1="{y:.1f}" x2="{ml+pw}" y2="{y:.1f}" stroke="#eee"/>')
+        lines.append(f'<text x="{ml-8}" y="{y+4:.1f}" text-anchor="end" font-family="sans-serif" font-size="11">{t:.3f}</text>')
+
+    for xl in x_labels:
+        x = sx(xl)
+        lines.append(f'<line x1="{x:.1f}" y1="{mt+ph}" x2="{x:.1f}" y2="{mt+ph+5}" stroke="#222"/>')
+        lines.append(
+            f'<text x="{x:.1f}" y="{mt+ph+22}" text-anchor="middle" font-family="sans-serif" font-size="11" '
+            f'transform="rotate(20 {x:.1f} {mt+ph+22})">{xl}</text>'
+        )
+
+    legend_x = ml + pw + 20
+    legend_y = mt + 24
+    for idx, (name, pts) in enumerate(valid_series.items()):
+        color = COLORS[idx % len(COLORS)]
+        poly = " ".join(f"{sx(x):.1f},{sy(y):.1f}" for x, y in pts)
+        lines.append(f'<polyline fill="none" stroke="{color}" stroke-width="2.2" points="{poly}"/>')
+        for x, y in pts:
+            lines.append(f'<circle cx="{sx(x):.1f}" cy="{sy(y):.1f}" r="3.8" fill="{color}"/>')
+
+        ly = legend_y + idx * 22
+        lines.append(f'<line x1="{legend_x}" y1="{ly}" x2="{legend_x+24}" y2="{ly}" stroke="{color}" stroke-width="3"/>')
+        lines.append(
+            f'<text x="{legend_x+30}" y="{ly+4}" font-family="sans-serif" font-size="12">{display_name_fn(name)}</text>'
+        )
+
+    lines.append(f'<text x="{ml + pw/2:.1f}" y="{H-18}" text-anchor="middle" font-family="sans-serif" font-size="13">{x_label}</text>')
     lines.append(
         f'<text x="24" y="{mt + ph/2:.1f}" transform="rotate(-90 24 {mt + ph/2:.1f})" '
         f'text-anchor="middle" font-family="sans-serif" font-size="13">{y_label}</text>'
@@ -206,11 +414,99 @@ def build_series(
     return grouped
 
 
+def parse_order(raw: str | None) -> List[str]:
+    if raw is None:
+        return []
+    return [p.strip() for p in raw.split(",") if p.strip()]
+
+
+def build_categorical_mean_series(
+    rows: List[Dict[str, str]],
+    x_field: str,
+    y_field: str,
+    group_field: str,
+    preferred_order: List[str] | None = None,
+) -> Tuple[List[str], Dict[str, List[Tuple[str, float]]]]:
+    preferred_order = preferred_order or []
+    present_categories: set[str] = set()
+    grouped: Dict[str, Dict[str, List[float]]] = defaultdict(lambda: defaultdict(list))
+
+    for row in rows:
+        x = (row.get(x_field, "") or "").strip()
+        y = to_float(row.get(y_field))
+        g = (row.get(group_field, "") or "all").strip()
+        if not x or not g or not math.isfinite(y):
+            continue
+        present_categories.add(x)
+        grouped[g][x].append(y)
+
+    ordered: List[str] = [x for x in preferred_order if x in present_categories]
+    leftovers = sorted(present_categories - set(ordered))
+    ordered.extend(leftovers)
+    if not ordered:
+        return ([], {})
+
+    series: Dict[str, List[Tuple[str, float]]] = {}
+    sorted_groups = sorted(grouped.keys(), key=lambda k: (FLAG_MODE_ORDER.get(k, 999), k))
+    for g in sorted_groups:
+        pts: List[Tuple[str, float]] = []
+        for x in ordered:
+            vals = grouped[g].get(x, [])
+            if vals:
+                pts.append((x, sum(vals) / float(len(vals))))
+        if pts:
+            series[g] = pts
+    return (ordered, series)
+
+
+def categorical_summary_rows(
+    x_labels: List[str],
+    series: Dict[str, List[Tuple[str, float]]],
+    x_field: str,
+) -> List[Dict[str, str]]:
+    rows: List[Dict[str, str]] = []
+    for group_name in sorted(series.keys(), key=lambda k: (FLAG_MODE_ORDER.get(k, 999), k)):
+        values_by_x = {x: y for x, y in series[group_name]}
+        for x in x_labels:
+            y = values_by_x.get(x)
+            if y is None:
+                continue
+            rows.append(
+                {
+                    "flag_mode": group_name,
+                    x_field: x,
+                    "sit_median_mean": f"{y:.6f}",
+                }
+            )
+    return rows
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description="Visualize sweep_results.csv and case logs.")
     ap.add_argument("--results-dir", required=True, help="Phase-2/sweeps/results/<timestamp> directory")
     ap.add_argument("--x-field", default="time_us", help="X axis field from sweep_results.csv")
     ap.add_argument("--group-field", default="workload", help="Grouping field for series")
+    ap.add_argument(
+        "--workload-size-order",
+        default="test,tiny,small,med,large",
+        help="Order for workload_size categorical charts (comma-separated)",
+    )
+    ap.add_argument(
+        "--workload-order",
+        default="fm_loopback,fm_mm,fm_sparse,fm_read,fm_write,matmul,hello",
+        help="Order for workload categorical charts (comma-separated)",
+    )
+    ap.add_argument(
+        "--exclude-workloads",
+        default="",
+        help="Comma-separated workloads to exclude from visualization rows before plotting",
+    )
+    ap.add_argument(
+        "--common-title-suffix",
+        default="",
+        help='Optional suffix appended to "Common SIT Median by Workload" title',
+    )
+    ap.add_argument("--workload-filter", default=None, help="Optional workload name for common SIT chart")
     ap.add_argument("--out-dir", default=None, help="Output dir (default: <results-dir>/plots)")
     args = ap.parse_args()
 
@@ -221,6 +517,18 @@ def main() -> int:
 
     rows = load_sweep_rows(sweep_csv)
     merged = merge_rows(rows, results_dir)
+    excluded_workloads = set(parse_order(args.exclude_workloads))
+    if excluded_workloads:
+        merged = [
+            r for r in merged
+            if (r.get("workload", "") or "").strip() not in excluded_workloads
+        ]
+    if not merged:
+        print(
+            "No rows to visualize after applying filters"
+            + (f" (excluded workloads: {','.join(sorted(excluded_workloads))})" if excluded_workloads else "")
+        )
+        return 0
 
     out_dir = Path(args.out_dir).resolve() if args.out_dir else (results_dir / "plots")
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -260,8 +568,71 @@ def main() -> int:
     fail_count = len(merged) - pass_count
     _pass_fail_svg(out_dir / "pass_fail.svg", pass_count, fail_count)
 
+    common_rows = merged
+    if args.workload_filter:
+        common_rows = [r for r in merged if (r.get("workload", "") == args.workload_filter)]
+    size_order = parse_order(args.workload_size_order) or list(DEFAULT_WORKLOAD_SIZE_ORDER)
+    x_labels, sit_common_series = build_categorical_mean_series(
+        common_rows,
+        x_field="workload_size",
+        y_field="sit_median",
+        group_field="flag_mode",
+        preferred_order=size_order,
+    )
+    if x_labels and sit_common_series:
+        title = "Common SIT Median" if not args.workload_filter else f"Common SIT Median - {args.workload_filter}"
+        _categorical_line_chart_svg(
+            out_dir / "common_sit_median_by_workload_size.svg",
+            title,
+            "workload_size",
+            "sit_median",
+            x_labels,
+            sit_common_series,
+        )
+        summary_rows = categorical_summary_rows(x_labels, sit_common_series, "workload_size")
+        write_csv(summary_rows, out_dir / "common_sit_median_by_workload_size.csv")
+
+    workload_order = parse_order(args.workload_order) or list(DEFAULT_WORKLOAD_ORDER)
+    workload_labels, sit_by_workload_series = build_categorical_mean_series(
+        common_rows,
+        x_field="workload",
+        y_field="sit_median",
+        group_field="flag_mode",
+        preferred_order=workload_order,
+    )
+    if workload_labels and sit_by_workload_series:
+        title = f"Common SIT Median by Workload{args.common_title_suffix}"
+        _categorical_line_chart_svg(
+            out_dir / "common_sit_median_by_workload.svg",
+            title,
+            "workload",
+            "sit_median",
+            workload_labels,
+            sit_by_workload_series,
+            display_name_fn=display_group_name,
+        )
+        _categorical_line_chart_svg(
+            out_dir / "common_sit_median_by_workload_compact.svg",
+            title,
+            "workload",
+            "sit_median",
+            workload_labels,
+            sit_by_workload_series,
+            display_name_fn=display_group_name_compact,
+        )
+        workload_summary_rows = categorical_summary_rows(workload_labels, sit_by_workload_series, "workload")
+        write_csv(workload_summary_rows, out_dir / "common_sit_median_by_workload.csv")
+
     print(f"Wrote: {merged_csv}")
-    for name in ["elapsed_vs_x.svg", "sit_median_vs_x.svg", "sit_p95_vs_x.svg", "pass_fail.svg"]:
+    for name in [
+        "elapsed_vs_x.svg",
+        "sit_median_vs_x.svg",
+        "sit_p95_vs_x.svg",
+        "pass_fail.svg",
+        "common_sit_median_by_workload_size.svg",
+        "common_sit_median_by_workload.svg",
+        "common_sit_median_by_workload_compact.svg",
+    ]:
         p = out_dir / name
         if p.exists():
             print(f"Wrote: {p}")

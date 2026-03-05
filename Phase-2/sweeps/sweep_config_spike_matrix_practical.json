@@ -1,0 +1,24 @@
+{
+  "python": "python3",
+  "shared": {
+    "target": "spike",
+    "pk": "/home/dev_srinidhi/opt/riscv/riscv64-unknown-elf/bin/pk",
+    "isa": "RV64GC",
+    "inst_us": 1.0,
+    "resident_pc_ge": "0x80000000",
+    "expected_work_rate": 1.0
+  },
+  "capture_case_traces": true,
+  "fail_if_missing_trace": true,
+  "emit_manifest": true,
+  "dataset_version": "spike-sweep-practical-v1",
+  "window_us_default": 256.0,
+  "residency_masks_root": "datasets/residency",
+  "matrix": {
+    "workload": ["fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write"],
+    "workload_size": ["test"],
+    "time_us": [256.0],
+    "branch_mispredict": [false, true],
+    "cache_pressure": [false, true]
+  }
+}

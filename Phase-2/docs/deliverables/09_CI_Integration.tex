@@ -11,58 +11,104 @@
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric}
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
 \newcommand{\codepath}[1]{\path{#1}}
-\tikzset{box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=36mm},decision/.style={diamond,draw,aspect=2.1,align=center,inner sep=2pt},line/.style={-Latex}}
+\tikzset{
+  box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=44mm},
+  decision/.style={diamond,draw,aspect=2.2,align=center,inner sep=2pt},
+  line/.style={-Latex}
+}
 
 \title{Phase-2 Deliverable: CI Integration}
-\author{SIT Engine Architecture}
+\author{SIT Engine Documentation}
 \date{\today}
 
 \begin{document}
 \maketitle
 
 \section{Technical Description}
-CI integration provides deterministic merge gates for replay and conformance checks. It ensures changes to adapters, workloads, and orchestration do not silently regress SIT behavior.
+CI integration codifies deterministic replay and contract checks as mandatory automated gates, preventing regressions from merging silently.
 
 \section{Implementation Fulfillment}
-Current repository state:
-\begin{itemize}[leftmargin=*]
-  \item Phase-1 workflow exists: \codepath{.github/workflows/phase1-ci.yml},
-  \item reusable Phase-2 commands already exist:
-  \begin{itemize}
-    \item \codepath{Phase-2/tests/check_adapter_fixtures.py},
-    \item \codepath{Phase-2/tests/check_determinism.py},
-    \item \codepath{Phase-2/run_cross_target_suite.py},
-    \item \codepath{Phase-2/tests/run_golden_suite.py}.
-  \end{itemize}
-\end{itemize}
-Known gap: dedicated \codepath{.github/workflows/phase2-ci.yml} is not yet present.
+Gates are implemented by scripts under \codepath{Phase-2/tests/} and \codepath{Phase-2/run_cross_target_suite.py}; CI wiring consumes these entrypoints.
 
 \section{Design \& Architecture}
-Recommended CI topology:
+\subsection*{Function Attributes}
 \begin{itemize}[leftmargin=*]
-  \item fast PR gate (fixtures + qemu determinism + smoke subset),
-  \item optional/nightly extended lane (Spike/gem5 full golden matrix),
-  \item fail-fast policy with artifact retention for triage.
+  \item \texttt{check\_adapter\_fixtures.main()}: Inputs=fixture traces/snapshots; Outputs=parser stability pass/fail; Side effects=verifies parser normalization invariance; Failure modes=fixture mismatch.
+  \item \texttt{run\_golden\_suite.main()}: Inputs=manifest + replay args; Outputs=golden outputs + pass/fail; Side effects=core replay gate; Failure modes=replay failure.
+  \item \texttt{check\_invariants.main()}: Inputs=windows artifact; Outputs=invariant pass/fail; Side effects=validates simulator-independent constraints; Failure modes=constraint violation.
+  \item \texttt{check\_determinism.main()}: Inputs=target runs + rerun outputs; Outputs=determinism pass/fail; Side effects=ensures byte-identical reruns; Failure modes=non-deterministic outputs.
+  \item \texttt{run\_cross\_target\_suite.main()}: Inputs=target/workload matrix; Outputs=cross-target smoke result; Side effects=validates integration coverage; Failure modes=missing tools/failed runs.
 \end{itemize}
-CI should orchestrate checks only; validation logic remains in test scripts.
+\subsection*{Function Execution Details}
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{check\_adapter\_fixtures.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: fixture traces/snapshots.
+    \item Processing flow: verifies parser normalization invariance.
+    \item Output attributes: parser stability pass/fail.
+    \item Failure behavior: fixture mismatch.
+  \end{itemize}
+  \item \texttt{run\_golden\_suite.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: manifest + replay args.
+    \item Processing flow: core replay gate.
+    \item Output attributes: golden outputs + pass/fail.
+    \item Failure behavior: replay failure.
+  \end{itemize}
+  \item \texttt{check\_invariants.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: windows artifact.
+    \item Processing flow: validates simulator-independent constraints.
+    \item Output attributes: invariant pass/fail.
+    \item Failure behavior: constraint violation.
+  \end{itemize}
+  \item \texttt{check\_determinism.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: target runs + rerun outputs.
+    \item Processing flow: ensures byte-identical reruns.
+    \item Output attributes: determinism pass/fail.
+    \item Failure behavior: non-deterministic outputs.
+  \end{itemize}
+  \item \texttt{run\_cross\_target\_suite.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: target/workload matrix.
+    \item Processing flow: validates integration coverage.
+    \item Output attributes: cross-target smoke result.
+    \item Failure behavior: missing tools/failed runs.
+  \end{itemize}
+\end{enumerate}
 
-\subsection*{Function Flowchart}
+
+\subsection*{Diagram A: End-to-End Design Flow}
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[node distance=8mm and 12mm]
-\node[box] (a) {PR/push trigger};
-\node[box, below=of a] (b) {Setup env + install deps};
-\node[box, below=of b] (c) {Run Phase-2 gates\\(fixtures, determinism, smoke)};
-\node[decision, below=of c] (d) {Any check failed?};
-\node[box, below left=of d] (e1) {Block merge\\publish failure artifacts};
-\node[box, below right=of d] (e2) {Allow merge};
+\node[box] (a) {CI trigger on push/pull\_request};
+\node[box, below=of a] (b) {Setup dependencies and toolchain};
+\node[box, below=of b] (c) {Run parser + replay + invariant gates};
+\node[box, below=of c] (d) {Run determinism + cross-target smoke gates};
+\node[box, below=of d] (e) {Block merge if any gate fails};
 \draw[line] (a) -- (b);
 \draw[line] (b) -- (c);
 \draw[line] (c) -- (d);
-\draw[line] (d) -- node[left]{yes} (e1);
-\draw[line] (d) -- node[right]{no} (e2);
+\draw[line] (d) -- (e);
 \end{tikzpicture}
-\caption{Phase-2 CI Integration Flow}
+\caption{Deliverable 09: End-to-End Design Flow}
+\end{figure}
+
+\subsection*{Diagram B: Function Interaction and Attribute Flow}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (fa) {\texttt{check\_adapter\_fixtures.main()}};
+\node[box, below=of fa] (fb) {\texttt{run\_golden\_suite.main()} + \texttt{check\_invariants.main()}};
+\node[box, below=of fb] (fc) {\texttt{check\_determinism.main()}};
+\node[box, below=of fc] (fd) {\texttt{run\_cross\_target\_suite.main()} + merge decision};
+\draw[line] (fa) -- (fb);
+\draw[line] (fb) -- (fc);
+\draw[line] (fc) -- (fd);
+\end{tikzpicture}
+\caption{Deliverable 09: Function Interaction and Attribute Flow}
 \end{figure}
 
 \end{document}

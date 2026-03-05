@@ -1,0 +1,27 @@
+{
+  "python": "python3",
+  "shared": {
+    "target": "gem5",
+    "gem5_bin": "/home/dev_srinidhi/opt/gem5/build/RISCV/gem5.opt",
+    "gem5_root": "/home/dev_srinidhi/opt/gem5",
+    "gem5_config": "/home/dev_srinidhi/opt/gem5/configs/deprecated/example/se.py",
+    "gem5_cc": "riscv64-linux-gnu-gcc",
+    "gem5_adapter_mode": "exec",
+    "inst_us": 1.0,
+    "resident_pc_ge": "0x80000000",
+    "expected_work_rate": 1.0
+  },
+  "capture_case_traces": true,
+  "fail_if_missing_trace": true,
+  "emit_manifest": true,
+  "dataset_version": "gem5-sweep-practical-exec-v1",
+  "window_us_default": 256.0,
+  "residency_masks_root": "datasets/residency",
+  "matrix": {
+    "workload": ["fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write"],
+    "workload_size": ["test"],
+    "time_us": [256.0],
+    "branch_mispredict": [false, true],
+    "cache_pressure": [false, true]
+  }
+}

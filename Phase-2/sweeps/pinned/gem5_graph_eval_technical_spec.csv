@@ -1,0 +1,20 @@
+parameter,value,source
+target,gem5,sweep configs
+gem5_bin,/home/dev_srinidhi/opt/gem5/build/RISCV/gem5.opt,sweep configs
+gem5_root,/home/dev_srinidhi/opt/gem5,sweep configs
+gem5_config,/home/dev_srinidhi/opt/gem5/configs/deprecated/example/se.py,sweep configs
+gem5_cc,riscv64-linux-gnu-gcc,sweep configs
+gem5_cpu_type,TimingSimpleCPU,riscvbench.py default
+gem5_mem_size,512MB,riscvbench.py default
+caches,enabled (--caches),riscvbench.py gem5 launch path
+expected_work_rate,1.0,sweep configs
+inst_us,1.0,sweep configs
+resident_pc_ge,0x80000000,sweep configs
+stats_bundle.gem5_adapter_mode,stats,sweep_config_gem5_matrix_practical.json
+stats_bundle.gem5_stats_period_us,8.0,sweep_config_gem5_matrix_practical.json
+stats_bundle.ipc_active_thresh,0.24,riscvbench.py default + gem5_adapter.py default
+stats_bundle.stall_miss_thresh,0.05,riscvbench.py default + gem5_adapter.py default
+stats_bundle.l1_resident_thresh,0.8,riscvbench.py default + gem5_adapter.py default
+stats_bundle.mem_reqs_per_inst_thresh,0.08,riscvbench.py default + gem5_adapter.py default
+stats_bundle.idle_inst_thresh,0.0,riscvbench.py default + gem5_adapter.py default
+exec_bundle.gem5_adapter_mode,exec,sweep_config_gem5_matrix_practical_exec.json

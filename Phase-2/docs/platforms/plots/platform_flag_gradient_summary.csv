@@ -1,0 +1,13 @@
+platform,platform_label,flag_mode,cases,sit_median_mean,residency_stall_mean,sit_drop_vs_none,stall_rise_vs_none
+qemu,QEMU,none,5,0.903894,0.309610,0.000000,0.000000
+qemu,QEMU,branch_mispredict,5,0.794802,14.828725,0.109092,14.519115
+qemu,QEMU,cache_pressure,5,0.734522,21.659134,0.169372,21.349524
+qemu,QEMU,both,5,0.490948,48.568900,0.412946,48.259290
+spike,Spike,none,5,0.319869,30.159224,0.000000,0.000000
+spike,Spike,branch_mispredict,5,0.212767,56.667768,0.107102,26.508544
+spike,Spike,cache_pressure,5,0.170393,66.328932,0.149476,36.169708
+spike,Spike,both,5,0.072615,87.571769,0.247255,57.412545
+gem5,gem5,none,5,0.551551,19.375202,0.000000,0.000000
+gem5,gem5,branch_mispredict,5,0.366738,49.386668,0.184813,30.011466
+gem5,gem5,cache_pressure,5,0.305939,59.075656,0.245611,39.700454
+gem5,gem5,both,5,0.126469,84.135368,0.425081,64.760166

@@ -13,11 +13,18 @@ from pathlib import Path
 from typing import Dict, List, Tuple
 
 
-DEFAULT_SPIKE_WORKLOADS = ["fm_loopback", "fm_mm", "fm_read", "fm_write", "matmul"]
+DEFAULT_SPIKE_WORKLOADS = ["fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write", "matmul"]
 ALL_SIZES = ["test", "tiny", "small", "med", "large"]
 FLAG_MODES = ["none", "branch_mispredict", "cache_pressure", "both"]
 SIZE_ORDER = {name: i for i, name in enumerate(ALL_SIZES)}
 WORKLOAD_ORDER = {name: i for i, name in enumerate(DEFAULT_SPIKE_WORKLOADS)}
+FLAG_MODE_DISPLAY = {
+    "none": "Workload/orchestration factors: baseline",
+    "branch_mispredict": "Workload/orchestration factors: control-flow perturbation",
+    "cache_pressure": "Workload/orchestration factors: memory-pressure perturbation",
+    "both": "Workload/orchestration factors: combined perturbations",
+}
+METHODOLOGY_NOTE = "Spike and QEMU do not model microarchitectural timing; gem5 and hardware platforms may."
 
 
 def run(cmd: List[str], cwd: Path) -> int:
@@ -94,6 +101,10 @@ def write_csv(path: Path, rows: List[Dict[str, str]]) -> None:
         w.writerows(rows)
 
 
+def display_flag_mode(name: str) -> str:
+    return FLAG_MODE_DISPLAY.get(name, name)
+
+
 def _line_svg(
     out_path: Path,
     title: str,
@@ -137,6 +148,7 @@ def _line_svg(
         f'<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}">',
         '<rect width="100%" height="100%" fill="white"/>',
         f'<text x="{W/2:.1f}" y="24" text-anchor="middle" font-family="sans-serif" font-size="18">{title}</text>',
+        f'<text x="{W/2:.1f}" y="40" text-anchor="middle" font-family="sans-serif" font-size="11">{METHODOLOGY_NOTE}</text>',
         f'<line x1="{ml}" y1="{mt+ph}" x2="{ml+pw}" y2="{mt+ph}" stroke="#222"/>',
         f'<line x1="{ml}" y1="{mt}" x2="{ml}" y2="{mt+ph}" stroke="#222"/>',
     ]
@@ -170,7 +182,9 @@ def _line_svg(
 
         ly = legend_y + idx * 22
         lines.append(f'<line x1="{legend_x}" y1="{ly}" x2="{legend_x+24}" y2="{ly}" stroke="{color}" stroke-width="3"/>')
-        lines.append(f'<text x="{legend_x+30}" y="{ly+4}" font-family="sans-serif" font-size="12">{name}</text>')
+        lines.append(
+            f'<text x="{legend_x+30}" y="{ly+4}" font-family="sans-serif" font-size="12">{display_flag_mode(name)}</text>'
+        )
 
     lines.append(f'<text x="{ml + pw/2:.1f}" y="{H-18}" text-anchor="middle" font-family="sans-serif" font-size="13">{x_label}</text>')
     lines.append(

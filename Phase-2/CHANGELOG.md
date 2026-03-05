@@ -1,5 +1,11 @@
 # Phase-2 Changelog
 
+## 2026-03-04
+
+### Additions
+- Added `tools/run_gem5_property_suite.sh` to run gem5 exec reduced-matrix Phase-2 checks in one command (sweep, plots, monotonic flag checks, and no-work SIT mode validation).
+- Added `--results-dir` and trace-driven (`--trace` / `--traces-dir`) re-check modes to the gem5 property suite script.
+
 ## 2026-02-25
 
 ### Behavior changes

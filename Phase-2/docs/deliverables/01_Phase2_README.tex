@@ -11,51 +11,96 @@
 \usetikzlibrary{arrows.meta, positioning, shapes.geometric}
 \hypersetup{colorlinks=true,linkcolor=blue,urlcolor=blue}
 \newcommand{\codepath}[1]{\path{#1}}
-\tikzset{box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=36mm},line/.style={-Latex}}
+\tikzset{
+  box/.style={rectangle,draw,rounded corners,align=center,inner sep=3pt,minimum width=44mm},
+  decision/.style={diamond,draw,aspect=2.2,align=center,inner sep=2pt},
+  line/.style={-Latex}
+}
 
 \title{Phase-2 Deliverable: README (Scope Definition)}
-\author{SIT Engine Architecture}
+\author{SIT Engine Documentation}
 \date{\today}
 
 \begin{document}
 \maketitle
 
 \section{Technical Description}
-Phase-2 README defines scope, execution targets, adapter boundaries, and the workflow used to generate reproducible SIT artifacts. It is the architectural entrypoint for contributors adding new targets and replay checks.
+This deliverable defines the scope boundary for Phase-2 so contributors can distinguish adapter logic from shared engine logic and execute the correct validation path before merge.
 
 \section{Implementation Fulfillment}
-This deliverable is implemented in \codepath{Phase-2/README.md}. It references:
-\begin{itemize}[leftmargin=*]
-  \item orchestration: \codepath{Phase-2/riscvbench.py}, \codepath{Phase-2/cli.py},
-  \item adapters: \codepath{Phase-2/adapters/},
-  \item replay/validation scripts: \codepath{Phase-2/tests/run_golden_suite.py}, \codepath{Phase-2/tests/check_invariants.py},
-  \item sweep tooling: \codepath{Phase-2/sweeps/run_param_sweep.py},
-  \item cross-target smoke checks: \codepath{Phase-2/run_cross_target_suite.py}.
-\end{itemize}
-Cross-phase tracking currently exists in \codepath{Phase-1/docs/status/PHASE1_PHASE2_STATUS.md}.
+Primary references are \codepath{Phase-2/README.md}, \codepath{Phase-2/ADAPTERS.md}, and runtime entry \codepath{Phase-2/riscvbench.py}. Validation integration is documented through \codepath{Phase-2/tests/*} and sweep tooling in \codepath{Phase-2/sweeps/}.
 
 \section{Design \& Architecture}
-README acts as a control-plane specification:
+\subsection*{Function Attributes}
 \begin{itemize}[leftmargin=*]
-  \item defines what is adapter logic versus engine logic,
-  \item declares supported targets and runtime prerequisites,
-  \item establishes reproducibility workflow (trace generation, replay, invariant checks, plots).
+  \item \texttt{riscvbench.main()}: Inputs=CLI target/workload/flags; Outputs=normalized run artifacts + summary; Side effects=dispatches target-specific execution; Failure modes=toolchain missing, non-zero target exits.
+  \item \texttt{validate\_state\_df()}: Inputs=state interval DataFrame; Outputs=schema-valid state DataFrame; Side effects=normalizes dtypes/validates values; Failure modes=missing columns, invalid state labels, bad intervals.
+  \item \texttt{validate\_resid\_df()}: Inputs=residency interval DataFrame; Outputs=schema-valid residency DataFrame; Side effects=filters resident intervals and validates spans; Failure modes=missing columns, bad interval bounds.
+  \item \texttt{sit\_engine\_phase1.main()}: Inputs=trace/state/residency inputs + config; Outputs=run\_windows.csv + run\_summary.json; Side effects=computes windows and summary metrics; Failure modes=input contract mismatch, empty/invalid windows.
 \end{itemize}
-Dependencies: Adapter Contract, Golden Trace/Output policy, CI execution policy.
+\subsection*{Function Execution Details}
+\begin{enumerate}[leftmargin=*]
+  \item \texttt{riscvbench.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: CLI target/workload/flags.
+    \item Processing flow: dispatches target-specific execution.
+    \item Output attributes: normalized run artifacts + summary.
+    \item Failure behavior: toolchain missing, non-zero target exits.
+  \end{itemize}
+  \item \texttt{validate\_state\_df()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: state interval DataFrame.
+    \item Processing flow: normalizes dtypes/validates values.
+    \item Output attributes: schema-valid state DataFrame.
+    \item Failure behavior: missing columns, invalid state labels, bad intervals.
+  \end{itemize}
+  \item \texttt{validate\_resid\_df()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: residency interval DataFrame.
+    \item Processing flow: filters resident intervals and validates spans.
+    \item Output attributes: schema-valid residency DataFrame.
+    \item Failure behavior: missing columns, bad interval bounds.
+  \end{itemize}
+  \item \texttt{sit\_engine\_phase1.main()}
+  \begin{itemize}[leftmargin=*]
+    \item Input attributes: trace/state/residency inputs + config.
+    \item Processing flow: computes windows and summary metrics.
+    \item Output attributes: run\_windows.csv + run\_summary.json.
+    \item Failure behavior: input contract mismatch, empty/invalid windows.
+  \end{itemize}
+\end{enumerate}
 
-\subsection*{Function Flowchart}
+
+\subsection*{Diagram A: End-to-End Design Flow}
 \begin{figure}[H]
 \centering
 \begin{tikzpicture}[node distance=8mm and 12mm]
-\node[box] (a) {Author/update \codepath{Phase-2/README.md}};
-\node[box, below=of a] (b) {Reference concrete code paths\\(runner, adapters, tests, sweeps)};
-\node[box, below=of b] (c) {Cross-link status from Phase-1 docs\\and review for consistency};
-\node[box, below=of c] (d) {Contributors execute documented\\Phase-2 workflow};
+\node[box] (a) {Read scope + contract docs};
+\node[box, below=of a] (b) {Execute target flow via \texttt{riscvbench.main()}};
+\node[box, below=of b] (c) {Validate normalized adapter outputs};
+\node[box, below=of c] (d) {Run shared engine computation};
+\node[box, below=of d] (e) {Apply deterministic validation gates};
 \draw[line] (a) -- (b);
 \draw[line] (b) -- (c);
 \draw[line] (c) -- (d);
+\draw[line] (d) -- (e);
 \end{tikzpicture}
-\caption{Phase-2 README Flow}
+\caption{Deliverable 01: End-to-End Design Flow}
+\end{figure}
+
+\subsection*{Diagram B: Function Interaction and Attribute Flow}
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=8mm and 12mm]
+\node[box] (fa) {\texttt{riscvbench.main()} parses CLI and dispatches target};
+\node[box, below=of fa] (fb) {Adapter emits state/residency interval CSVs};
+\node[box, below=of fb] (fc) {\texttt{validate\_state\_df()} + \texttt{validate\_resid\_df()}};
+\node[box, below=of fc] (fd) {\texttt{sit\_engine\_phase1.main()} writes windows/summary};
+\draw[line] (fa) -- (fb);
+\draw[line] (fb) -- (fc);
+\draw[line] (fc) -- (fd);
+\end{tikzpicture}
+\caption{Deliverable 01: Function Interaction and Attribute Flow}
 \end{figure}
 
 \end{document}

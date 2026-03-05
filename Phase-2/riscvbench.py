@@ -22,7 +22,7 @@ import sys
 import time
 from pathlib import Path
 
-WORKLOADS_CUSTOM = {"fm_loopback", "fm_mm", "fm_read", "fm_write"}
+WORKLOADS_CUSTOM = {"fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write"}
 WORKLOADS_STANDARD = {"alu", "branch", "memory", "hello", "memread", "memwrite", "memcpy"}
 WORKLOADS_SPIKE = WORKLOADS_STANDARD | WORKLOADS_CUSTOM | {"matmul", "matmul_multicore"}
 WORKLOADS_CPU = WORKLOADS_STANDARD | WORKLOADS_CUSTOM | {"matmul", "matmul_multicore"}
@@ -216,7 +216,9 @@ int main() {
     }
     result += branch_acc;
     SIT_STALL_ON();
-    stall_phase((uint64_t)N * (uint64_t)N / 2);
+    // fm_mm is compute-dense; raise branch-stall duration so branch perturbation
+    // remains visible versus baseline in reduced-matrix sweep plots.
+    stall_phase((uint64_t)N * (uint64_t)N * 2);
     SIT_STALL_OFF();
   }
   
@@ -238,6 +240,136 @@ int main() {
   
   SIT_RES_OFF();
   return C[N - 1][N - 1];
+}
+""",
+
+    "fm_sparse": r"""
+#include <stdint.h>
+
+#ifdef __riscv
+// FIX: Force exact instruction encoding to prevent compiler optimization
+#define SIT_RES_ON()  do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 101" ::: "memory"); \
+} while(0)
+#define SIT_RES_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 102" ::: "memory"); \
+} while(0)
+#define SIT_STALL_ON() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 103" ::: "memory"); \
+} while(0)
+#define SIT_STALL_OFF() do { \
+    __asm__ __volatile__(".insn i 0x13, 0, x0, x0, 104" ::: "memory"); \
+} while(0)
+#else
+#define SIT_RES_ON()  ((void)0)
+#define SIT_RES_OFF() ((void)0)
+#define SIT_STALL_ON()  ((void)0)
+#define SIT_STALL_OFF() ((void)0)
+#endif
+
+#define N DIM
+#define NNZ_PER_ROW 8
+#define NNZ (N * NNZ_PER_ROW)
+
+static int row_ptr[N + 1];
+static int col_idx[NNZ];
+static int values[NNZ];
+static int x_vec[N];
+static int y_vec[N];
+
+volatile int result = 0;
+static volatile uint64_t stall_sink = 0;
+static volatile uint64_t STALL_BUF[4096];
+
+static inline void idle_phase(uint64_t iterations) {
+    asm volatile(
+        "1:\n"
+        "  addi %[it], %[it], -1\n"
+        "  nop\n"
+        "  bnez %[it], 1b\n"
+        : [it] "+r"(iterations)
+        :
+        : "memory"
+    );
+}
+
+static inline void stall_phase(uint64_t iterations) {
+    for (uint64_t i = 0; i < iterations; i++) {
+        uint64_t idx = (i * 2246822519ULL) & 4095ULL;
+        stall_sink += STALL_BUF[idx];
+        STALL_BUF[idx] = stall_sink + i;
+    }
+    result = (int)(result + (int)stall_sink);
+}
+
+int main() {
+  // Match fm_mm arithmetic scale: N^3 dense MACs ~= sparse_reps * N * NNZ_PER_ROW.
+  int sparse_reps = (N * N) / NNZ_PER_ROW;
+  if (sparse_reps < 1) sparse_reps = 1;
+
+  for (int row = 0; row < N; row++) {
+    row_ptr[row] = row * NNZ_PER_ROW;
+    x_vec[row] = (row % 17) + 1;
+    y_vec[row] = 0;
+    for (int k = 0; k < NNZ_PER_ROW; k++) {
+      int idx = row * NNZ_PER_ROW + k;
+      col_idx[idx] = (row * 17 + k * 13 + 3) % N;
+      values[idx] = ((row + 1) * (k + 3)) & 31;
+      if (values[idx] == 0) values[idx] = 1;
+    }
+  }
+  row_ptr[N] = NNZ;
+
+  SIT_RES_ON();
+
+  // COMPUTE: sparse matrix-vector multiply.
+  // Keep baseline compute pressure comparable to fm_mm at test size.
+  for (int rep = 0; rep < sparse_reps; rep++) {
+    int local = 0;
+    for (int row = 0; row < N; row++) {
+      int acc = 0;
+      for (int idx = row_ptr[row]; idx < row_ptr[row + 1]; idx++) {
+        acc += values[idx] * x_vec[col_idx[idx]];
+      }
+      local += acc;
+      y_vec[row] = acc;
+    }
+    for (int row = 0; row < N; row++) {
+      x_vec[row] = (y_vec[row] + row + rep) & 1023;
+    }
+    result += local;
+  }
+
+  if (BRANCH_MISPREDICT_ENABLED) {
+    volatile int branch_acc = 0;
+    for (int i = 0; i < ITER * 6; i++) {
+      if ((i ^ (i >> 3) ^ (i * 7)) & 1) branch_acc += i;
+      else branch_acc -= i;
+    }
+    result += branch_acc;
+    SIT_STALL_ON();
+    // Keep sparse perturbation magnitudes aligned with fm_mm for fair comparison.
+    stall_phase((uint64_t)N * (uint64_t)N * 2ULL);
+    SIT_STALL_OFF();
+  }
+
+  // Match fm_mm idle shaping so sparse does not dominate via lower idle ratio.
+  idle_phase((uint64_t)ITER * 60ULL);
+
+  if (CACHE_PRESSURE_ENABLED) {
+    SIT_STALL_ON();
+    stall_phase((uint64_t)N * (uint64_t)N * (uint64_t)N / 4ULL);
+    SIT_STALL_OFF();
+  }
+
+  if (BRANCH_MISPREDICT_ENABLED && CACHE_PRESSURE_ENABLED) {
+    SIT_STALL_ON();
+    stall_phase((uint64_t)N * (uint64_t)N);
+    SIT_STALL_OFF();
+  }
+
+  SIT_RES_OFF();
+  return result ^ y_vec[N - 1];
 }
 """,
 
@@ -881,6 +1013,7 @@ def _inject_unified_workload_phases(
     preset: dict,
     branch_mispredict: bool,
     cache_pressure: bool,
+    workload: str,
 ) -> str:
     """
     Inject marker-driven IDLE/STALL phases into every workload so all targets
@@ -898,6 +1031,12 @@ def _inject_unified_workload_phases(
     branch_iters = unit * 8
     cache_iters = unit * 16
     both_iters = unit * 96
+    if workload in {"matmul", "matmul_multicore"}:
+        # Matmul is compute-dense; strengthen synthetic perturbation so
+        # monotonic ordering remains visible in reduced-matrix checks.
+        branch_iters = unit * 256
+        cache_iters = unit * 2048
+        both_iters = unit * 1536
 
     support_block = f"""
 #ifndef BRANCH_MISPREDICT_ENABLED
@@ -1020,6 +1159,7 @@ def write_workload(build_dir: Path, workload: str, size: str,
         preset=preset,
         branch_mispredict=branch_mispredict,
         cache_pressure=cache_pressure,
+        workload=workload,
     )
 
     # Keep templates robust: some workloads use uint64_t and may miss the include.
@@ -1045,10 +1185,22 @@ def main():
                     choices=sorted((WORKLOADS_CPU | WORKLOADS_SPIKE | WORKLOADS_GEM5 | WORKLOADS_QEMU) | {"all"}))
     ap.add_argument("--workload_size", default="small", choices=sorted(SIZES))
     
-    ap.add_argument("--branch-mispredict", action="store_true",
-                    help="Enable branch mispredicts (causes STALL)")
-    ap.add_argument("--cache-pressure", action="store_true",
-                    help="Enable cache misses (causes STALL)")
+    ap.add_argument(
+        "--branch-mispredict",
+        action="store_true",
+        help=(
+            "Inject synthetic control-flow perturbations to create workload-level stall/idle "
+            "segments for SIT sensitivity tests (not microarchitectural timing on Spike/QEMU)"
+        ),
+    )
+    ap.add_argument(
+        "--cache-pressure",
+        action="store_true",
+        help=(
+            "Inject synthetic memory-pressure patterns to create workload-level stall/idle "
+            "segments for SIT sensitivity tests (not cache-modeled on Spike/QEMU)"
+        ),
+    )
     
     ap.add_argument("--time_us", default=256.0, type=float)
     ap.add_argument("--expected-work-rate", type=float, default=1.0)
@@ -1094,21 +1246,27 @@ def main():
     
     print("\n=== CORRECT MODEL ===")
     print("IDLE: in workload (nop loops - core not computing)")
-    print("STALL: from flags (--branch-mispredict, --cache-pressure)")
+    print("STALL: workload/orchestration factors from flags (--branch-mispredict, --cache-pressure)")
     print("Values: from workload execution (markers 101/102)\n")
     
     if args.branch_mispredict:
-        print("ℹ --branch-mispredict: unpredictable branches → pipeline stalls")
+        print("ℹ --branch-mispredict: synthetic control-flow perturbation (workload/orchestration factor)")
     if args.cache_pressure:
-        print("ℹ --cache-pressure: random access → cache misses → stalls")
+        print("ℹ --cache-pressure: synthetic memory-pressure pattern (workload/orchestration factor)")
     if not args.branch_mispredict and not args.cache_pressure:
         print("ℹ Baseline: no stall flags, ~50% idle in workload")
+    if args.target == "gem5" and args.gem5_adapter_mode == "stats":
+        print(
+            "ℹ gem5 stats adapter infers state from IPC/cache counters; "
+            "flag ordering can be non-monotonic vs marker-driven semantics."
+        )
+        print("ℹ Use --gem5-adapter-mode exec for marker-faithful sweep visualizations.")
     print()
 
     if args.target == "both" or args.workload == "all":
         targets = ["spike", "cpu"] if args.target == "both" else [args.target]
         workloads = list(
-            ["fm_loopback", "fm_mm", "fm_read", "fm_write"]
+            ["fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write"]
             if args.practical
             else sorted(WORKLOADS_CPU | WORKLOADS_SPIKE | WORKLOADS_GEM5 | WORKLOADS_QEMU)
         )
