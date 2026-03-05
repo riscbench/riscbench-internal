@@ -1,0 +1,6 @@
+flowchart TD
+  A[datasets/manifest.json] --> B[Resolve traces + masks]
+  B --> C[Golden suite execution]
+  C --> D[Engine outputs]
+  D --> E[Invariant checks]
+  E --> F[Regression verdict]

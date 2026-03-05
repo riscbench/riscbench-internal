@@ -1,0 +1,10 @@
+{
+  "trace": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-1/runs/cpu/matmul/small/trace.csv",
+  "original_trace": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-1/runs/cpu/matmul/small/inputs/state_intervals.csv",
+  "format": "baseline",
+  "events": 201,
+  "cores": [
+    0
+  ],
+  "residency": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-1/runs/cpu/matmul/small/inputs/residency_intervals.csv"
+}

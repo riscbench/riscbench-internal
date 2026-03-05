@@ -1,0 +1,8 @@
+flowchart TD
+  A[Raw platform trace] --> B[Adapter implementation]
+  B --> C[load_state_intervals]
+  B --> D[load_residency_intervals optional]
+  C --> E[validate_state_df]
+  D --> F[validate_resid_df]
+  E --> G[Normalized engine input]
+  F --> G

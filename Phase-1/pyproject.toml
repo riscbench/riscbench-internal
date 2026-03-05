@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=67"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "riscvbench"
+version = "0.1.0"
+requires-python = ">=3.9"
+description = "RISCVBench Phase-1 CLI"
+dependencies = [
+    "numpy>=1.24",
+    "pandas>=2.0",
+]
+
+[project.optional-dependencies]
+parquet = [
+    "pyarrow>=14.0",
+]
+
+# Expose the command
+[project.scripts]
+riscvbench = "riscvbench:main"
+
+[tool.setuptools]
+# Explicit packaging (no auto discovery)
+py-modules = ["riscvbench", "cli", "sit_engine_phase1"]
+
+[tool.setuptools.packages.find]
+# Only include actual code packages
+include = ["ingest*", "adapters*", "schema*"]
+exclude = ["runs*", "traces*", "datasets*", "golden_out*", "perf_cpu_workload*"]

@@ -1,0 +1,8 @@
+flowchart TD
+  A[CLI ingest] --> B[BaselineAdapter]
+  B --> C{trace_format}
+  C -->|raw| D[CPUAdapter.to_state_dataframe]
+  C -->|csv| E[pandas.read_csv]
+  D --> F[validate_state_df]
+  E --> F
+  F --> G[trace.csv + manifest.json]

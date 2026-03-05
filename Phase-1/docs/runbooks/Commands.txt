@@ -1,0 +1,36 @@
+PS D:\python\phase_1\Complete_ingestapitosit> sit-engine ingest --trace datasets\traces\trace_A_single_residency.csv --format baseline --out runs\demoA
+
+✓ parsed 3 events across 1 core
+
+PS D:\python\phase_1\Complete_ingestapitosit> sit-engine classify --in runs\demoA --window-us 256 --residency datasets\residency\partial.csv
+
+› applying residency classifiers
+› detecting SIT windows and thresholds
+
+✓ windows written: runs\demoA\run_windows.csv
+✓ summary written: runs\demoA\run_summary.json
+✓ windows ready
+✓ summary ready
+
+PS D:\python\phase_1\Complete_ingestapitosit> sit-engine export --in runs\demoA --schema v1 --format csv
+
+$ sit-engine export --schema v1 --format csv
+✓ summary
+
+  sit_median       0.00
+  sit_p95          1.00
+  residency_idle   75.0%
+  residency_stall  0.0%
+
+✓ data ready: runs\demoA\export
+
+PS D:\python\phase_1\Complete_ingestapitosit> sit-engine export --in runs\demoA --schema v1 --format csv
+
+✓ summary
+
+  sit_median       0.00
+  sit_p95          1.00
+  residency_idle   75.0%
+  residency_stall  0.0%
+
+✓ data ready: runs\demoA\export

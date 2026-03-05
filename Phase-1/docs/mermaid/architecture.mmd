@@ -1,0 +1,10 @@
+flowchart LR
+  A[Raw Trace Sources\nCSV / CPU raw / Spike-derived] --> B[Adapters\nbaseline_adapter.py\ncpu_adapter.py\nspike_adapter.py]
+  B --> C[Normalized Interval Frames\nstate_intervals + optional residency_intervals]
+  C --> D[SIT Engine\nsit_engine_phase1.py]
+  D --> E[Window Metrics\nwindows.csv]
+  D --> F[Summary Metrics\nsummary.json]
+  E --> G[Schema Export\nexport/windows_v1.csv]
+  F --> H[Schema Export\nexport/summary_v1.json]
+  I[Validation\ncheck_invariants.py\nrun_golden_suite.py] -. checks .-> E
+  I -. checks .-> F

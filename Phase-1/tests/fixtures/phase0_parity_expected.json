@@ -1,0 +1,46 @@
+{
+  "trace_file": "datasets/traces/trace_F_phase0_wormhole_sample.csv",
+  "window_us": 256.0,
+  "summary": {
+    "schema_version": 1,
+    "window_us": 256.0,
+    "windows_total": 2,
+    "resident_windows_total": 2,
+    "cores": [0, 1],
+    "sit_median": 0.004419921875,
+    "sit_p95": 0.004419921875,
+    "residency_idle_avg": 0.995580078125,
+    "residency_stall_avg": 0.0,
+    "residency_active_avg": 0.004419921875,
+    "used_residency_file": false,
+    "expected_work_rate": 1.0
+  },
+  "windows": [
+    {
+      "core": 0,
+      "window_id": 0,
+      "window_start_us": 0.0,
+      "window_end_us": 256.0,
+      "resident_us": 256.0,
+      "resident_frac_of_window": 1.0,
+      "is_resident_window": 1,
+      "active_frac": 0.0043203125,
+      "stall_frac": 0.0,
+      "idle_frac": 0.9956796875,
+      "sit": 0.004419921875
+    },
+    {
+      "core": 1,
+      "window_id": 0,
+      "window_start_us": 0.0,
+      "window_end_us": 256.0,
+      "resident_us": 256.0,
+      "resident_frac_of_window": 1.0,
+      "is_resident_window": 1,
+      "active_frac": 0.00451953125,
+      "stall_frac": 0.0,
+      "idle_frac": 0.99548046875,
+      "sit": 0.004419921875
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+flowchart TD
+  A[Normalized state intervals] --> B[Optional residency intervals]
+  B --> C[merge_intervals + intersect_with_mask]
+  C --> D[split_interval_into_windows]
+  D --> E[Accumulate active/stall/idle and resident_us]
+  E --> F[Compute SIT per resident window]
+  F --> G[Write run_windows.csv]
+  F --> H[Write run_summary.json]

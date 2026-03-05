@@ -1,0 +1,21 @@
+sequenceDiagram
+  autonumber
+  participant U as User
+  participant C as CLI (cli.py)
+  participant A as Adapter
+  participant E as Engine (sit_engine_phase1.py)
+  participant X as Export
+
+  U->>C: ingest --trace ... --out runs/<id>
+  C->>A: parse + normalize trace
+  A-->>C: trace.csv (+ optional residency.csv)
+  C-->>U: manifest.json written
+
+  U->>C: classify --in runs/<id> --window-us 256
+  C->>E: run engine with trace (+ residency)
+  E-->>C: run_windows.csv + run_summary.json
+  C-->>U: windows.csv + summary.json
+
+  U->>C: export --in runs/<id> --schema v1
+  C->>X: copy/format versioned outputs
+  X-->>U: export/windows_v1.csv + export/summary_v1.json

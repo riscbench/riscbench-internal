@@ -1,0 +1,15 @@
+{
+  "schema_version": 1,
+  "window_us": 256.0,
+  "windows_total": 3,
+  "resident_windows_total": 3,
+  "cores": [
+    0
+  ],
+  "sit_median": 0.7687687687687688,
+  "sit_p95": 0.9768768768768769,
+  "residency_idle_avg": 0.18124374374374375,
+  "residency_stall_avg": 0.0,
+  "residency_active_avg": 0.8187562562562563,
+  "used_residency_file": true
+}
