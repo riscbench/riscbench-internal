@@ -2,7 +2,7 @@
 # riscvbench: Simple CLI wrapper for Phase-1 SIT engine
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PHASE1_DIR="$SCRIPT_DIR/Phase-1"
+PHASE1_DIR="$SCRIPT_DIR/../Phase-1"
 
 # Ensure Python 3
 if ! command -v python3 &> /dev/null; then

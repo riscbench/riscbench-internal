@@ -412,8 +412,8 @@ riscvbench --target cpu --workload matmul_multicore --workload_size small --time
 ### Source Files
 - **[matmul.c](matmul.c)**: Single-core workload (1 reader + 1 compute + 1 writer)
 - **[matmul_multicore.c](matmul_multicore.c)**: Multi-core variant (1 reader + N compute + 1 writer)
-- **[Phase-1/riscvbench.py](Phase-1/riscvbench.py)**: CLI orchestrator
-- **[Phase-1/adapters/cpu_adapter.py](Phase-1/adapters/cpu_adapter.py)**: Trace parser
+- **[Phase-1/riscvbench.py](../Phase-1/riscvbench.py)**: CLI orchestrator
+- **[Phase-1/adapters/cpu_adapter.py](../Phase-1/adapters/cpu_adapter.py)**: Trace parser
 
 ### Key Mechanisms
 - **Lock-free rings:** Atomic head/tail with memory_order_acquire/release
@@ -425,6 +425,6 @@ riscvbench --target cpu --workload matmul_multicore --workload_size small --time
 
 ## References
 
-- **SIT Framework:** See [sit_engine_phase1.py](Phase-1/sit_engine_phase1.py)
+- **SIT Framework:** See [sit_engine_phase1.py](../Phase-1/sit_engine_phase1.py)
 - **CLI Interface:** See [RISCVBENCH_USAGE.md](RISCVBENCH_USAGE.md)
 - **Architecture Notes:** See copilot-instructions.md (system integration test baseline design)
