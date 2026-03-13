@@ -63,6 +63,8 @@ python3 tests/check_phase0_parity.py \
   --expected tests/fixtures/phase0_parity_expected.json
 ```
 
+For the current Phase-0 Tenstorrent calibration table, TT ingest commands, plot commands, and baseline figure, see [`PHASE0_TENSTORRENT_BASELINE.md`](PHASE0_TENSTORRENT_BASELINE.md).
+
 ## 2) CPU baseline runs (RISCVBench CLI)
 
 ```bash
