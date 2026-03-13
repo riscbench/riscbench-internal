@@ -4,7 +4,7 @@ This repository is organized around the project phases, with only shared documen
 
 ## Phases
 
-- [Phase-0](Phase-0/README.md) - Prototype-Tenstorrent programs plus Wormhole adapter and trace-ingestion docs
+- [Phase-0](Phase-0/README.md) - Tenstorrent Prototype-Tenstorrent programs
 - [Phase-1](Phase-1/README.md) - hardware-agnostic SIT engine and parity validation
 - [Phase-2](Phase-2/README.md) - platform adapters, target runners, and platform documentation
 - [Phase-3](Phase-3/README.md) - reserved for the next phase
