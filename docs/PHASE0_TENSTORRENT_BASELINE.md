@@ -1,56 +1,17 @@
-# Phase-0 Tenstorrent Prototype and Wormhole Adapter
+# Phase-0 Tenstorrent Baseline
 
-Phase-0 is the Tenstorrent/Wormhole phase of the repo. It includes the original `Prototype-Tenstorrent` programs and the newer Wormhole trace-ingestion adapter/docs used to map TT profiler output into the normalized SIT contract.
+This page is the shared Phase-0 reference for Tenstorrent Wormhole trace ingestion, calibration, and evaluation. It mirrors the Phase-0 README but keeps the commands and the baseline figure under `docs/` for easier reuse in reports.
 
-## Core Files
+## Scope
 
-- prototype tree: [`Prototype-Tenstorrent/`](Prototype-Tenstorrent)
-- adapter: [`adapters/tt_wormhole_adapter.py`](adapters/tt_wormhole_adapter.py)
-- documentation-suite runner: [`tools/run_tt_wormhole_doc_suite.py`](tools/run_tt_wormhole_doc_suite.py)
-- trace notes: [`TENSTORRENT_TRACES.md`](TENSTORRENT_TRACES.md)
+- input profiler files: `profile_log_device.csv` plus `zone_src_locations.log`
+- adapter path: `Phase-0/adapters/tt_wormhole_adapter.py`
+- runner entrypoint: `Phase-2/riscvbench.py`
+- local raw bundles: `Phase-2/datasets/Tenstorrent_test_raw_files-main/`
 
-## Prototype-Tenstorrent
+## Median-Calibrated Expected Work Rates
 
-This is the exact prototype subtree restored from `internal/main`:
-
-- [`Prototype-Tenstorrent/README.txt`](Prototype-Tenstorrent/README.txt)
-- `fm_loopback/`
-- `fm_mm/`
-- `fm_read/`
-- `fm_write/`
-- [`Prototype-Tenstorrent/looper.py`](Prototype-Tenstorrent/looper.py)
-- [`Prototype-Tenstorrent/Bucketized performance generator.py`](Prototype-Tenstorrent/Bucketized%20performance%20generator.py)
-
-## What Phase-0 Owns
-
-- parsing `profile_log_device.csv` plus `zone_src_locations.log`
-- pairing `ZONE_START` / `ZONE_END` events into intervals
-- converting TT cycle timestamps into normalized microsecond intervals
-- exporting engine-ready state and residency tables for the later SIT stages
-- documenting how Wormhole traces map into the Phase-1/Phase-2 pipeline
-
-## Tenstorrent and Wormhole Context
-
-The Phase-0 baseline is anchored to the Tenstorrent Wormhole profiler workflow that later phases reuse for parity and validation:
-
-- converter carried into Phase-1: [`../Phase-1/phase0_trace_to_sit.py`](../Phase-1/phase0_trace_to_sit.py)
-- pinned Wormhole-derived sample trace: [`../Phase-1/datasets/traces/trace_F_phase0_wormhole_sample.csv`](../Phase-1/datasets/traces/trace_F_phase0_wormhole_sample.csv)
-- strict parity gate: [`../Phase-1/tests/check_phase0_parity.py`](../Phase-1/tests/check_phase0_parity.py)
-- cross-phase validation commands: [`../docs/ALL_TARGETS_VALIDATION_COMMANDS.md`](../docs/ALL_TARGETS_VALIDATION_COMMANDS.md)
-
-## Local TT Doc Suite
-
-When local TT raw-file bundles are present, the doc-suite runner can summarize them through the shared Phase-2 engine path. The current local workspace examples live under `../Phase-2/datasets/` and `../Phase-2/tt_doc_runs/` when available.
-
-The shared copy of the Phase-0 Tenstorrent calibration notes, commands, evaluation snapshot, and baseline image lives in [`../docs/PHASE0_TENSTORRENT_BASELINE.md`](../docs/PHASE0_TENSTORRENT_BASELINE.md).
-
-## TT Compute Calibration Notes
-
-Phase-0 is the right place to keep the Tenstorrent run notes, even though the TT execution path is forwarded by [`riscvbench`](riscvbench) into the shared Phase-2 engine. The commands below should be run from the repo root.
-
-### Median-Calibrated Expected Work Rates
-
-Use the `median` column when you want `sit_median` to land close to `1.0` for the current TT trace bundle. Use the `p95` column only when you want stronger windows to approach `1.0` and weaker windows to stay below it.
+Use the `median` column when you want `sit_median` to land near `1.0` for the current trace bundle. Use `p95` when you want stronger windows to approach `1.0` while weaker windows stay below it.
 
 | Workload | Dataset | Window (us) | Residency | `ops_per_zone` | `expected_work_rate` median ops/us | `expected_work_rate` p95 ops/us |
 | --- | --- | ---: | --- | ---: | ---: | ---: |
@@ -63,10 +24,12 @@ Use the `median` column when you want `sit_median` to land close to `1.0` for th
 
 Notes:
 
-- `matmul_multi` is calibrated to the current per-core summary path. If you want a chip-level aggregate throughput target, derive that separately from aggregate windows instead of reusing `75274`.
-- `vecadd` is included as a streaming reference row because it is often useful in the same TT report, but it is still an `ops` proxy here, not a true bandwidth-normalized `GB/s` check.
+- `matmul_multi` is calibrated to the current per-core summary path, not chip-level aggregate throughput.
+- `vecadd` stays an `ops` proxy row here; it is not a bandwidth-normalized `GB/s` measurement.
 
-### Phase-0 Wrapper Commands
+## Commands
+
+Run these from the repo root:
 
 ```bash
 source Phase-2/.venv-phase2/bin/activate
@@ -156,9 +119,7 @@ python3 Phase-2/riscvbench.py \
   --expected-work-rate 4800
 ```
 
-### Plot and Heatmap Commands
-
-After the runs above finish, generate SVG plots from the TT `run_windows.csv` files:
+If you want the plots after the TT runs finish:
 
 ```bash
 for workload in matmul_single matmul_multi vecadd sfpu_chain eltwise_sfpu eltwise_binary; do
@@ -176,16 +137,9 @@ for workload in matmul_single matmul_multi vecadd sfpu_chain eltwise_sfpu eltwis
 done
 ```
 
-This produces:
+## Evaluation Snapshot
 
-- `plot1`: SIT vs time
-- `plot2`: active/stall/idle stacked window breakdown
-- `plot3`: window-by-window SIT profile
-- heatmaps for `active`, `stall`, `idle`, `resident`, and `sit`
-
-### Current Results and Expectations
-
-The table below reflects local runs executed on March 13, 2026 with the exact median-calibrated commands above. These are useful as report values and also as a quick expectation check before promoting TT traces into a parity gate. The generated `Phase-2/runs/tt_wormhole/...` summaries are local workspace artifacts and are not tracked in git.
+These values come from local runs executed on March 13, 2026 with the median-calibrated commands above. The raw `Phase-2/runs/tt_wormhole/...` outputs are local workspace artifacts and are currently gitignored.
 
 | Workload | Preset | `sit_median` | `sit_p95` | `residency_idle` | `residency_stall` | Expectation |
 | --- | --- | ---: | ---: | ---: | ---: | --- |
@@ -196,17 +150,6 @@ The table below reflects local runs executed on March 13, 2026 with the exact me
 | `eltwise_sfpu` | `test` | 0.99 | 1.00 | 0.0% | 5.2% | Compute-oriented `active_span` trace; expected to cluster near `1.0` with low stall. |
 | `eltwise_binary` | `test` | 0.98 | 1.00 | 0.0% | 84.5% | Correct run, but this trace is heavily stall-biased even after median calibration. |
 
-## Legacy CPU Baseline Material
+## Baseline Figure
 
-The older CPU baseline workload docs and sample artifacts are still kept in this phase folder for reference:
-
-- [`matmul.c`](matmul.c), [`matmul_multicore.c`](matmul_multicore.c)
-- [`adapters/cpu_adapter.py`](adapters/cpu_adapter.py)
-- [`QUICK_REFERENCE.md`](QUICK_REFERENCE.md), [`WORKLOAD_ANALYSIS.md`](WORKLOAD_ANALYSIS.md), [`TRACE_ANALYSIS_EXAMPLES.md`](TRACE_ANALYSIS_EXAMPLES.md), [`MULTICORE_DATASET.md`](MULTICORE_DATASET.md), [`RISCVBENCH_USAGE.md`](RISCVBENCH_USAGE.md)
-
-## Integration with SIT Engine
-
-- `Prototype-Tenstorrent/` is the program-side prototype source tree.
-- Phase-0 normalizes Wormhole trace structure and semantics.
-- Phase-1 enforces parity and invariant checks against the Wormhole-derived baseline.
-- Phase-2 reuses the same engine path for cross-platform SIT reporting.
+![Tenstorrent baseline summary](Tenstorrent%20baseline.png)
