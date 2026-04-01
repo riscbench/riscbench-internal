@@ -1,0 +1,4 @@
+start_us,end_us,duration_us,core,state
+0.0,0.455,0.455,0,idle
+0.455,9.518,9.063,0,active
+9.518,9.708,0.1899999999999995,0,idle
