@@ -12,3 +12,4 @@ out/
 
 *.trace
 *.log
+!datasets/Tenstorrent_test_raw_files-main/**/profiler_logs/zone_src_locations.log
