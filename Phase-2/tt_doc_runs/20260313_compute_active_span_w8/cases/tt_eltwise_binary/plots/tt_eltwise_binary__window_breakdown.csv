@@ -1,0 +1,7 @@
+window_id,window_start_us,window_end_us,window_us,resident_us,resident_compute_us,idle_us,memory_attributed_us,non_resident_us,sit_timeline_value,sit_timeline_source
+0,0.000000,8.000000,8.000000,8.000000,1.344000,0.000000,6.656000,0.000000,0.168000000,Source metric: sit_no_work_window_active (no-work fallback)
+1,8.000000,16.000000,8.000000,8.000000,1.317000,0.000000,6.683000,0.000000,0.164625000,Source metric: sit_no_work_window_active (no-work fallback)
+2,16.000000,24.000000,8.000000,8.000000,1.228000,0.000000,6.772000,0.000000,0.153500000,Source metric: sit_no_work_window_active (no-work fallback)
+3,24.000000,32.000000,8.000000,8.000000,1.304000,0.000000,6.696000,0.000000,0.163000000,Source metric: sit_no_work_window_active (no-work fallback)
+4,32.000000,40.000000,8.000000,8.000000,1.230000,0.000000,6.770000,0.000000,0.153750000,Source metric: sit_no_work_window_active (no-work fallback)
+5,40.000000,48.000000,8.000000,0.437000,0.056000,0.000000,0.381000,7.563000,0.128146000,Source metric: sit_no_work_window_active (no-work fallback)

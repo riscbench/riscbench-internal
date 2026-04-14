@@ -1,0 +1,14 @@
+key,label,peak_row,peak_value,source_name,unit
+dram_read_peak_gbps,2,24,4.8646080760095,Independent READ Test (DRAM BW),GB/s
+dram_write_peak_gbps,2,51,4.5359911406423,Independent WRITE Test (DRAM BW),GB/s
+loopback_peak_gbps,1024000,17,4.584124006444012,Loopback Test (DRAM BW),GB/s
+teraflops_blockfp8,TeraFLOPS (BLOCKFP8),96,262.0,Aggregate Throughput,TFLOPS
+teraflops_fp16,TeraFLOPS (FP16),95,131.0,Aggregate Throughput,TFLOPS
+teraflops_fp8,TeraFLOPS (FP8),94,466.0,Aggregate Throughput,TFLOPS
+64x64_flops_peak_gflops,64x64 FLOPS,9,1443.128959,64x64 FLOPS,GFLOPS
+128x128_flops_peak_gflops,128x128 FLOPS,3,748.1621894,128x128 FLOPS,GFLOPS
+256x256_flops_peak_gflops,256x256 FLOPS,2,347.2367832,256x256 FLOPS,GFLOPS
+512x512_flops_peak_gflops,512x512 FLOPS,2,269.2371278,512x512 FLOPS,GFLOPS
+640_peak_gflops,640,2,268.9551836901455,640,GFLOPS
+768_peak_gflops,768,2,263.5608279909094,768,GFLOPS
+1024_peak_gflops,1024,2,266.2618211606891,1024,GFLOPS

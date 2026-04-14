@@ -1,0 +1,14 @@
+{
+  "trace": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/tt_doc_runs/20260313_compute_active_span_w8/cases/tt_sfpu_chain/run/trace.csv",
+  "original_trace": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/datasets/Tenstorrent_test_raw_files-main/tt_sfpu_chain/profiler_logs/profile_log_device.csv",
+  "format": "tt_wormhole",
+  "events": 1,
+  "cores": [
+    0
+  ],
+  "zone_log": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/datasets/Tenstorrent_test_raw_files-main/tt_sfpu_chain/profiler_logs/zone_src_locations.log",
+  "tt_output_mode": "tile",
+  "tt_residency_model": "active_span",
+  "tt_anomalies": {},
+  "residency": "/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/tt_doc_runs/20260313_compute_active_span_w8/cases/tt_sfpu_chain/run/residency.csv"
+}

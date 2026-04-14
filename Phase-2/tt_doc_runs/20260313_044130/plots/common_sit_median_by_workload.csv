@@ -1,0 +1,10 @@
+flag_mode,sit_median_mean,workload
+none,0.891666,tt_custom_sfpi_add
+none,0.156747,tt_eltwise_binary
+none,0.938330,tt_eltwise_sfpu
+none,0.000000,tt_loopback
+none,0.838851,tt_matmul_multi
+none,0.000000,tt_matmul_single
+none,0.000000,tt_noc_transfer
+none,0.959897,tt_sfpu_chain
+none,0.042860,tt_vecadd

@@ -1,0 +1,4 @@
+start_us,end_us,core,state,start_cycle,end_cycle,core_id,pcie_slot,core_x,core_y,risc_type,zone_name,source_file,source_line,origin,map_hit
+0.0,0.145,0,stall,13222842361406,13222842361551,slot0_x1_y1,0,1,1,TILE,TRISC-KERNEL,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/trisck.cc,73,tile_fused:trisc_kernel_base,1
+0.145,19.126,0,active,13222842361551,13222842380532,slot0_x1_y1,0,1,1,TILE,THROUGHPUT_SECTION,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/trisck.cc,73,tile_fused:explicit_throughput,1
+19.126,19.774,0,stall,13222842380532,13222842381180,slot0_x1_y1,0,1,1,TILE,TRISC-KERNEL,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/trisck.cc,73,tile_fused:trisc_kernel_base,1

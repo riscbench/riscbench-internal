@@ -1,0 +1,4 @@
+flag_mode,sit_median_mean,workload
+none,0.838851,tt_matmul_multi
+none,0.959897,tt_sfpu_chain
+none,0.042860,tt_vecadd

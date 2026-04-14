@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="760">
+<rect width="100%" height="100%" fill="#fbfbfa"/>
+<text x="750.0" y="30" text-anchor="middle" font-family="sans-serif" font-size="20">Plot 3 - Window-by-Window SIT Profile (Tenstorrent)</text>
+<text x="750.0" y="50" text-anchor="middle" font-family="sans-serif" font-size="12">Source metric: sit_no_work_window_active (no-work fallback)</text>
+<line x1="96" y1="580.00" x2="1280" y2="580.00" stroke="#111" stroke-width="1.2"/>
+<line x1="96" y1="78" x2="96" y2="580" stroke="#111" stroke-width="1.2"/>
+<line x1="96.00" y1="78" x2="96.00" y2="580" stroke="#e6e6e6"/>
+<line x1="96.00" y1="580.00" x2="96.00" y2="586.00" stroke="#111"/>
+<text x="96.00" y="604.0" text-anchor="middle" font-family="sans-serif" font-size="11">0.0</text>
+<line x1="265.14" y1="78" x2="265.14" y2="580" stroke="#e6e6e6"/>
+<line x1="265.14" y1="580.00" x2="265.14" y2="586.00" stroke="#111"/>
+<text x="265.14" y="604.0" text-anchor="middle" font-family="sans-serif" font-size="11">18.3</text>
+<line x1="434.29" y1="78" x2="434.29" y2="580" stroke="#e6e6e6"/>
+<line x1="434.29" y1="580.00" x2="434.29" y2="586.00" stroke="#111"/>
+<text x="434.29" y="604.0" text-anchor="middle" font-family="sans-serif" font-size="11">36.6</text>
+<line x1="603.43" y1="78" x2="603.43" y2="580" stroke="#e6e6e6"/>
+<line x1="603.43" y1="580.00" x2="603.43" y2="586.00" stroke="#111"/>
+<text x="603.43" y="604.0" text-anchor="middle" font-family="sans-serif" font-size="11">54.9</text>
+<line x1="772.57" y1="78" x2="772.57" y2="580" stroke="#e6e6e6"/>
+<line x1="772.57" y1="580.00" x2="772.57" y2="586.00" stroke="#111"/>
+<text x="772.57" y="604.0" text-anchor="middle" font-family="sans-serif" font-size="11">73.1</text>
+<line x1="941.71" y1="78" x2="941.71" y2="580" stroke="#e6e6e6"/>
+<line x1="941.71" y1="580.00" x2="941.71" y2="586.00" stroke="#111"/>
+<text x="941.71" y="604.0" text-anchor="middle" font-family="sans-serif" font-size="11">91.4</text>
+<line x1="1110.86" y1="78" x2="1110.86" y2="580" stroke="#e6e6e6"/>
+<line x1="1110.86" y1="580.00" x2="1110.86" y2="586.00" stroke="#111"/>
+<text x="1110.86" y="604.0" text-anchor="middle" font-family="sans-serif" font-size="11">109.7</text>
+<line x1="1280.00" y1="78" x2="1280.00" y2="580" stroke="#e6e6e6"/>
+<line x1="1280.00" y1="580.00" x2="1280.00" y2="586.00" stroke="#111"/>
+<text x="1280.00" y="604.0" text-anchor="middle" font-family="sans-serif" font-size="11">128.0</text>
+<line x1="96" y1="580.00" x2="1280" y2="580.00" stroke="#dddddd"/>
+<line x1="90" y1="580.00" x2="96" y2="580.00" stroke="#111"/>
+<text x="86" y="584.00" text-anchor="end" font-family="sans-serif" font-size="11">0.0000</text>
+<line x1="96" y1="496.33" x2="1280" y2="496.33" stroke="#dddddd"/>
+<line x1="90" y1="496.33" x2="96" y2="496.33" stroke="#111"/>
+<text x="86" y="500.33" text-anchor="end" font-family="sans-serif" font-size="11">0.1756</text>
+<line x1="96" y1="412.67" x2="1280" y2="412.67" stroke="#dddddd"/>
+<line x1="90" y1="412.67" x2="96" y2="412.67" stroke="#111"/>
+<text x="86" y="416.67" text-anchor="end" font-family="sans-serif" font-size="11">0.3513</text>
+<line x1="96" y1="329.00" x2="1280" y2="329.00" stroke="#dddddd"/>
+<line x1="90" y1="329.00" x2="96" y2="329.00" stroke="#111"/>
+<text x="86" y="333.00" text-anchor="end" font-family="sans-serif" font-size="11">0.5269</text>
+<line x1="96" y1="245.33" x2="1280" y2="245.33" stroke="#dddddd"/>
+<line x1="90" y1="245.33" x2="96" y2="245.33" stroke="#111"/>
+<text x="86" y="249.33" text-anchor="end" font-family="sans-serif" font-size="11">0.7025</text>
+<line x1="96" y1="161.67" x2="1280" y2="161.67" stroke="#dddddd"/>
+<line x1="90" y1="161.67" x2="96" y2="161.67" stroke="#111"/>
+<text x="86" y="165.67" text-anchor="end" font-family="sans-serif" font-size="11">0.8782</text>
+<line x1="96" y1="78.00" x2="1280" y2="78.00" stroke="#dddddd"/>
+<line x1="90" y1="78.00" x2="96" y2="78.00" stroke="#111"/>
+<text x="86" y="82.00" text-anchor="end" font-family="sans-serif" font-size="11">1.0538</text>
+<line x1="96" y1="192.75" x2="1280" y2="192.75" stroke="#666" stroke-width="1.2" stroke-dasharray="8,6"/>
+<text x="1160" y="184.74837363946074" font-family="sans-serif" font-size="12" fill="#444">Window mean SIT</text>
+<rect x="96.00" y="123.16" width="74.00" height="456.84" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="170.00" y="211.71" width="74.00" height="368.29" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="244.00" y="118.70" width="74.00" height="461.30" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="318.00" y="116.14" width="74.00" height="463.86" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="392.00" y="236.96" width="74.00" height="343.04" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="466.00" y="116.61" width="74.00" height="463.39" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="540.00" y="216.71" width="74.00" height="363.29" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="614.00" y="118.34" width="74.00" height="461.66" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="688.00" y="119.77" width="74.00" height="460.23" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="762.00" y="215.04" width="74.00" height="364.96" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="836.00" y="115.19" width="74.00" height="464.81" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="910.00" y="217.84" width="74.00" height="362.16" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="984.00" y="120.37" width="74.00" height="459.63" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="1058.00" y="195.81" width="74.00" height="384.19" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="1132.00" y="290.01" width="74.00" height="289.99" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<rect x="1206.00" y="551.61" width="74.00" height="28.39" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<polyline fill="none" stroke="#111" stroke-width="2.2" points="96.00,123.16 170.00,123.16 170.00,123.16 170.00,211.71 244.00,211.71 244.00,211.71 244.00,118.70 318.00,118.70 318.00,118.70 318.00,116.14 392.00,116.14 392.00,116.14 392.00,236.96 466.00,236.96 466.00,236.96 466.00,116.61 540.00,116.61 540.00,116.61 540.00,216.71 614.00,216.71 614.00,216.71 614.00,118.34 688.00,118.34 688.00,118.34 688.00,119.77 762.00,119.77 762.00,119.77 762.00,215.04 836.00,215.04 836.00,215.04 836.00,115.19 910.00,115.19 910.00,115.19 910.00,217.84 984.00,217.84 984.00,217.84 984.00,120.37 1058.00,120.37 1058.00,120.37 1058.00,195.81 1132.00,195.81 1132.00,195.81 1132.00,290.01 1206.00,290.01 1206.00,290.01 1206.00,551.61 1280.00,551.61"/>
+<line x1="1304" y1="106" x2="1330" y2="106" stroke="#111" stroke-width="2.2"/>
+<text x="1338" y="110" font-family="sans-serif" font-size="12">window SIT profile</text>
+<rect x="1304" y="124" width="24" height="12" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>
+<text x="1338" y="134" font-family="sans-serif" font-size="12">per-window bar</text>
+<text x="688.0" y="654" text-anchor="middle" font-family="sans-serif" font-size="13">Elapsed time (us)</text>
+<text x="24" y="329.0" transform="rotate(-90 24 329.0)" text-anchor="middle" font-family="sans-serif" font-size="13">SIT (normalized active fraction)</text>
+<text x="96" y="692" text-anchor="start" font-family="sans-serif" font-size="12" fill="#111">Caption: SIT variations reflect workload-level orchestration behavior and not hardware latency effects.</text>
+</svg>

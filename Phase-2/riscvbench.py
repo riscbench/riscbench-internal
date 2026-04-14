@@ -977,6 +977,106 @@ def resolve_qemu_binary(qemu_bin: str) -> str:
         return str(Path(qemu_bin).resolve())
     raise SystemExit(f"qemu binary not found: {qemu_bin}")
 
+
+def validate_workload_arg(target: str, workload: str) -> None:
+    if not str(workload).strip():
+        raise SystemExit("--workload must be a non-empty label")
+    if workload == "all":
+        return
+    if target == "tt_wormhole":
+        return
+    if target == "cpu" and workload not in WORKLOADS_CPU:
+        raise SystemExit(f"cpu does not support: {workload}")
+    if target == "spike" and workload not in WORKLOADS_SPIKE:
+        raise SystemExit(f"spike does not support: {workload}")
+    if target == "gem5" and workload not in WORKLOADS_GEM5:
+        raise SystemExit(f"gem5 does not support: {workload}")
+    if target == "qemu" and workload not in WORKLOADS_QEMU:
+        raise SystemExit(f"qemu does not support: {workload}")
+
+
+def resolve_requested_cores(requested: int | None) -> int:
+    if requested is None:
+        return 1
+    try:
+        cores = int(requested)
+    except Exception as exc:
+        raise SystemExit(f"invalid --cores value: {requested}") from exc
+    return max(1, cores)
+
+
+def parse_cpu_type_list(spec: str) -> list[str]:
+    return [tok.strip() for tok in str(spec).split(",") if tok.strip()]
+
+
+def resolve_gem5_cpu_type_plan(
+    default_cpu_type: str,
+    cpu_types_spec: str,
+    requested_cores: int,
+    cores_explicit: bool,
+) -> list[str]:
+    if not str(cpu_types_spec).strip():
+        return [str(default_cpu_type)] * max(1, int(requested_cores))
+
+    cpu_types = parse_cpu_type_list(cpu_types_spec)
+    if not cpu_types:
+        raise SystemExit("--gem5-cpu-types must contain at least one CPU type")
+
+    if cores_explicit:
+        if len(cpu_types) == 1:
+            return cpu_types * max(1, int(requested_cores))
+        if len(cpu_types) != int(requested_cores):
+            raise SystemExit(
+                f"--gem5-cpu-types count ({len(cpu_types)}) must match --cores ({requested_cores})"
+            )
+        return cpu_types
+
+    return cpu_types
+
+
+def build_gem5_mix_suffix(cpu_types: list[str]) -> str:
+    uniq = list(dict.fromkeys(cpu_types))
+    if len(uniq) <= 1:
+        return ""
+    joined = "-".join(cpu_types)
+    slug = re.sub(r"[^A-Za-z0-9]+", "-", joined).strip("-").lower()
+    if not slug:
+        slug = "mixed"
+    if len(slug) > 48:
+        slug = hashlib.sha1(joined.encode("utf-8")).hexdigest()[:12]
+    return f"__mix-{slug}"
+
+
+def workload_needs_pthread(workload: str) -> bool:
+    return workload == "matmul_shared"
+
+
+def build_gem5_process_plan(
+    workload: str,
+    binpath: Path,
+    cores: int,
+) -> tuple[int, str, str | None, bool, str]:
+    cores = max(1, int(cores))
+    if cores > 1 and workload not in {"matmul_multicore", "matmul_shared"}:
+        raise SystemExit(
+            "--cores > 1 for gem5 currently requires --workload matmul_multicore "
+            "or --workload matmul_shared so work can be split across CPUs."
+        )
+
+    if workload == "matmul_multicore":
+        cmd_spec = ";".join([str(binpath)] * cores)
+        option_spec = ";".join(
+            f"--worker-id {worker_id} --num-workers {cores}"
+            for worker_id in range(cores)
+        )
+        return cores, cmd_spec, option_spec, cores > 1, "process_sharded"
+
+    if workload == "matmul_shared":
+        option_spec = f"--num-threads {cores}"
+        return cores, str(binpath), option_spec, False, "shared_threads"
+
+    return 1, str(binpath), None, False, "single_process"
+
 def resolve_gem5_config(gem5_bin_path: str, gem5_root: str = "", explicit_config: str | None = None) -> Path:
     if explicit_config:
         cfg = Path(explicit_config).expanduser().resolve()
@@ -1180,9 +1280,16 @@ def find_repo_root() -> Path:
 def main():
     ap = argparse.ArgumentParser(prog="riscvbench")
     
-    ap.add_argument("--target", default="cpu", choices=["spike", "cpu", "gem5", "qemu", "both"])
-    ap.add_argument("--workload", default="fm_mm", 
-                    choices=sorted((WORKLOADS_CPU | WORKLOADS_SPIKE | WORKLOADS_GEM5 | WORKLOADS_QEMU) | {"all"}))
+    ap.add_argument("--target", default="cpu", choices=["spike", "cpu", "gem5", "qemu", "tt_wormhole", "both"])
+    ap.add_argument(
+        "--workload",
+        default="fm_mm",
+        help=(
+            "Workload label. Standard targets accept: "
+            + ", ".join(sorted(WORKLOADS_ALL_STANDARD))
+            + ". Use 'all' for sweep mode. tt_wormhole accepts any non-empty label."
+        ),
+    )
     ap.add_argument("--workload_size", default="small", choices=sorted(SIZES))
     
     ap.add_argument(
@@ -1241,20 +1348,63 @@ def main():
         action="store_true",
         help="Allow non-zero workload exit codes for qemu target (default: fail on non-zero)",
     )
+    ap.add_argument("--tt-profile-csv", default=None, help="tt_wormhole input: profile_log_device.csv")
+    ap.add_argument("--tt-zone-log", default=None, help="tt_wormhole input: zone_src_locations.log")
+    ap.add_argument(
+        "--tt-output-mode",
+        default="tile",
+        choices=["lane", "tile"],
+        help="tt_wormhole adapter output mode (tile default for SIT, lane for debug)",
+    )
+    ap.add_argument("--tt-chip-freq-mhz", type=int, default=None, help="tt_wormhole optional CHIP_FREQ override")
+    ap.add_argument("--tt-strict-pairing", action="store_true", help="tt_wormhole: fail on unmatched start/end")
+    ap.add_argument("--tt-strict-map-hit", action="store_true", help="tt_wormhole: fail on zone-map misses")
+    ap.add_argument("--tt-ops-per-zone", type=float, default=None, help="tt_wormhole work_done units per explicit throughput zone")
+    ap.add_argument(
+        "--tt-residency-model",
+        default="kernel_envelope",
+        choices=["kernel_envelope", "active_span"],
+        help="tt_wormhole residency model",
+    )
 
     args = ap.parse_args()
-    
-    print("\n=== CORRECT MODEL ===")
-    print("IDLE: in workload (nop loops - core not computing)")
-    print("STALL: workload/orchestration factors from flags (--branch-mispredict, --cache-pressure)")
-    print("Values: from workload execution (markers 101/102)\n")
-    
-    if args.branch_mispredict:
-        print("ℹ --branch-mispredict: synthetic control-flow perturbation (workload/orchestration factor)")
-    if args.cache_pressure:
-        print("ℹ --cache-pressure: synthetic memory-pressure pattern (workload/orchestration factor)")
-    if not args.branch_mispredict and not args.cache_pressure:
-        print("ℹ Baseline: no stall flags, ~50% idle in workload")
+    validate_workload_arg(args.target, args.workload)
+    requested_cores = resolve_requested_cores(args.cores)
+    gem5_cpu_type_plan = [str(args.gem5_cpu_type)]
+    if args.target == "gem5":
+        gem5_cpu_type_plan = resolve_gem5_cpu_type_plan(
+            default_cpu_type=str(args.gem5_cpu_type),
+            cpu_types_spec=str(args.gem5_cpu_types),
+            requested_cores=requested_cores,
+            cores_explicit=args.cores is not None,
+        )
+        requested_cores = max(1, len(gem5_cpu_type_plan))
+    if requested_cores > 1 and args.target != "gem5":
+        raise SystemExit("--cores > 1 is currently supported only for --target gem5.")
+
+    if args.target == "tt_wormhole":
+        residency_desc = (
+            "first-active..last-active per core (compute-oriented)"
+            if args.tt_residency_model == "active_span"
+            else "workload-owned kernel envelope"
+        )
+        print("\n=== TT WORMHOLE MODEL ===")
+        print("Timing source: TT profiler ZONE_START/ZONE_END cycles")
+        print("Semantics source: zone_src_locations pragma map")
+        print(f"Residency: {residency_desc}")
+        print("State inside residency: ACTIVE/STALL/IDLE from TT zone classification\n")
+    else:
+        print("\n=== CORRECT MODEL ===")
+        print("IDLE: in workload (nop loops - core not computing)")
+        print("STALL: workload/orchestration factors from flags (--branch-mispredict, --cache-pressure)")
+        print("Values: from workload execution (markers 101/102)\n")
+
+        if args.branch_mispredict:
+            print("ℹ --branch-mispredict: synthetic control-flow perturbation (workload/orchestration factor)")
+        if args.cache_pressure:
+            print("ℹ --cache-pressure: synthetic memory-pressure pattern (workload/orchestration factor)")
+        if not args.branch_mispredict and not args.cache_pressure:
+            print("ℹ Baseline: no stall flags, ~50% idle in workload")
     if args.target == "gem5" and args.gem5_adapter_mode == "stats":
         print(
             "ℹ gem5 stats adapter infers state from IPC/cache counters; "
@@ -1264,6 +1414,8 @@ def main():
     print()
 
     if args.target == "both" or args.workload == "all":
+        if args.target == "tt_wormhole" and args.workload == "all":
+            raise SystemExit("tt_wormhole target does not support --workload all; provide a single workload label for output pathing.")
         targets = ["spike", "cpu"] if args.target == "both" else [args.target]
         workloads = list(
             ["fm_loopback", "fm_mm", "fm_sparse", "fm_read", "fm_write"]
@@ -1289,8 +1441,14 @@ def main():
     adapter_spike = repo / "adapters" / "spike_adapter.py"
     adapter_gem5 = repo / "adapters" / "gem5_adapter.py"
     adapter_qemu = repo / "adapters" / "qemu_adapter.py"
+    adapter_tt = repo / "adapters" / "tt_wormhole_adapter.py"
 
-    run_dir = repo / "runs" / args.target / args.workload / args.workload_size
+    run_size_dir = args.workload_size
+    if args.target == "gem5" and requested_cores > 1:
+        run_size_dir = f"{args.workload_size}__c{requested_cores}"
+    if args.target == "gem5":
+        run_size_dir += build_gem5_mix_suffix(gem5_cpu_type_plan)
+    run_dir = repo / "runs" / args.target / args.workload / run_size_dir
     build_dir = run_dir / "build"
     traces_dir = run_dir / "traces"
     inputs_dir = run_dir / "inputs"
@@ -1309,6 +1467,9 @@ def main():
         "thresholds": {},
         "allow_nonzero_exit": False,
         "input_trace_path": None,
+        "requested_cores": requested_cores,
+        "workload_sharded": False,
+        "workload_parallel_mode": "single_process",
     }
 
     if args.target == "spike":
@@ -1584,6 +1745,70 @@ def main():
             }
         )
 
+    elif args.target == "tt_wormhole":
+        if not args.tt_profile_csv:
+            raise SystemExit("--tt-profile-csv is required when --target tt_wormhole")
+        if not args.tt_zone_log:
+            raise SystemExit("--tt-zone-log is required when --target tt_wormhole")
+        profile_csv = Path(args.tt_profile_csv).resolve()
+        zone_log = Path(args.tt_zone_log).resolve()
+        if not profile_csv.exists():
+            raise SystemExit(f"tt_wormhole profile csv not found: {profile_csv}")
+        if not zone_log.exists():
+            raise SystemExit(f"tt_wormhole zone log not found: {zone_log}")
+        if not adapter_tt.exists():
+            raise SystemExit(f"tt_wormhole adapter not found: {adapter_tt}")
+
+        adapter_env = dict(os.environ)
+        adapter_env["PYTHONPATH"] = f"{repo}:{adapter_env.get('PYTHONPATH', '')}".rstrip(":")
+        adapter_cmd = [
+            sys.executable,
+            str(adapter_tt),
+            "--profile-csv",
+            str(profile_csv),
+            "--zone-log",
+            str(zone_log),
+            "--out-dir",
+            str(inputs_dir),
+            "--output-mode",
+            str(args.tt_output_mode),
+        ]
+        if args.tt_chip_freq_mhz is not None:
+            adapter_cmd += ["--chip-freq-mhz", str(args.tt_chip_freq_mhz)]
+        if args.tt_strict_pairing:
+            adapter_cmd += ["--strict-pairing"]
+        if args.tt_strict_map_hit:
+            adapter_cmd += ["--strict-map-hit"]
+        if args.tt_ops_per_zone is not None:
+            adapter_cmd += ["--ops-per-zone", str(args.tt_ops_per_zone)]
+        if args.tt_residency_model:
+            adapter_cmd += ["--residency-model", str(args.tt_residency_model)]
+
+        sh(adapter_cmd, cwd=repo, env=adapter_env)
+
+        state_csv = inputs_dir / "state_intervals.csv"
+        resid_csv = inputs_dir / "residency_intervals.csv"
+        if not state_csv.exists() or state_csv.stat().st_size == 0:
+            raise SystemExit(f"tt_wormhole adapter state output missing/empty: {state_csv}")
+        if not resid_csv.exists() or resid_csv.stat().st_size == 0:
+            raise SystemExit(f"tt_wormhole adapter residency output missing/empty: {resid_csv}")
+
+        adapter_meta_base.update(
+            {
+                "adapter_name": "tt_wormhole_adapter",
+                "adapter_mode": str(args.tt_output_mode),
+                "tool_version": resolve_tool_version([sys.executable, "--version"]),
+                "thresholds": {
+                    "strict_pairing": bool(args.tt_strict_pairing),
+                    "strict_map_hit": bool(args.tt_strict_map_hit),
+                    "chip_freq_mhz_override": args.tt_chip_freq_mhz,
+                    "ops_per_zone": args.tt_ops_per_zone,
+                    "residency_model": str(args.tt_residency_model),
+                },
+                "input_trace_path": str(profile_csv),
+            }
+        )
+
     elif args.target == "cpu":
         if args.workload in WORKLOADS_CPU:
             cpath = write_workload(build_dir, args.workload, args.workload_size, args.branch_mispredict, args.cache_pressure)
@@ -1680,6 +1905,11 @@ def main():
         "input_trace_sha256": adapter_meta_full.get("input_trace_sha256"),
         "normalized_output_sha256": adapter_meta_full.get("normalized_output_sha256"),
         "allow_nonzero_exit": adapter_meta_base.get("allow_nonzero_exit"),
+        "requested_cores": adapter_meta_base.get("requested_cores"),
+        "workload_sharded": adapter_meta_base.get("workload_sharded"),
+        "workload_parallel_mode": adapter_meta_base.get("workload_parallel_mode"),
+        "cpu_types": adapter_meta_base.get("cpu_types"),
+        "heterogeneous_cpu_mix": adapter_meta_base.get("heterogeneous_cpu_mix"),
     }
     for smry in [run_dir / "summary.json", run_dir / "run_summary.json"]:
         if not smry.exists():

@@ -278,21 +278,146 @@ def main():
     out = pd.DataFrame.from_records(records, columns=out_cols)
     out = out.sort_values(["core", "window_id"]).reset_index(drop=True)
 
+    cores_present = sorted(out["core"].unique().tolist()) if len(out) else []
+    total_cores = max(len(cores_present), 1)
+
+    aggregate_state_acc: Dict[int, Dict[str, float]] = {}
+    aggregate_resident_acc: Dict[int, float] = {}
+    aggregate_work_acc: Dict[int, float] = {}
+    aggregate_resident_cores: Dict[int, int] = {}
+    all_window_ids = sorted({wid for (_core, wid) in all_keys})
+
+    for (core, wid) in all_keys:
+        resident_us = window_us if residency_by_core is None else resident_acc.get((core, wid), 0.0)
+        if wid not in aggregate_state_acc:
+            aggregate_state_acc[wid] = {"active_us": 0.0, "stall_us": 0.0, "idle_us": 0.0}
+        d = state_acc.get((core, wid), {"active_us": 0.0, "stall_us": 0.0, "idle_us": 0.0})
+        aggregate_state_acc[wid]["active_us"] += float(d["active_us"])
+        aggregate_state_acc[wid]["stall_us"] += float(d["stall_us"])
+        aggregate_state_acc[wid]["idle_us"] += float(d["idle_us"])
+        aggregate_resident_acc[wid] = aggregate_resident_acc.get(wid, 0.0) + float(resident_us)
+        if resident_us > 0:
+            aggregate_resident_cores[wid] = aggregate_resident_cores.get(wid, 0) + 1
+        if work_enabled:
+            aggregate_work_acc[wid] = aggregate_work_acc.get(wid, 0.0) + float(work_acc.get((core, wid), 0.0))
+
+    aggregate_records = []
+    for wid in all_window_ids:
+        w_start = wid * window_us
+        w_end = (wid + 1) * window_us
+        resident_us = float(aggregate_resident_acc.get(wid, 0.0))
+        is_resident_window = 1 if resident_us > 0 else 0
+        resident_cores = int(aggregate_resident_cores.get(wid, 0))
+
+        d = aggregate_state_acc.get(wid, {"active_us": 0.0, "stall_us": 0.0, "idle_us": 0.0})
+        active = float(d["active_us"])
+        stall = float(d["stall_us"])
+        idle = float(d["idle_us"])
+        work_done = float(aggregate_work_acc.get(wid, 0.0)) if work_enabled else float("nan")
+
+        if resident_us > 0:
+            denom = resident_us
+            total = active + stall + idle
+            if total < denom:
+                idle += (denom - total)
+                total = denom
+
+            active_f = active / total
+            stall_f = stall / total
+            idle_f = idle / total
+
+            sit_window_active = float("nan")
+            sit_global_active = float("nan")
+            if work_enabled and args.expected_work_rate > 0:
+                sit_raw = (work_done / denom) / float(args.expected_work_rate)
+                if not math.isfinite(sit_raw) or (sit_raw <= 0.0 and active > 0.0):
+                    sit_raw = active_f
+            elif not work_enabled:
+                sit_window_active = active_f
+                sit_global_active = global_sit_fallback
+                if args.no_work_sit_mode == "global_active":
+                    sit_raw = sit_global_active
+                else:
+                    sit_raw = sit_window_active
+            else:
+                sit_raw = active_f
+            sit = max(0.0, min(1.0, sit_raw))
+        else:
+            active_f = float("nan")
+            stall_f = float("nan")
+            idle_f = float("nan")
+            sit_raw = float("nan")
+            sit = float("nan")
+            sit_window_active = float("nan")
+            sit_global_active = float("nan")
+
+        aggregate_records.append({
+            "window_id": wid,
+            "window_start_us": w_start,
+            "window_end_us": w_end,
+            "resident_us": resident_us,
+            "resident_core_equiv": (resident_us / window_us) if window_us > 0 else float("nan"),
+            "resident_cores": resident_cores,
+            "resident_frac_of_capacity": (
+                resident_us / (window_us * float(total_cores))
+            ) if window_us > 0 and total_cores > 0 else float("nan"),
+            "is_resident_window": is_resident_window,
+            "active_frac": active_f,
+            "stall_frac": stall_f,
+            "idle_frac": idle_f,
+            "sit_no_work_window_active": sit_window_active,
+            "sit_no_work_global_active": sit_global_active,
+            "sit": sit,
+        })
+
+    aggregate_cols = [
+        "window_id", "window_start_us", "window_end_us",
+        "resident_us", "resident_core_equiv", "resident_cores",
+        "resident_frac_of_capacity", "is_resident_window",
+        "active_frac", "stall_frac", "idle_frac",
+        "sit_no_work_window_active", "sit_no_work_global_active",
+        "sit",
+    ]
+    aggregate_out = pd.DataFrame.from_records(aggregate_records, columns=aggregate_cols)
+    aggregate_out = aggregate_out.sort_values(["window_id"]).reset_index(drop=True)
+
     # Summary uses only resident windows
     resident_out = out[out["is_resident_window"] == 1].copy()
     sits = resident_out["sit"].dropna().astype(float).tolist()
+    aggregate_resident_out = aggregate_out[aggregate_out["is_resident_window"] == 1].copy()
+    aggregate_sits = aggregate_resident_out["sit"].dropna().astype(float).tolist()
+
+    per_core_sit_median = float(np.median(np.array(sits, dtype=float))) if sits else float("nan")
+    per_core_sit_p95 = percentile(sits, 95)
+    per_core_idle_avg = float(resident_out["idle_frac"].mean()) if len(resident_out) else float("nan")
+    per_core_stall_avg = float(resident_out["stall_frac"].mean()) if len(resident_out) else float("nan")
+    per_core_active_avg = float(resident_out["active_frac"].mean()) if len(resident_out) else float("nan")
+
+    overall_sit_median = float(np.median(np.array(aggregate_sits, dtype=float))) if aggregate_sits else float("nan")
+    overall_sit_p95 = percentile(aggregate_sits, 95)
+    overall_idle_avg = float(aggregate_resident_out["idle_frac"].mean()) if len(aggregate_resident_out) else float("nan")
+    overall_stall_avg = float(aggregate_resident_out["stall_frac"].mean()) if len(aggregate_resident_out) else float("nan")
+    overall_active_avg = float(aggregate_resident_out["active_frac"].mean()) if len(aggregate_resident_out) else float("nan")
 
     summary = {
         "schema_version": 1,
         "window_us": window_us,
         "windows_total": int(len(out)),
         "resident_windows_total": int(len(resident_out)),
-        "cores": sorted(out["core"].unique().tolist()) if len(out) else [],
-        "sit_median": float(np.median(np.array(sits, dtype=float))) if sits else float("nan"),
-        "sit_p95": percentile(sits, 95),
-        "residency_idle_avg": float(resident_out["idle_frac"].mean()) if len(resident_out) else float("nan"),
-        "residency_stall_avg": float(resident_out["stall_frac"].mean()) if len(resident_out) else float("nan"),
-        "residency_active_avg": float(resident_out["active_frac"].mean()) if len(resident_out) else float("nan"),
+        "cores": cores_present,
+        "sit_summary_basis": "per_core_window",
+        "sit_median": per_core_sit_median,
+        "sit_p95": per_core_sit_p95,
+        "residency_idle_avg": per_core_idle_avg,
+        "residency_stall_avg": per_core_stall_avg,
+        "residency_active_avg": per_core_active_avg,
+        "aggregate_windows_total": int(len(aggregate_out)),
+        "aggregate_resident_windows_total": int(len(aggregate_resident_out)),
+        "overall_window_sit_median": overall_sit_median,
+        "overall_window_sit_p95": overall_sit_p95,
+        "overall_window_residency_idle_avg": overall_idle_avg,
+        "overall_window_residency_stall_avg": overall_stall_avg,
+        "overall_window_residency_active_avg": overall_active_avg,
         "used_residency_file": bool(args.residency is not None),
         "expected_work_rate": float(args.expected_work_rate),
         "work_done_present": bool(work_enabled),
@@ -301,12 +426,15 @@ def main():
     }
 
     csv_path = f"{args.out_prefix}_windows.csv"
+    aggregate_csv_path = f"{args.out_prefix}_aggregate_windows.csv"
     json_path = f"{args.out_prefix}_summary.json"
     out.to_csv(csv_path, index=False)
+    aggregate_out.to_csv(aggregate_csv_path, index=False)
     with open(json_path, "w") as f:
         json.dump(summary, f, indent=2)
 
     print("✓ windows written:", csv_path)
+    print("✓ aggregate windows written:", aggregate_csv_path)
     print("✓ summary written:", json_path)
     if args.debug_sit:
         total_us = total_active_us + total_stall_us + total_idle_us

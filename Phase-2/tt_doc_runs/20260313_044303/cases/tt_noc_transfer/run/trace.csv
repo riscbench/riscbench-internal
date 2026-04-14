@@ -1,0 +1,3 @@
+start_us,end_us,core,state,start_cycle,end_cycle,core_id,pcie_slot,core_x,core_y,risc_type,zone_name,source_file,source_line,origin,map_hit
+0.0,1.17,0,stall,13219130475230,13219130476400,slot0_x1_y1,0,1,1,TILE,NCRISC-KERNEL,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisck.cc,69,tile_fused:runtime,1
+0.421,1.657,1,stall,13219130475651,13219130476887,slot0_x1_y2,0,1,2,TILE,NCRISC-KERNEL,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisck.cc,69,tile_fused:runtime,1

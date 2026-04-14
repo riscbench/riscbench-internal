@@ -1,0 +1,2 @@
+core,window_id,window_start_us,window_end_us,resident_us,resident_frac_of_window,is_resident_window,active_frac,stall_frac,idle_frac,sit,sit_no_work_window_active,source_cores
+0,0,0.000000,256.000000,80.785000,0.315566,1,0.938330,0.061670,0.000000,0.938330,0.938330,1

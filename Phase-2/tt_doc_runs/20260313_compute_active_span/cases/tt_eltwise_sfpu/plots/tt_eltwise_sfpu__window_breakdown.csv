@@ -1,0 +1,2 @@
+window_id,window_start_us,window_end_us,window_us,resident_us,resident_compute_us,idle_us,memory_attributed_us,non_resident_us,sit_timeline_value,sit_timeline_source
+0,0.000000,256.000000,256.000000,79.950000,75.802993,0.000000,4.147006,176.050000,0.948130000,Source metric: sit_no_work_window_active (no-work fallback)

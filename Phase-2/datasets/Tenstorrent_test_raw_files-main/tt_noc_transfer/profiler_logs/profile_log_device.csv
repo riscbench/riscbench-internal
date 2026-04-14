@@ -1,0 +1,18 @@
+ARCH: wormhole_b0, CHIP_FREQ[MHz]: 1000, Max Compute Cores: 64
+PCIe slot, core_x, core_y, RISC processor type, timer_id, time[cycles since reset], data, run host ID, trace id, trace id counter, zone name, type, source line, source file, meta data
+0,1,1,BRISC,29421,13219130474587,0,0,,,BRISC-FW,ZONE_START,427,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisc.cc,
+0,1,1,BRISC,50266,13219130475244,0,0,,,BRISC-KERNEL,ZONE_START,77,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisck.cc,
+0,1,1,BRISC,50266,13219130476400,0,0,,,BRISC-KERNEL,ZONE_END,77,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisck.cc,
+0,1,1,BRISC,29421,13219130476576,0,0,,,BRISC-FW,ZONE_END,427,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisc.cc,
+0,1,1,NCRISC,45447,13219130474730,0,0,,,NCRISC-FW,ZONE_START,127,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisc.cc,
+0,1,1,NCRISC,54066,13219130475230,0,0,,,NCRISC-KERNEL,ZONE_START,69,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisck.cc,
+0,1,1,NCRISC,54066,13219130475892,0,0,,,NCRISC-KERNEL,ZONE_END,69,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisck.cc,
+0,1,1,NCRISC,45447,13219130476005,0,0,,,NCRISC-FW,ZONE_END,127,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisc.cc,
+0,1,2,BRISC,29421,13219130475015,0,0,,,BRISC-FW,ZONE_START,427,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisc.cc,
+0,1,2,BRISC,50266,13219130475678,0,0,,,BRISC-KERNEL,ZONE_START,77,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisck.cc,
+0,1,2,BRISC,50266,13219130476887,0,0,,,BRISC-KERNEL,ZONE_END,77,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisck.cc,
+0,1,2,BRISC,29421,13219130477063,0,0,,,BRISC-FW,ZONE_END,427,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisc.cc,
+0,1,2,NCRISC,45447,13219130475166,0,0,,,NCRISC-FW,ZONE_START,127,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisc.cc,
+0,1,2,NCRISC,54066,13219130475651,0,0,,,NCRISC-KERNEL,ZONE_START,69,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisck.cc,
+0,1,2,NCRISC,54066,13219130476362,0,0,,,NCRISC-KERNEL,ZONE_END,69,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisck.cc,
+0,1,2,NCRISC,45447,13219130476474,0,0,,,NCRISC-FW,ZONE_END,127,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/ncrisc.cc,

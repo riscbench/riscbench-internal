@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="980" height="560">
+<rect width="100%" height="100%" fill="white"/>
+<text x="490.0" y="24" text-anchor="middle" font-family="sans-serif" font-size="18">Common SIT Median by Workload (Tenstorrent Wormhole)</text>
+<text x="490.0" y="40" text-anchor="middle" font-family="sans-serif" font-size="11">Spike and QEMU do not model microarchitectural timing; gem5 and hardware platforms may.</text>
+<line x1="80" y1="470" x2="720" y2="470" stroke="#222"/>
+<line x1="80" y1="44" x2="80" y2="470" stroke="#222"/>
+<line x1="80" y1="470.0" x2="720" y2="470.0" stroke="#eee"/>
+<text x="72" y="474.0" text-anchor="end" font-family="sans-serif" font-size="11">0.158</text>
+<line x1="80" y1="363.5" x2="720" y2="363.5" stroke="#eee"/>
+<text x="72" y="367.5" text-anchor="end" font-family="sans-serif" font-size="11">0.369</text>
+<line x1="80" y1="257.0" x2="720" y2="257.0" stroke="#eee"/>
+<text x="72" y="261.0" text-anchor="end" font-family="sans-serif" font-size="11">0.579</text>
+<line x1="80" y1="150.5" x2="720" y2="150.5" stroke="#eee"/>
+<text x="72" y="154.5" text-anchor="end" font-family="sans-serif" font-size="11">0.790</text>
+<line x1="80" y1="44.0" x2="720" y2="44.0" stroke="#eee"/>
+<text x="72" y="48.0" text-anchor="end" font-family="sans-serif" font-size="11">1.000</text>
+<line x1="80.0" y1="470" x2="80.0" y2="475" stroke="#222"/>
+<text x="80.0" y="492" text-anchor="middle" font-family="sans-serif" font-size="11" transform="rotate(20 80.0 492)">tt_custom_sfpi_add</text>
+<line x1="208.0" y1="470" x2="208.0" y2="475" stroke="#222"/>
+<text x="208.0" y="492" text-anchor="middle" font-family="sans-serif" font-size="11" transform="rotate(20 208.0 492)">tt_eltwise_binary</text>
+<line x1="336.0" y1="470" x2="336.0" y2="475" stroke="#222"/>
+<text x="336.0" y="492" text-anchor="middle" font-family="sans-serif" font-size="11" transform="rotate(20 336.0 492)">tt_eltwise_sfpu</text>
+<line x1="464.0" y1="470" x2="464.0" y2="475" stroke="#222"/>
+<text x="464.0" y="492" text-anchor="middle" font-family="sans-serif" font-size="11" transform="rotate(20 464.0 492)">tt_matmul_multi</text>
+<line x1="592.0" y1="470" x2="592.0" y2="475" stroke="#222"/>
+<text x="592.0" y="492" text-anchor="middle" font-family="sans-serif" font-size="11" transform="rotate(20 592.0 492)">tt_matmul_single</text>
+<line x1="720.0" y1="470" x2="720.0" y2="475" stroke="#222"/>
+<text x="720.0" y="492" text-anchor="middle" font-family="sans-serif" font-size="11" transform="rotate(20 720.0 492)">tt_sfpu_chain</text>
+<polyline fill="none" stroke="#1f77b4" stroke-width="2.2" points="80.0,90.1 208.0,470.0 336.0,69.6 464.0,49.0 592.0,103.3 720.0,44.0"/>
+<circle cx="80.0" cy="90.1" r="3.8" fill="#1f77b4"/>
+<circle cx="208.0" cy="470.0" r="3.8" fill="#1f77b4"/>
+<circle cx="336.0" cy="69.6" r="3.8" fill="#1f77b4"/>
+<circle cx="464.0" cy="49.0" r="3.8" fill="#1f77b4"/>
+<circle cx="592.0" cy="103.3" r="3.8" fill="#1f77b4"/>
+<circle cx="720.0" cy="44.0" r="3.8" fill="#1f77b4"/>
+<line x1="740" y1="68" x2="764" y2="68" stroke="#1f77b4" stroke-width="3"/>
+<text x="770" y="72" font-family="sans-serif" font-size="12">baseline</text>
+<text x="400.0" y="542" text-anchor="middle" font-family="sans-serif" font-size="13">workload</text>
+<text x="24" y="257.0" transform="rotate(-90 24 257.0)" text-anchor="middle" font-family="sans-serif" font-size="13">sit_median</text>
+</svg>

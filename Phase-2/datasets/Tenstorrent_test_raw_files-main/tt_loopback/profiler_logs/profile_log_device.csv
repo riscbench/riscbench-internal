@@ -1,0 +1,6 @@
+ARCH: wormhole_b0, CHIP_FREQ[MHz]: 1000, Max Compute Cores: 64
+PCIe slot, core_x, core_y, RISC processor type, timer_id, time[cycles since reset], data, run host ID, trace id, trace id counter, zone name, type, source line, source file, meta data
+0,1,1,BRISC,29421,13218745981128,0,0,,,BRISC-FW,ZONE_START,427,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisc.cc,
+0,1,1,BRISC,50266,13218745981567,0,0,,,BRISC-KERNEL,ZONE_START,77,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisck.cc,
+0,1,1,BRISC,50266,13218746026037,0,0,,,BRISC-KERNEL,ZONE_END,77,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisck.cc,
+0,1,1,BRISC,29421,13218746026218,0,0,,,BRISC-FW,ZONE_END,427,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisc.cc,

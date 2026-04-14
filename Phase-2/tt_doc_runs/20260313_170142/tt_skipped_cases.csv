@@ -1,0 +1,3 @@
+case,reason,status
+phase0_golden,missing profile_log_device.csv,skip
+tt_custom_sfpi_smoothstep,missing profile_log_device.csv,skip

@@ -1,0 +1,11 @@
+window_id,window_start_us,window_end_us,window_us,resident_us,resident_compute_us,idle_us,memory_attributed_us,non_resident_us,sit_timeline_value,sit_timeline_source
+0,0.000000,8.000000,8.000000,8.000000,7.664000,0.000000,0.336000,0.000000,0.958000000,Source metric: sit_no_work_window_active (no-work fallback)
+1,8.000000,16.000000,8.000000,8.000000,7.541000,0.000000,0.459000,0.000000,0.942625000,Source metric: sit_no_work_window_active (no-work fallback)
+2,16.000000,24.000000,8.000000,8.000000,7.610000,0.000000,0.390000,0.000000,0.951250000,Source metric: sit_no_work_window_active (no-work fallback)
+3,24.000000,32.000000,8.000000,8.000000,7.545000,0.000000,0.455000,0.000000,0.943125000,Source metric: sit_no_work_window_active (no-work fallback)
+4,32.000000,40.000000,8.000000,8.000000,7.608000,0.000000,0.392000,0.000000,0.951000000,Source metric: sit_no_work_window_active (no-work fallback)
+5,40.000000,48.000000,8.000000,8.000000,7.543000,0.000000,0.457000,0.000000,0.942875000,Source metric: sit_no_work_window_active (no-work fallback)
+6,48.000000,56.000000,8.000000,8.000000,7.606000,0.000000,0.394000,0.000000,0.950750000,Source metric: sit_no_work_window_active (no-work fallback)
+7,56.000000,64.000000,8.000000,8.000000,7.542000,0.000000,0.458000,0.000000,0.942750000,Source metric: sit_no_work_window_active (no-work fallback)
+8,64.000000,72.000000,8.000000,8.000000,7.606000,0.000000,0.394000,0.000000,0.950750000,Source metric: sit_no_work_window_active (no-work fallback)
+9,72.000000,80.000000,8.000000,7.950000,7.537999,0.000000,0.412001,0.050000,0.948176000,Source metric: sit_no_work_window_active (no-work fallback)

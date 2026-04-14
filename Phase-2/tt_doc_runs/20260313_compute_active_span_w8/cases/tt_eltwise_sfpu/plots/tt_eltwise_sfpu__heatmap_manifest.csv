@@ -1,0 +1,6 @@
+metric,svg
+active_frac,/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/tt_doc_runs/20260313_compute_active_span_w8/cases/tt_eltwise_sfpu/plots/tt_eltwise_sfpu__heatmap_active_frac.svg
+stall_frac,/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/tt_doc_runs/20260313_compute_active_span_w8/cases/tt_eltwise_sfpu/plots/tt_eltwise_sfpu__heatmap_stall_frac.svg
+idle_frac,/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/tt_doc_runs/20260313_compute_active_span_w8/cases/tt_eltwise_sfpu/plots/tt_eltwise_sfpu__heatmap_idle_frac.svg
+resident_frac_of_window,/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/tt_doc_runs/20260313_compute_active_span_w8/cases/tt_eltwise_sfpu/plots/tt_eltwise_sfpu__heatmap_resident_frac_of_window.svg
+sit_metric,/home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline/Phase-2/tt_doc_runs/20260313_compute_active_span_w8/cases/tt_eltwise_sfpu/plots/tt_eltwise_sfpu__heatmap_sit_metric.svg

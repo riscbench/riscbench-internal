@@ -203,6 +203,49 @@ Notes:
 - Use `--allow-nonzero-exit` only when the workload intentionally returns a non-zero code but still emits a valid trace.
 - Adapter heuristics (idle/stall inference) are parser-level normalization rules; SIT windowing/scoring policy remains in `sit_engine_phase1.py`.
 
+### Optional Tenstorrent Wormhole Adapter Run
+
+Tenstorrent raw profiler logs can be normalized with:
+- `Phase-2/adapters/tt_wormhole_adapter.py`
+  - input: `profile_log_device.csv` + `zone_src_locations.log`
+  - output: `state_intervals.csv` + `residency_intervals.csv`
+
+Example:
+
+```bash
+cd /home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline
+
+python3 Phase-2/adapters/tt_wormhole_adapter.py \
+  --profile-csv Phase-2/datasets/Tenstorrent_test_raw_files-main/tt_matmul_multi/profiler_logs/profile_log_device.csv \
+  --zone-log Phase-2/datasets/Tenstorrent_test_raw_files-main/tt_matmul_multi/profiler_logs/zone_src_locations.log \
+  --out-dir /tmp/tt_wh_out_tile \
+  --output-mode tile
+
+python3 Phase-2/sit_engine_phase1.py \
+  --trace /tmp/tt_wh_out_tile/state_intervals.csv \
+  --residency /tmp/tt_wh_out_tile/residency_intervals.csv \
+  --window-us 256 \
+  --out-prefix /tmp/tt_wh_out_tile/sit
+```
+
+Or run the same flow through Phase-2 CLI:
+
+```bash
+cd /home/dev_srinidhi/sit-cpu-baseline/sit-cpu-baseline
+
+python3 Phase-2/cli.py ingest \
+  --trace Phase-2/datasets/Tenstorrent_test_raw_files-main/tt_matmul_multi/profiler_logs/profile_log_device.csv \
+  --format tt_wormhole \
+  --zone-log Phase-2/datasets/Tenstorrent_test_raw_files-main/tt_matmul_multi/profiler_logs/zone_src_locations.log \
+  --tt-output-mode tile \
+  --strict-pairing \
+  --strict-map-hit \
+  --out /tmp/tt_cli_ingest
+
+python3 Phase-2/cli.py classify --in /tmp/tt_cli_ingest --window-us 256
+python3 Phase-2/cli.py export --in /tmp/tt_cli_ingest
+```
+
 Run QEMU golden matrix pipeline (same output structure as Spike pipeline):
 
 ```bash

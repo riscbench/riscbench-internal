@@ -1,0 +1,2 @@
+core,window_id,window_start_us,window_end_us,resident_us,resident_frac_of_window,is_resident_window,active_frac,stall_frac,idle_frac,sit_no_work_window_active,sit_no_work_global_active,sit
+0,0,0.0,256.0,40.437,0.15795703125,1,0.1602245468259285,0.8397754531740715,0.0,0.1602245468259285,0.1602245468259285,0.1602245468259285

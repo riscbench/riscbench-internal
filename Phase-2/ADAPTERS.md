@@ -30,6 +30,8 @@ Adapter implementations in repo:
   - `BaselineAdapter(TraceAdapter)`, validates normalized outputs.
 - `Phase-2/adapters/cpu_adapter.py`
   - parses raw event traces; emits state/residency DataFrames.
+- `Phase-2/adapters/tt_wormhole_adapter.py`
+  - parses Tenstorrent `profile_log_device.csv` + `zone_src_locations` mapping; emits normalized state/residency CSVs.
 - `Phase-2/adapters/spike_adapter.py`
   - emits normalized CSVs from Spike commit logs.
 - `Phase-2/adapters/gem5_adapter.py`

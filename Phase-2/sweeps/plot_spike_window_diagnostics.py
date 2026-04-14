@@ -115,8 +115,8 @@ def choose_sit_series(rows: List[Dict[str, float]]) -> Tuple[List[float], str, s
     if vals_window_active and all(finite(v) for v in vals_window_active):
         return (
             vals_window_active,
-            "SIT (instructions/us)",
-            "Source metric: sit_no_work_window_active",
+            "SIT (normalized active fraction)",
+            "Source metric: sit_no_work_window_active (no-work fallback)",
         )
 
     vals_sit = [r["sit"] for r in rows]
@@ -298,6 +298,161 @@ def write_plot1_sit_vs_time(
         '<text x="{x}" y="{y}" text-anchor="start" font-family="sans-serif" font-size="11" fill="#444">'
         "Expected in this view: residency bursts in active windows and orchestration gaps between phases."
         "</text>".format(x=ml, y=height - 56)
+    )
+    lines.append("</svg>")
+
+    out_path.write_text("\n".join(lines), encoding="utf-8")
+
+
+def write_plot3_sit_window_profile(
+    rows: List[Dict[str, float]],
+    yvals: List[float],
+    y_label: str,
+    source_note: str,
+    out_path: Path,
+    platform_label: str = "Spike",
+) -> None:
+    x_start = [r["window_start_us"] for r in rows]
+    x_end = [r["window_end_us"] for r in rows]
+    xmin = min(x_start)
+    xmax = max(x_end)
+    finite_y = [y for y in yvals if finite(y)]
+    if not finite_y:
+        return
+
+    ymin = min(0.0, min(finite_y))
+    ymax = max(finite_y)
+    if xmin == xmax:
+        xmax = xmin + 1.0
+    if ymin == ymax:
+        pad = 0.05 * (abs(ymax) if ymax != 0.0 else 1.0)
+        ymin -= pad
+        ymax += pad
+    else:
+        ymax *= 1.08
+    ref_line = sum(finite_y) / float(len(finite_y))
+
+    width = 1500
+    height = 760
+    ml, mr = 96, 220
+    mt, mb = 78, 180
+    pw = width - ml - mr
+    ph = height - mt - mb
+
+    def sx(x: float) -> float:
+        return ml + ((x - xmin) / (xmax - xmin)) * pw
+
+    def sy(y: float) -> float:
+        return mt + ph - ((y - ymin) / (ymax - ymin)) * ph
+
+    baseline_y = sy(0.0)
+    lines: List[str] = []
+    lines.append(f'<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{height}">')
+    lines.append('<rect width="100%" height="100%" fill="#fbfbfa"/>')
+    lines.append(
+        '<text x="{x}" y="30" text-anchor="middle" font-family="sans-serif" font-size="20">'
+        "{title}"
+        "</text>".format(
+            x=width / 2.0,
+            title=html.escape(f"Plot 3 - Window-by-Window SIT Profile ({platform_label})"),
+        )
+    )
+    lines.append(
+        '<text x="{x}" y="50" text-anchor="middle" font-family="sans-serif" font-size="12">{t}</text>'.format(
+            x=width / 2.0, t=html.escape(source_note)
+        )
+    )
+
+    lines.append(f'<line x1="{ml}" y1="{baseline_y:.2f}" x2="{ml+pw}" y2="{baseline_y:.2f}" stroke="#111" stroke-width="1.2"/>')
+    lines.append(f'<line x1="{ml}" y1="{mt}" x2="{ml}" y2="{mt+ph}" stroke="#111" stroke-width="1.2"/>')
+
+    for t in ticks(xmin, xmax, 8):
+        x = sx(t)
+        lines.append(f'<line x1="{x:.2f}" y1="{mt}" x2="{x:.2f}" y2="{mt+ph}" stroke="#e6e6e6"/>')
+        lines.append(f'<line x1="{x:.2f}" y1="{baseline_y:.2f}" x2="{x:.2f}" y2="{baseline_y+6:.2f}" stroke="#111"/>')
+        lines.append(
+            '<text x="{x:.2f}" y="{y}" text-anchor="middle" font-family="sans-serif" font-size="11">{t}</text>'.format(
+                x=x, y=baseline_y + 24, t=fmt_tick(t, 1)
+            )
+        )
+
+    for t in ticks(ymin, ymax, 7):
+        y = sy(t)
+        lines.append(f'<line x1="{ml}" y1="{y:.2f}" x2="{ml+pw}" y2="{y:.2f}" stroke="#dddddd"/>')
+        lines.append(f'<line x1="{ml-6}" y1="{y:.2f}" x2="{ml}" y2="{y:.2f}" stroke="#111"/>')
+        lines.append(
+            '<text x="{x}" y="{y:.2f}" text-anchor="end" font-family="sans-serif" font-size="11">{t}</text>'.format(
+                x=ml - 10, y=y + 4, t=fmt_tick(t, 4)
+            )
+        )
+
+    ref_y = sy(ref_line)
+    lines.append(
+        f'<line x1="{ml}" y1="{ref_y:.2f}" x2="{ml+pw}" y2="{ref_y:.2f}" stroke="#666" stroke-width="1.2" stroke-dasharray="8,6"/>'
+    )
+    lines.append(
+        '<text x="{x}" y="{y}" font-family="sans-serif" font-size="12" fill="#444">Window mean SIT</text>'.format(
+            x=ml + pw - 120, y=ref_y - 8
+        )
+    )
+
+    step_points: List[Tuple[float, float]] = []
+    for row, yraw in zip(rows, yvals):
+        x0 = sx(row["window_start_us"])
+        x1 = sx(row["window_end_us"])
+        yv = 0.0 if not finite(yraw) else yraw
+        yy = sy(yv)
+        rect_y = min(yy, baseline_y)
+        rect_h = abs(baseline_y - yy)
+        lines.append(
+            '<rect x="{x:.2f}" y="{y:.2f}" width="{w:.2f}" height="{h:.2f}" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>'.format(
+                x=x0,
+                y=rect_y,
+                w=max(0.8, x1 - x0),
+                h=max(0.0, rect_h),
+            )
+        )
+        if not step_points:
+            step_points.append((x0, yy))
+        else:
+            prev_x, prev_y = step_points[-1]
+            if abs(prev_x - x0) > 1e-9 or abs(prev_y - yy) > 1e-9:
+                step_points.append((x0, prev_y))
+                step_points.append((x0, yy))
+        step_points.append((x1, yy))
+
+    poly = " ".join(f"{x:.2f},{y:.2f}" for x, y in step_points)
+    lines.append(f'<polyline fill="none" stroke="#111" stroke-width="2.2" points="{poly}"/>')
+
+    legend_x = ml + pw + 24
+    legend_y = mt + 28
+    lines.append(f'<line x1="{legend_x}" y1="{legend_y}" x2="{legend_x+26}" y2="{legend_y}" stroke="#111" stroke-width="2.2"/>')
+    lines.append(
+        '<text x="{x}" y="{y}" font-family="sans-serif" font-size="12">window SIT profile</text>'.format(
+            x=legend_x + 34, y=legend_y + 4
+        )
+    )
+    lines.append(f'<rect x="{legend_x}" y="{legend_y+18}" width="24" height="12" fill="#d9d9d9" fill-opacity="0.55" stroke="#9a9a9a" stroke-width="0.5"/>')
+    lines.append(
+        '<text x="{x}" y="{y}" font-family="sans-serif" font-size="12">per-window bar</text>'.format(
+            x=legend_x + 34, y=legend_y + 28
+        )
+    )
+
+    lines.append(
+        '<text x="{x}" y="{y}" text-anchor="middle" font-family="sans-serif" font-size="13">Elapsed time (us)</text>'.format(
+            x=ml + pw / 2.0, y=height - 106
+        )
+    )
+    lines.append(
+        '<text x="24" y="{y}" transform="rotate(-90 24 {y})" text-anchor="middle" font-family="sans-serif" font-size="13">{label}</text>'.format(
+            y=mt + ph / 2.0, label=html.escape(y_label)
+        )
+    )
+    lines.append(
+        '<text x="{x}" y="{y}" text-anchor="start" font-family="sans-serif" font-size="12" fill="#111">{cap}</text>'.format(
+            x=ml, y=height - 68, cap=html.escape(CAPTION_REQUIRED)
+        )
     )
     lines.append("</svg>")
 
@@ -518,6 +673,7 @@ def main() -> int:
     pfx = output_prefix(windows_csv, args.prefix)
     plot1 = out_dir / f"{pfx}__plot1_sit_vs_time.svg"
     plot2 = out_dir / f"{pfx}__plot2_window_breakdown_stacked.svg"
+    plot3 = out_dir / f"{pfx}__plot3_sit_window_profile.svg"
     csv_out = out_dir / f"{pfx}__window_breakdown.csv"
 
     write_plot1_sit_vs_time(
@@ -534,10 +690,19 @@ def main() -> int:
         max_bars=max(100, int(args.plot2_max_bars)),
         platform_label=str(args.platform_label),
     )
+    write_plot3_sit_window_profile(
+        rows,
+        yvals,
+        y_label,
+        source_note,
+        plot3,
+        platform_label=str(args.platform_label),
+    )
     write_breakdown_csv(rows, csv_out, source_note, yvals)
 
     print(f"Wrote: {plot1}")
     print(f"Wrote: {plot2}")
+    print(f"Wrote: {plot3}")
     print(f"Wrote: {csv_out}")
     print(f"SIT timeline source: {source_note}")
     return 0

@@ -1,0 +1,2 @@
+start_us,end_us,core,state,start_cycle,end_cycle,core_id,pcie_slot,core_x,core_y,risc_type,zone_name,source_file,source_line,origin,map_hit
+0.0,44.47,0,stall,13218745981567,13218746026037,slot0_x1_y1,0,1,1,TILE,BRISC-KERNEL,/hdd/flapmax/tt-metal/tt_metal/hw/firmware/src/tt-1xx/brisck.cc,77,tile_fused:runtime,1
