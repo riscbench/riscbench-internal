@@ -1,0 +1,21 @@
+# Python environment
+.venv/
+
+# Simulation run outputs (large)
+runs/
+
+# Generated reports
+results/
+
+# Stray command artifacts
+--out-dir
+--rows-csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Dataset contents — keep top-level datasets/ folder only (data files excluded)
+datasets/Tenstorrent_test_raw_files-main/
+datasets/Tenstorrent_test_raw_files-main.backup/

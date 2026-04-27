@@ -1,0 +1,239 @@
+{
+  "comparison_label": "tt_hw_sweep_matrix",
+  "logical_workload": "tt_hw_sweeps",
+  "reference_label": "__none__",
+  "python": "python3",
+  "shared_args": {
+    "time_us": 32.0,
+    "tt_output_mode": "tile",
+    "tt_residency_model": "kernel_envelope"
+  },
+  "shared_env": {},
+  "metrics": [
+    "sit_median",
+    "sit_p95",
+    "observed_flops_per_us_median",
+    "overall_observed_flops_per_us",
+    "observed_flops_total",
+    "expected_work_rate",
+    "residency_active_avg",
+    "residency_idle_avg",
+    "residency_stall_avg",
+    "windows_total",
+    "resident_windows_total",
+    "overall_window_sit_median",
+    "overall_window_sit_p95"
+  ],
+  "targets": [
+    {
+      "name": "tt_wormhole",
+      "label": "tt_matmul_single_m320",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_single",
+        "workload_size": "tt_m320_n320_k320"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_matmul_single_m640",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_single",
+        "workload_size": "tt_m640_n640_k640"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_matmul_single_m960",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_single",
+        "workload_size": "tt_m960_n960_k960"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_matmul_single_m1280",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_single",
+        "workload_size": "tt_m1280_n1280_k1280"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_matmul_multi_m320",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_multi",
+        "workload_size": "tt_m320_n320_k320"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_matmul_multi_m640",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_multi",
+        "workload_size": "tt_m640_n640_k640"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_matmul_multi_m960",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_multi",
+        "workload_size": "tt_m960_n960_k960"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_matmul_multi_m1280",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_multi",
+        "workload_size": "tt_m1280_n1280_k1280"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_sfpu_chain_fixed",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_sfpu_chain",
+        "workload_size": "tt_1tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_eltwise_sfpu_32tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_eltwise_sfpu",
+        "workload_size": "tt_32tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_eltwise_sfpu_64tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_eltwise_sfpu",
+        "workload_size": "tt_64tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_eltwise_sfpu_128tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_eltwise_sfpu",
+        "workload_size": "tt_128tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_eltwise_binary_32tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_eltwise_binary",
+        "workload_size": "tt_32tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_eltwise_binary_64tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_eltwise_binary",
+        "workload_size": "tt_64tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_eltwise_binary_128tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_eltwise_binary",
+        "workload_size": "tt_128tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_custom_sfpi_add_32tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_custom_sfpi_add",
+        "workload_size": "tt_32tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_custom_sfpi_add_64tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_custom_sfpi_add",
+        "workload_size": "tt_64tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_custom_sfpi_add_128tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_custom_sfpi_add",
+        "workload_size": "tt_128tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_custom_sfpi_smoothstep_32tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_custom_sfpi_smoothstep",
+        "workload_size": "tt_32tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_custom_sfpi_smoothstep_64tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_custom_sfpi_smoothstep",
+        "workload_size": "tt_64tile"
+      }
+    },
+    {
+      "name": "tt_wormhole",
+      "label": "tt_custom_sfpi_smoothstep_128tile",
+      "enabled": true,
+      "env": {},
+      "args": {
+        "workload": "tt_custom_sfpi_smoothstep",
+        "workload_size": "tt_128tile"
+      }
+    }
+  ]
+}

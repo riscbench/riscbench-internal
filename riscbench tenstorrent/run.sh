@@ -1,0 +1,15 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PYTHON_BIN="${SCRIPT_DIR}/.venv/bin/python"
+
+if [[ ! -x "${PYTHON_BIN}" ]]; then
+  PYTHON_BIN="${PYTHON:-python3}"
+fi
+
+if [[ $# -ge 1 && "${1}" != --* ]]; then
+  exec "${PYTHON_BIN}" "${SCRIPT_DIR}/device_handler/orchestrator.py" --config "$1" "${@:2}"
+fi
+
+exec "${PYTHON_BIN}" "${SCRIPT_DIR}/device_handler/orchestrator.py" "$@"

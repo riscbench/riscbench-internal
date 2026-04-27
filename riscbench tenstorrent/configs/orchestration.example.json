@@ -1,0 +1,88 @@
+{
+  "comparison_label": "tt_matmul_multi_vs_riscv_backends",
+  "logical_workload": "matmul_multi",
+  "reference_label": "tenstorrent_hw",
+  "python": "python3",
+  "auto_run_simulators_for_tt": true,
+  "auto_simulator_targets": [
+    "qemu",
+    "spike",
+    "gem5"
+  ],
+  "tt_to_simulator_workload_map": {
+    "tt_loopback": "fm_loopback",
+    "tt_matmul_single": "matmul",
+    "tt_matmul_multi": "matmul_multicore",
+    "tt_vecadd": "vecadd",
+    "tt_eltwise_binary": "eltwise_binary",
+    "tt_eltwise_sfpu": "eltwise_sfpu",
+    "tt_custom_sfpi_add": "custom_sfpi_add",
+    "tt_custom_sfpi_smoothstep": "custom_sfpi_smoothstep"
+  },
+  "shared_args": {
+    "workload_size": "test",
+    "time_us": 256.0,
+    "resident_pc_ge": "0x80000000"
+  },
+  "shared_env": {},
+  "metrics": [
+    "sit_median",
+    "sit_p95",
+    "residency_active_avg",
+    "residency_idle_avg",
+    "residency_stall_avg",
+    "windows_total",
+    "resident_windows_total",
+    "overall_window_sit_median",
+    "overall_window_sit_p95"
+  ],
+  "targets": [
+    {
+      "name": "tt_wormhole",
+      "label": "tenstorrent_hw",
+      "enabled": true,
+      "pre_run_cmd": "",
+      "pre_run_cwd": ".",
+      "env": {},
+      "args": {
+        "workload": "tt_matmul_multi",
+        "tt_profile_csv": "",
+        "tt_zone_log": "",
+        "tt_output_mode": "tile",
+        "tt_residency_model": "active_span"
+      }
+    }
+  ],
+  "simulator_templates": {
+    "qemu": {
+      "enabled": true,
+      "label": "qemu_backend",
+      "args": {
+        "sim_trace_only": true,
+        "qemu_bin": "qemu-riscv64",
+        "qemu_cc": "riscv64-linux-gnu-gcc",
+        "allow_nonzero_exit": true
+      }
+    },
+    "spike": {
+      "enabled": true,
+      "label": "spike_backend",
+      "args": {
+        "sim_trace_only": true,
+        "pk": "/absolute/path/to/pk",
+        "isa": "RV64GC"
+      }
+    },
+    "gem5": {
+      "enabled": true,
+      "label": "gem5_backend",
+      "args": {
+        "sim_trace_only": true,
+        "gem5_bin": "/absolute/path/to/gem5.opt",
+        "gem5_cc": "riscv64-linux-gnu-gcc",
+        "gem5_root": "/absolute/path/to/gem5",
+        "gem5_cpu_type": "TimingSimpleCPU"
+      }
+    }
+  }
+}

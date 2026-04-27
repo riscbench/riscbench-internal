@@ -1,0 +1,378 @@
+#!/usr/bin/env python3
+from __future__ import annotations
+
+import argparse
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+
+_BUNDLE_ROOT = Path(__file__).resolve().parent.parent
+if str(_BUNDLE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_BUNDLE_ROOT))
+
+# --- terminal formatting helpers ---
+def ok(msg: str) -> None:
+    print(f"\u2713 {msg}")   # ✓
+
+def info(msg: str) -> None:
+    print(f"\u203A {msg}")   # ›
+
+def blank() -> None:
+    print("")
+
+def ensure_dir(p: Path):
+    p.mkdir(parents=True, exist_ok=True)
+
+def cmd_ingest(args) -> int:
+    """
+    Phase-1 ingest (baseline adapter):
+      - CPU adapter parses raw trace format
+      - Baseline adapter validates via ingest_api
+      - Save normalized trace to CSV
+      - Record run manifest
+      - Print CLI stats
+    """
+    from sit_classifier.adapters.baseline_adapter import BaselineAdapter
+    from sit_classifier.adapters.tt_wormhole_adapter import TTWormholeParseConfig, TTWormholePlatformAdapter
+
+    outdir = Path(args.out)
+    ensure_dir(outdir)
+
+    trace_path = Path(args.trace).resolve()
+    if not trace_path.exists():
+        print(f"trace not found: {trace_path}")
+        return 2
+
+    df = None
+    resid_df = None
+    ingest_meta = {}
+
+    if args.format == "tt_wormhole":
+        if not args.zone_log:
+            print("--zone-log is required when --format tt_wormhole")
+            return 2
+        zone_log_path = Path(args.zone_log).resolve()
+        if not zone_log_path.exists():
+            print(f"zone log not found: {zone_log_path}")
+            return 2
+        try:
+            cfg = TTWormholeParseConfig(
+                output_mode=args.tt_output_mode,
+                normalize_zero=not bool(args.no_normalize_zero),
+                strict_pairing=bool(args.strict_pairing),
+                strict_map_hit=bool(args.strict_map_hit),
+                chip_freq_mhz_override=args.chip_freq_mhz,
+                residency_model=args.tt_residency_model,
+                ops_per_zone=args.tt_ops_per_zone,
+                expected_total_work=args.tt_expected_total_work,
+            )
+            tt_adapter = TTWormholePlatformAdapter(
+                str(trace_path),
+                str(zone_log_path),
+                cfg=cfg,
+            )
+            df = tt_adapter.build_state_intervals()
+            resid_df = tt_adapter.build_residency_intervals()
+            ingest_meta["zone_log"] = str(zone_log_path)
+            ingest_meta["tt_output_mode"] = args.tt_output_mode
+            ingest_meta["tt_residency_model"] = args.tt_residency_model
+            ingest_meta["tt_ops_per_zone"] = args.tt_ops_per_zone
+            ingest_meta["tt_expected_total_work"] = args.tt_expected_total_work
+            ingest_meta["tt_anomalies"] = tt_adapter.anomaly_summary()
+            ingest_meta["tt_work_audit"] = tt_adapter.work_audit_summary()
+        except Exception as e:
+            print(f"adapter error: {e}")
+            return 2
+    else:
+        trace_format = "raw" if args.format == "cpu" else "csv"
+        # Baseline adapter handles both CSV and raw (via CPU adapter)
+        try:
+            adapter = BaselineAdapter(
+                str(trace_path),
+                trace_format=trace_format,
+                max_events=args.events_max,
+            )
+            df = adapter.load_state_intervals()
+            if trace_format == "raw":
+                try:
+                    resid_df = adapter.load_residency_intervals()
+                except Exception:
+                    resid_df = None
+        except Exception as e:
+            print(f"adapter error: {e}")
+            return 2
+
+    if "core" not in df.columns:
+        print("trace missing required column: core")
+        return 2
+
+    # Save normalized trace as CSV for engine
+    normalized_trace = outdir / "trace.csv"
+    df.to_csv(normalized_trace, index=False)
+
+    cores = sorted(df["core"].unique().tolist())
+    n_events = int(len(df))
+    n_cores = int(len(cores))
+
+    # Pretty event count: show raw count for small traces, M for big traces
+    if n_events >= 1_000_000:
+        ev_str = f"{n_events/1e6:.1f} M"
+    else:
+        ev_str = f"{n_events}"
+
+    core_str = "core" if n_cores == 1 else "cores"
+
+    manifest = {
+        "trace": str(normalized_trace),
+        "original_trace": str(trace_path),
+        "format": args.format,
+        "events": n_events,
+        "cores": cores,
+    }
+    manifest.update(ingest_meta)
+
+    # If adapter produced residency, write it directly.
+    if resid_df is not None and len(resid_df) > 0:
+        resid_path = outdir / "residency.csv"
+        resid_df.to_csv(resid_path, index=False)
+        manifest["residency"] = str(resid_path)
+
+    # If baseline CSV ingest, check for sibling residency files to include
+    if args.format == "baseline":
+        trace_dir = trace_path.parent
+        candidates = [trace_dir / "residency.csv", trace_dir / "residency_intervals.csv", trace_dir / "inputs" / "residency_intervals.csv"]
+        for c in candidates:
+            if c.exists():
+                manifest["residency"] = str(c)
+                break
+    (outdir / "manifest.json").write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+
+    blank()
+    ok(f"parsed {ev_str} events across {n_cores} {core_str}")
+    for core_id in cores:
+        core_events = int((df["core"] == core_id).sum())
+        print(f"  - core {core_id}: {core_events} events")
+    blank()
+    return 0
+
+
+
+def cmd_classify(args) -> int:
+    """
+    Phase-1 classify:
+      - Loads manifest
+      - Runs engine with adapter inputs
+      - Writes stable artifacts into run dir
+      - Prints demo-style CLI output
+    """
+    outdir = Path(args.in_dir)
+    manifest_path = outdir / "manifest.json"
+    if not manifest_path.exists():
+        print("missing manifest.json in", outdir)
+        return 2
+
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    trace = manifest["trace"]
+    # Use residency from manifest if user didn't pass one
+    residency_path = None
+    if args.residency is not None:
+        rp = Path(args.residency).resolve()
+        if not rp.exists():
+            print("residency file not found:", rp)
+            return 2
+        residency_path = str(rp)
+    else:
+        # fallback to manifest entry if present
+        if "residency" in manifest:
+            residency_path = manifest.get("residency")
+
+    # Resolve engine path robustly (works after pip install -e .)
+    engine_py = (Path(__file__).resolve().parent / "sit_engine_phase1.py")
+    if not engine_py.exists():
+        print("engine file not found:", engine_py)
+        return 2
+
+    # residency_path already set above
+
+    # Pretty header (matches your target)
+    blank()
+    if residency_path:
+        info("applying residency classifiers")
+    else:
+        print(f"$ sit-engine classify --windows {int(args.window_us)}us")
+        info("no residency gating")
+
+    info("detecting SIT windows and thresholds")
+    blank()
+
+    out_prefix = outdir / "run"  # produces run_windows.csv + run_summary.json
+
+    cmd = [
+        sys.executable, str(engine_py),
+        "--trace", trace,
+        "--window-us", str(args.window_us),
+        "--out-prefix", str(out_prefix),
+    ]
+    if residency_path:
+        cmd += ["--residency", residency_path]
+    if args.expected_work_rate is not None:
+        cmd += ["--expected-work-rate", str(args.expected_work_rate)]
+    if args.no_work_sit_mode is not None:
+        cmd += ["--no-work-sit-mode", str(args.no_work_sit_mode)]
+    if args.debug_sit:
+        cmd += ["--debug-sit"]
+
+    p = subprocess.run(cmd)
+    if p.returncode != 0:
+        return p.returncode
+
+    # Stable names in run dir
+    src_windows = Path(str(out_prefix) + "_windows.csv")
+    src_aggregate_windows = Path(str(out_prefix) + "_aggregate_windows.csv")
+    src_summary = Path(str(out_prefix) + "_summary.json")
+
+    if not src_windows.exists() or not src_summary.exists():
+        print("engine did not produce expected outputs")
+        return 2
+
+    shutil.copyfile(src_windows, outdir / "windows.csv")
+    if src_aggregate_windows.exists():
+        shutil.copyfile(src_aggregate_windows, outdir / "aggregate_windows.csv")
+    shutil.copyfile(src_summary, outdir / "summary.json")
+
+    ok("windows ready")
+    if src_aggregate_windows.exists():
+        ok("aggregate windows ready")
+    ok("summary ready")
+    blank()
+    return 0
+
+
+
+def cmd_export(args) -> int:
+    """
+    Phase-1 export:
+      - Copies artifacts into versioned names (schema v1)
+      - Prints a clean summary block like the reference CLI
+    """
+    outdir = Path(args.in_dir)
+    windows = outdir / "windows.csv"
+    summary = outdir / "summary.json"
+    if not windows.exists() or not summary.exists():
+        print("missing windows.csv/summary.json in", outdir)
+        return 2
+    aggregate_windows = outdir / "aggregate_windows.csv"
+
+    export_dir = outdir / "export"
+    ensure_dir(export_dir)
+
+    # Copy with explicit schema version names
+    shutil.copyfile(windows, export_dir / "windows_v1.csv")
+    if aggregate_windows.exists():
+        shutil.copyfile(aggregate_windows, export_dir / "aggregate_windows_v1.csv")
+    shutil.copyfile(summary, export_dir / "summary_v1.json")
+
+    # Load summary for printing
+    s = json.loads(summary.read_text(encoding="utf-8"))
+
+    def pct(x: float) -> str:
+        if x != x:  # NaN
+            return "nan"
+        return f"{100.0 * x:.1f}%"
+
+    blank()
+    ok("summary")
+    blank()
+
+    def row(k: str, v: str) -> None:
+        print(f"  {k:<16} {v}")
+
+    # Defensive formatting (handles NaN)
+    sit_median = float(s.get("sit_median", float("nan")))
+    sit_p95 = float(s.get("sit_p95", float("nan")))
+    observed_rate = float(s.get("overall_observed_flops_per_us", s.get("overall_observed_work_rate", float("nan"))))
+    observed_total = float(s.get("observed_flops_total", s.get("observed_work_total", float("nan"))))
+    overall_sit_median = float(s.get("overall_window_sit_median", float("nan")))
+    idle_avg = float(s.get("residency_idle_avg", float("nan")))
+    stall_avg = float(s.get("residency_stall_avg", float("nan")))
+    overall_idle_avg = float(s.get("overall_window_residency_idle_avg", float("nan")))
+    overall_stall_avg = float(s.get("overall_window_residency_stall_avg", float("nan")))
+
+    row("sit_median", f"{sit_median:.2f}" if sit_median == sit_median else "nan")
+    row("sit_p95", f"{sit_p95:.2f}" if sit_p95 == sit_p95 else "nan")
+    if observed_rate == observed_rate:
+        row("observed_flops/us", f"{observed_rate:.2f}")
+    if observed_total == observed_total:
+        row("observed_flops", f"{observed_total:.2f}")
+    row("residency_idle", pct(idle_avg))
+    row("residency_stall", pct(stall_avg))
+    if overall_sit_median == overall_sit_median:
+        row("overall_sit", f"{overall_sit_median:.2f}")
+    if overall_idle_avg == overall_idle_avg:
+        row("overall_idle", pct(overall_idle_avg))
+    if overall_stall_avg == overall_stall_avg:
+        row("overall_stall", pct(overall_stall_avg))
+    blank()
+
+    ok(f"data ready: {export_dir}")
+    blank()
+    return 0
+
+
+def main():
+    ap = argparse.ArgumentParser(prog="sit-engine (phase1)")
+    sub = ap.add_subparsers(dest="cmd", required=True)
+
+    p_ing = sub.add_parser("ingest")
+    p_ing.add_argument("--trace", required=True)
+    p_ing.add_argument("--format", default="baseline", choices=["baseline", "cpu", "tt_wormhole"])
+    p_ing.add_argument("--zone-log", default=None, help="Required for --format tt_wormhole")
+    p_ing.add_argument("--tt-output-mode", default="lane", choices=["lane", "tile"], help="tt_wormhole output mode")
+    p_ing.add_argument("--chip-freq-mhz", type=int, default=None, help="Optional freq override for tt_wormhole")
+    p_ing.add_argument("--strict-pairing", action="store_true", help="tt_wormhole: fail on unmatched START/END")
+    p_ing.add_argument("--strict-map-hit", action="store_true", help="tt_wormhole: fail if any tuple misses zone map")
+    p_ing.add_argument("--no-normalize-zero", action="store_true", help="tt_wormhole: keep original cycle origin")
+    p_ing.add_argument("--tt-ops-per-zone", type=float, default=None, help="tt_wormhole work_done units per explicit throughput zone")
+    p_ing.add_argument(
+        "--tt-expected-total-work",
+        type=float,
+        default=None,
+        help="tt_wormhole total work contract used to normalize exported work_done",
+    )
+    p_ing.add_argument(
+        "--tt-residency-model",
+        default="kernel_envelope",
+        choices=["kernel_envelope", "active_span"],
+        help="tt_wormhole residency model",
+    )
+    p_ing.add_argument("--out", required=True)
+    p_ing.add_argument("--events-max", type=int, default=None, help="Max events to parse (raw/cpu only)")
+    p_ing.set_defaults(fn=cmd_ingest)
+
+    p_cls = sub.add_parser("classify")
+    p_cls.add_argument("--in", dest="in_dir", required=True)
+    p_cls.add_argument("--window-us", type=float, default=256.0)
+    p_cls.add_argument("--residency", default=None)
+    p_cls.add_argument("--expected-work-rate", type=float, default=None)
+    p_cls.add_argument(
+        "--no-work-sit-mode",
+        choices=["global_active", "window_active"],
+        default="window_active",
+        help="Fallback SIT mode when work_done is unavailable",
+    )
+    p_cls.add_argument("--debug-sit", action="store_true")
+    p_cls.set_defaults(fn=cmd_classify)
+
+    p_exp = sub.add_parser("export")
+    p_exp.add_argument("--in", dest="in_dir", required=True)
+    p_exp.add_argument("--schema", default="v1", choices=["v1"])
+    p_exp.set_defaults(fn=cmd_export)
+    p_exp.add_argument("--format", default="csv", choices=["csv"])
+    args = ap.parse_args()
+    return args.fn(args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

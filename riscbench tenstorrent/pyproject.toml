@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=67"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "riscvbench"
+version = "0.1.0"
+requires-python = ">=3.8"
+description = "RISCVBench Phase-1 CLI"
+
+# Expose the command
+[project.scripts]
+riscbench = "device_handler.orchestrator:main"
+riscbench-single = "device_handler.backend_runner:main"
+
+[tool.setuptools]
+# Explicit packaging (no auto discovery)
+
+[tool.setuptools.packages.find]
+# Only include actual code packages
+include = ["schema*", "device_handler*", "sit_classifier*", "result_handler*"]
+exclude = ["runs*", "traces*", "datasets*", "golden_out*", "perf_cpu_workload*"]
