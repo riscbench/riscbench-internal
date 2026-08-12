@@ -1,1 +1,1 @@
-from .xilinx import xil_run_script
+from .xilinx import xilinx_handle

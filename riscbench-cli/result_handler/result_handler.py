@@ -3,7 +3,7 @@ import os
 import re
 import matplotlib.pyplot as plt
 
-from ila_handler import export_zoomed_waveforms
+from .ila_handler import export_zoomed_waveforms
 
 try:
     from PyQt5.QtWidgets import (QApplication, QWidget, QHBoxLayout, QVBoxLayout, 

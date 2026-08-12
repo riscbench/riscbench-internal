@@ -1,27 +1,39 @@
 # Relinted
 
 device_list = [
-    "Xilinx FPGA - Arty A7",
-    "Altera FPGA - Terasic DE25",
-    "Tenstorrent Wormhole N300D",
+    "xilinx",
+    "altera",
+    "tenstorrent",
+]
+
+device_names = [
+    "Xilinx Arty A7-35T FPGA",
+    "Altera Nano DE25 FPGA",
+    "Tenstorrent Wormhole",
 ]
 
 workload_list = [
-    "Vector Add",
-    "Vector Mul",
+    "vector_add",
+    "vector_mul",
+    "matrix_mul",
+]
+
+workload_names = [
+    "Vector Addition",
+    "Vector Multiplication",
     "Matrix Multiplication",
 ]
 
 precision_list = [
-    "Int8",
-    "Int16",
-    "Int32",
-    "FP16",
-    "FP32",
-    "BF16",
+    "int8",
+    "int16",
+    "int32",
+    "fp16",
+    "fp32",
+    "bf16",
 ]
 
-vecsize_list = [
+vectorsize_list = [
     "Sweep",
     "1024",
     "2048",
@@ -35,3 +47,4 @@ vecsize_list = [
     "524288",
     "1048576",
 ]
+

@@ -1,10 +1,6 @@
 # Device Handler Program
 
-from .xilinx import xil_run_script
-
-def xilinx_handle():
-    print("Starting Xilinx Script...")
-    xil_run_script()
+from .xilinx import xilinx_handle
 
 def altera_handle():
     pass
@@ -13,10 +9,12 @@ def tenstorrent_handle():
     pass
 
 
-def device_handler(device_id):
+def device_handler(config):
     
+    device_id = config["d_id"][1]
+
     if device_id == 0:
-        xilinx_handle()
+        xilinx_handle(config)
         pass
     elif device_id == 1:
         #altera_handle()

@@ -5,52 +5,31 @@ import json
 import os
 import sys
 
-from .frontend_helper import select_menu
-from common.common import device_list, workload_list, precision_list, vecsize_list
+from common.common import *
+from result_handler.result_handler import rh_ui as result_handler_ui
+
+from .front_end_helper import select_menu, print_heading_cli
+from .config_handler import config_flow
+
 
 def device_selector():
-    print("=========================================================================")
-    print("                        RiscBench Device Selector                        ")
-    print("=========================================================================")
-    print("                                                                         ")
+    print_heading_cli("Device Selector CLI")
+    return select_menu("Select device to be profiled", device_list, device_names) 
 
-    #device_list = ["Xilinx FPGA - Arty A7","Altera FPGA - Terasic DE25","Tenstorrent Wormhole N300D"]
-    device, d_id = select_menu("Select device to be profiled", device_list)
+def workload_selector():
+    print_heading_cli("Workload Selector CLI")
+    return select_menu("Choose workload to be profiled", workload_list, workload_names)
 
-    print("                                                                         ")
-    print("=========================================================================")
-    print("                                                                         ")
-
-    print(f"{device} device was chosen")
-    return device, d_id
-
-def workload_selector(d_id):
-    print("=========================================================================")
-    print("                       RiscBench Workload Selector                       ")
-    print("=========================================================================")
-    print("                                                                         ")
-     
-    workload, w_id = select_menu("Choose workload to be profiled", workload_list)
-    
+def precision_selector(d_id): 
+    print_heading_cli("Precision Selector CLI")
     if (d_id < 2):
-        precision, p_id = select_menu("Choose workload precision", precision_list[:-3])
+        return select_menu("Choose workload precision", precision_list[:-3])
     else:
-        precision, p_id = select_menu("Choose workload precision", precision_list)
+        return select_menu("Choose workload precision", precision_list)
 
-    vecsize, v_id = select_menu("Choose workload size", vecsize_list)
-
-    print("                                                                         ")
-    print("=========================================================================")
-    print("                                                                         ")
-
-    return (w_id, p_id, v_id)
-
-def frontend_qa():
-    device, d_id = device_selector()
-    w_id, p_id, v_id = workload_selector(d_id)
-    
-    return(d_id, w_id, p_id, v_id)
-
+def vectorsize_selector():
+    print_heading_cli("Vector Size Selector CLI")
+    return select_menu("Choose workload size", vectorsize_list)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="RiscBench Main Program")
@@ -63,58 +42,66 @@ def parse_args():
     return parser.parse_args()
 
 
-def load_config(config_path):
-    if not os.path.exists(config_path):
-        print(f"Error: Config file '{config_path}' not found.")
-        sys.exit(1)
+
+def front_end_handler():
+    ## Parse Arguments
+    args = parse_args()
+
+    ## Show only results
+    if args.result:
+        print("Result option selected, displaying results...")
+        result_handler_ui()
+        exit(0)
+
+    ## Parse Config (if exists)
+    config_data = config_flow(args)
+
+    ## Override config with extra parameters (if exists)
+    device_val = args.device if args.device is not None else config_data.get("device")
+    workload_val = args.workload if args.workload is not None else config_data.get("workload")
+    precision_val = args.precision if args.precision is not None else config_data.get("precision")
+    vectorsize_val = args.vectorsize if args.vectorsize is not None else config_data.get("vectorsize")
+
+    ## Interactive UI for empty values
+    ## and
+    ## Convert Device val to Device IDs
+
+    if (not device_val) or (device_val not in device_list):
+        device_val, d_id = device_selector()
+    else:
+        d_id = device_list.index(device_val)
+
+    if not workload_val or (workload_val not in workload_list):
+        workload_val, w_id = workload_selector()
+    else:
+        w_id = workload_list.index(workload_val)
+
+    if not precision_val or (precision_val.lower() not in precision_list):
+        precision_val, p_id = precision_selector(d_id)
+    else:
+        p_id = precision_list.index(precision_val.lower())
+        if (p_id>2) and (d_id<2):
+            print("precision mismatch (Alpha doesnt allow FP on FPGA)...")
+            precision_val, p_id = precision_selector(d_id)
+
+    if not vectorsize_val or (vectorsize_val not in vectorsize_list):
+        vectorsize_val, v_id = vectorsize_selector()
+    else:
+        v_id = vectorsize_list.index(vectorsize_val)
+
+    # print(f"d: {d_id} : {device_val}")
+    # print(f"w: {w_id} : {workload_val}")
+    # print(f"p: {p_id} : {precision_val}")
+    # print(f"v: {v_id} : {vectorsize_val}")
+    # print("")
+    # print("")
+
+    return {
+        "d_id": [device_val, d_id],
+        "w_id": [workload_val, w_id],
+        "p_id": [precision_val, p_id],
+        "v_id": [vectorsize_val, v_id],
+    }
     
-    with open(config_path, "r") as f:
-        content = f.read().strip()
-    
-    if not content:
-        return {}
-
-    # Try JSON first
-    try:
-        return json.loads(content)
-    except json.JSONDecodeError:
-        pass
-    
-    # Try simple key-value format (e.g. device=2 or device: 2)
-    config = {}
-    for line in content.splitlines():
-        line = line.strip()
-        if not line or line.startswith('#') or line.startswith(';'):
-            continue
-        delimiter = '=' if '=' in line else ':' if ':' in line else None
-        if delimiter:
-            k, v = line.split(delimiter, 1)
-            config[k.strip().lower()] = v.strip()
-    return config
-
-
-def resolve_option(value, choices, name):
-    if value is None:
-        return None, None
-    # Try to convert to int index
-    try:
-        idx = int(value)
-        if 0 <= idx < len(choices):
-            return choices[idx], idx
-    except ValueError:
-        pass
-
-    # Try case-insensitive string match
-    val_str = str(value).strip().lower()
-    for idx, choice in enumerate(choices):
-        if choice.strip().lower() == val_str:
-            return choice, idx
-
-    # If invalid, print error and exit
-    print(f"Error: Invalid {name} '{value}'. Must be one of index/name in {choices}")
-    sys.exit(1)
-
-
 if __name__ == "__main__":
     pass
-    
