@@ -1,0 +1,14 @@
+[
+{
+  "directory": "C:/Users/projj/Vitis/mig/hello_world/build",
+  "command": "C:\\AMDDesignTools\\2026.1\\Vitis\\gnu\\riscv\\nt\\bin\\riscv64-unknown-elf-gcc.exe -isystem C:/Users/projj/Vitis/mig/platform/export/platform/sw/standalone_microblaze_riscv_0/include -isystem C:/AMDDesignTools/2026.1/gnu/riscv/nt/x86_64-w64-mingw32/usr/lib/riscv32-xilinx-elf/gcc/riscv32-xilinx-elf/13.4.0/include -isystem C:/AMDDesignTools/2026.1/gnu/riscv/nt/x86_64-w64-mingw32/usr/lib/riscv32-xilinx-elf/gcc/riscv32-xilinx-elf/13.4.0/include-fixed -isystem C:/AMDDesignTools/2026.1/Vitis/gnu/riscv/nt/riscv32-xilinx-elf/usr/include   -march=rv32i_zicsr_zifencei -mabi=ilp32 -DSDT  -MMD -MP  -specs=C:/Users/projj/Vitis/mig/platform/export/platform/sw/standalone_microblaze_riscv_0/Xilinx.spec -IC:/Users/projj/Vitis/mig/platform/export/platform/sw/standalone_microblaze_riscv_0/include -Wall -Wextra      -O0  -g3    -mcmodel=medany -U__clang__ -o CMakeFiles\\hello_world.elf.dir\\helloworld.c.obj -c C:\\Users\\projj\\Vitis\\mig\\hello_world\\src\\helloworld.c",
+  "file": "C:\\Users\\projj\\Vitis\\mig\\hello_world\\src\\helloworld.c",
+  "output": "CMakeFiles\\hello_world.elf.dir\\helloworld.c.obj"
+},
+{
+  "directory": "C:/Users/projj/Vitis/mig/hello_world/build",
+  "command": "C:\\AMDDesignTools\\2026.1\\Vitis\\gnu\\riscv\\nt\\bin\\riscv64-unknown-elf-gcc.exe -isystem C:/Users/projj/Vitis/mig/platform/export/platform/sw/standalone_microblaze_riscv_0/include -isystem C:/AMDDesignTools/2026.1/gnu/riscv/nt/x86_64-w64-mingw32/usr/lib/riscv32-xilinx-elf/gcc/riscv32-xilinx-elf/13.4.0/include -isystem C:/AMDDesignTools/2026.1/gnu/riscv/nt/x86_64-w64-mingw32/usr/lib/riscv32-xilinx-elf/gcc/riscv32-xilinx-elf/13.4.0/include-fixed -isystem C:/AMDDesignTools/2026.1/Vitis/gnu/riscv/nt/riscv32-xilinx-elf/usr/include   -march=rv32i_zicsr_zifencei -mabi=ilp32 -DSDT  -MMD -MP  -specs=C:/Users/projj/Vitis/mig/platform/export/platform/sw/standalone_microblaze_riscv_0/Xilinx.spec -IC:/Users/projj/Vitis/mig/platform/export/platform/sw/standalone_microblaze_riscv_0/include -Wall -Wextra      -O0  -g3    -mcmodel=medany -U__clang__ -o CMakeFiles\\hello_world.elf.dir\\platform.c.obj -c C:\\Users\\projj\\Vitis\\mig\\hello_world\\src\\platform.c",
+  "file": "C:\\Users\\projj\\Vitis\\mig\\hello_world\\src\\platform.c",
+  "output": "CMakeFiles\\hello_world.elf.dir\\platform.c.obj"
+}
+]

@@ -1,0 +1,551 @@
+
+*** Running vivado
+    with args -log design_1_mdm_1_1.vds -m64 -product Vivado -mode batch -messageDb vivado.pb -notrace -source design_1_mdm_1_1.tcl
+
+
+INFO: [Common 17-3922] A valid Vivado Design Suite BASIC license has been detected. Your current license is active and will expire on 04-jul-2027.
+#-----------------------------------------------------------
+# Vivado v2026.1 (64-bit)
+# SW Build 6511674 on Tue Jun 16 11:02:23 MDT 2026
+# IP Build 6504888 on Tue Jun 09 09:05:25 MDT 2026
+# SharedData Build 6501428 on Mon Jun 08 17:34:18 MDT 2026
+# Start of session at: Tue Jul 28 15:45:31 2026
+# Process ID         : 10088
+# Current directory  : C:/Users/projj/Vivado/MIIGTEST/MIIGTEST.runs/design_1_mdm_1_1_synth_1
+# Command line       : vivado.exe -log design_1_mdm_1_1.vds -product Vivado -mode batch -messageDb vivado.pb -notrace -source design_1_mdm_1_1.tcl
+# Log file           : C:/Users/projj/Vivado/MIIGTEST/MIIGTEST.runs/design_1_mdm_1_1_synth_1/design_1_mdm_1_1.vds
+# Journal file       : C:/Users/projj/Vivado/MIIGTEST/MIIGTEST.runs/design_1_mdm_1_1_synth_1\vivado.jou
+# Running On         : Protox-PC
+# Platform           : Windows 11
+# Operating System   : 26200
+# Processor Detail   : AMD Ryzen 9 7940HX with Radeon Graphics        
+# CPU Frequency      : 2395 MHz
+# CPU Physical cores : 16
+# CPU Logical cores  : 32
+# Host memory        : 33511 MB
+# Swap memory        : 2147 MB
+# Total Virtual      : 35659 MB
+# Available Virtual  : 21166 MB
+#-----------------------------------------------------------
+
+****** Vivado v2026.1 (64-bit)
+  **** SW Build 6511674 on Tue Jun 16 11:02:23 MDT 2026
+  **** IP Build 6504888 on Tue Jun 09 09:05:25 MDT 2026
+  **** SharedData Build 6501428 on Mon Jun 08 17:34:18 MDT 2026
+  **** Start of session at: Tue Jul 28 15:45:31 2026
+    ** Copyright 1986-2022 Xilinx, Inc. All Rights Reserved.
+    ** Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+
+source design_1_mdm_1_1.tcl -notrace
+create_project: Time (s): cpu = 00:00:20 ; elapsed = 00:00:14 . Memory (MB): peak = 588.043 ; gain = 266.992
+Command: synth_design -top design_1_mdm_1_1 -part xc7a35ticsg324-1L -incremental_mode off -mode out_of_context
+Starting synth_design
+Attempting to get a license for feature 'Vivado_Synthesis' and/or device 'xc7a35ti'
+INFO: [Common 17-349] Got license for feature 'Vivado_Synthesis' and/or device 'xc7a35ti'
+INFO: [Device 21-403] Loading part xc7a35ticsg324-1L
+INFO: [Designutils 20-5008] Incremental synthesis strategy off
+INFO: [Synth 8-7079] Multithreading enabled for synth_design using a maximum of 2 processes.
+INFO: [Synth 8-7078] Launching helper process for spawning children vivado processes
+INFO: [Synth 8-7075] Helper process launched with PID 27564
+---------------------------------------------------------------------------------
+Starting RTL Elaboration : Time (s): cpu = 00:00:09 ; elapsed = 00:00:09 . Memory (MB): peak = 1374.926 ; gain = 578.312
+---------------------------------------------------------------------------------
+INFO: [Synth 8-638] synthesizing module 'design_1_mdm_1_1' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ip/design_1_mdm_1_1/synth/design_1_mdm_1_1.vhd:74]
+	Parameter C_FAMILY bound to: artix7 - type: string 
+	Parameter C_DEVICE bound to: xc7a35ti - type: string 
+	Parameter C_JTAG_CHAIN bound to: 2 - type: integer 
+	Parameter C_USE_BSCAN bound to: 0 - type: integer 
+	Parameter C_BSCANID bound to: 0 - type: integer 
+	Parameter C_USE_BSCAN_SWITCH bound to: 0 - type: integer 
+	Parameter C_USE_JTAG_BSCAN bound to: 1 - type: integer 
+	Parameter C_DTM_IDCODE bound to: 147 - type: integer 
+	Parameter C_DEBUG_INTERFACE bound to: 0 - type: integer 
+	Parameter C_USE_CONFIG_RESET bound to: 0 - type: integer 
+	Parameter C_AVOID_PRIMITIVES bound to: 0 - type: integer 
+	Parameter C_INTERCONNECT bound to: 2 - type: integer 
+	Parameter C_MB_DBG_PORTS bound to: 1 - type: integer 
+	Parameter C_USE_UART bound to: 0 - type: integer 
+	Parameter C_DBG_REG_ACCESS bound to: 0 - type: integer 
+	Parameter C_DBG_MEM_ACCESS bound to: 0 - type: integer 
+	Parameter C_USE_CROSS_TRIGGER bound to: 0 - type: integer 
+	Parameter C_EXT_TRIG_RESET_VALUE bound to: 20'b11110001001000110100 
+	Parameter C_TRACE_OUTPUT bound to: 0 - type: integer 
+	Parameter C_TRACE_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_TRACE_CLK_FREQ_HZ bound to: 200000000 - type: integer 
+	Parameter C_TRACE_CLK_OUT_PHASE bound to: 90 - type: integer 
+	Parameter C_TRACE_ASYNC_RESET bound to: 0 - type: integer 
+	Parameter C_TRACE_PROTOCOL bound to: 1 - type: integer 
+	Parameter C_TRACE_ID bound to: 110 - type: integer 
+	Parameter C_S_AXI_ADDR_WIDTH bound to: 4 - type: integer 
+	Parameter C_S_AXI_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_S_AXI_ACLK_FREQ_HZ bound to: 100000000 - type: integer 
+	Parameter C_M_AXI_ADDR_WIDTH bound to: 32 - type: integer 
+	Parameter C_M_AXI_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_M_AXI_THREAD_ID_WIDTH bound to: 1 - type: integer 
+	Parameter C_ADDR_SIZE bound to: 32 - type: integer 
+	Parameter C_DATA_SIZE bound to: 32 - type: integer 
+	Parameter C_LMB_PROTOCOL bound to: 0 - type: integer 
+	Parameter C_M_AXIS_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_M_AXIS_ID_WIDTH bound to: 7 - type: integer 
+INFO: [Synth 8-3491] module 'MDM_RISCV' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:12696' bound to instance 'U0' of component 'mdm_riscv' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ip/design_1_mdm_1_1/synth/design_1_mdm_1_1.vhd:1662]
+INFO: [Synth 8-638] synthesizing module 'MDM_RISCV' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:14381]
+	Parameter C_TARGET bound to: 2 - type: integer 
+	Parameter DISABLE_JTAG bound to: FALSE - type: string 
+	Parameter JTAG_CHAIN bound to: 2 - type: integer 
+INFO: [Synth 8-3491] module 'MB_BSCANE2' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:510' bound to instance 'BSCAN_I' of component 'MB_BSCANE2' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:16184]
+INFO: [Synth 8-638] synthesizing module 'MB_BSCANE2' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:534]
+	Parameter DISABLE_JTAG bound to: FALSE - type: string 
+	Parameter JTAG_CHAIN bound to: 2 - type: integer 
+INFO: [Synth 8-113] binding component instance 'BSCANE2_I' to cell 'BSCANE2' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:544]
+INFO: [Synth 8-256] done synthesizing module 'MB_BSCANE2' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:534]
+	Parameter C_TARGET bound to: 2 - type: integer 
+	Parameter INIT bound to: 2'b10 
+INFO: [Synth 8-3491] module 'MB_LUT1' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:1735' bound to instance 'LUT1_I' of component 'MB_LUT1' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:16202]
+INFO: [Synth 8-638] synthesizing module 'MB_LUT1' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:1749]
+	Parameter INIT bound to: 2'b10 
+INFO: [Synth 8-113] binding component instance 'Native' to cell 'LUT1' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:1771]
+INFO: [Synth 8-256] done synthesizing module 'MB_LUT1' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:1749]
+INFO: [Synth 8-3491] module 'xil_scan_reset_control' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:319' bound to instance 'config_with_scan_reset_i' of component 'xil_scan_reset_control' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:16246]
+INFO: [Synth 8-638] synthesizing module 'xil_scan_reset_control' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:328]
+INFO: [Synth 8-256] done synthesizing module 'xil_scan_reset_control' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:328]
+	Parameter C_TARGET bound to: 2 - type: integer 
+INFO: [Synth 8-3491] module 'MB_BUFGCE_1' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:621' bound to instance 'BUFG_JTAG_TCK' of component 'MB_BUFGCE_1' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:16642]
+INFO: [Synth 8-638] synthesizing module 'MB_BUFGCE_1' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:635]
+INFO: [Synth 8-113] binding component instance 'Native' to cell 'BUFGCE_1' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:645]
+INFO: [Synth 8-256] done synthesizing module 'MB_BUFGCE_1' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:635]
+	Parameter C_TARGET bound to: 2 - type: integer 
+	Parameter C_JTAG_CHAIN bound to: 2 - type: integer 
+	Parameter C_USE_BSCAN bound to: 0 - type: integer 
+	Parameter C_DTM_IDCODE bound to: 147 - type: integer 
+	Parameter C_USE_CONFIG_RESET bound to: 0 - type: integer 
+	Parameter C_USE_SRL16 bound to: yes - type: string 
+	Parameter C_DEBUG_INTERFACE bound to: 0 - type: integer 
+	Parameter C_MB_DBG_PORTS bound to: 1 - type: integer 
+	Parameter C_EN_WIDTH bound to: 1 - type: integer 
+	Parameter C_DBG_REG_ACCESS bound to: 0 - type: integer 
+	Parameter C_REG_NUM_CE bound to: 1 - type: integer 
+	Parameter C_REG_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_DBG_MEM_ACCESS bound to: 0 - type: integer 
+	Parameter C_S_AXI_ADDR_WIDTH bound to: 4 - type: integer 
+	Parameter C_S_AXI_ACLK_FREQ_HZ bound to: 100000000 - type: integer 
+	Parameter C_M_AXI_ADDR_WIDTH bound to: 32 - type: integer 
+	Parameter C_M_AXI_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_USE_CROSS_TRIGGER bound to: 0 - type: integer 
+	Parameter C_EXT_TRIG_RESET_VALUE bound to: 20'b11110001001000110100 
+	Parameter C_TRACE_OUTPUT bound to: 0 - type: integer 
+	Parameter C_TRACE_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_TRACE_ASYNC_RESET bound to: 0 - type: integer 
+	Parameter C_TRACE_CLK_FREQ_HZ bound to: 200000000 - type: integer 
+	Parameter C_TRACE_CLK_OUT_PHASE bound to: 90 - type: integer 
+	Parameter C_USE_UART bound to: 0 - type: integer 
+	Parameter C_UART_WIDTH bound to: 8 - type: integer 
+	Parameter C_M_AXIS_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_M_AXIS_ID_WIDTH bound to: 7 - type: integer 
+INFO: [Synth 8-3491] module 'MDM_Core' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:5561' bound to instance 'MDM_Core_I1' of component 'MDM_Core' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:16802]
+INFO: [Synth 8-638] synthesizing module 'MDM_Core' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:6815]
+	Parameter C_TARGET bound to: 2 - type: integer 
+	Parameter C_USE_BSCAN bound to: 0 - type: integer 
+	Parameter C_DTM_IDCODE bound to: 147 - type: integer 
+	Parameter C_MB_DBG_PORTS bound to: 1 - type: integer 
+	Parameter C_USE_CONFIG_RESET bound to: 0 - type: integer 
+	Parameter C_USE_SRL16 bound to: yes - type: string 
+	Parameter C_DEBUG_INTERFACE bound to: 0 - type: integer 
+	Parameter C_DBG_REG_ACCESS bound to: 0 - type: integer 
+	Parameter C_DBG_MEM_ACCESS bound to: 0 - type: integer 
+	Parameter C_M_AXI_ADDR_WIDTH bound to: 32 - type: integer 
+	Parameter C_M_AXI_DATA_WIDTH bound to: 32 - type: integer 
+	Parameter C_USE_CROSS_TRIGGER bound to: 0 - type: integer 
+	Parameter C_EXT_TRIG_RESET_VALUE bound to: 20'b11110001001000110100 
+	Parameter C_NUM_GROUPS bound to: 2 - type: integer 
+	Parameter C_GROUP_BITS bound to: 1 - type: integer 
+	Parameter C_TRACE_OUTPUT bound to: 0 - type: integer 
+	Parameter C_USE_UART bound to: 0 - type: integer 
+	Parameter C_UART_WIDTH bound to: 8 - type: integer 
+	Parameter C_EN_WIDTH bound to: 1 - type: integer 
+INFO: [Synth 8-3491] module 'JTAG_CONTROL' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3265' bound to instance 'JTAG_CONTROL_I' of component 'JTAG_CONTROL' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:9735]
+INFO: [Synth 8-638] synthesizing module 'JTAG_CONTROL' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3507]
+WARNING: [Synth 8-6774] Null subtype or type declaration found [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3656]
+WARNING: [Synth 8-3919] null assignment ignored [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3656]
+INFO: [Synth 8-3491] module 'xil_scan_reset_control' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:319' bound to instance 'config_with_scan_reset_i' of component 'xil_scan_reset_control' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3707]
+INFO: [Synth 8-226] default block is never used [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3785]
+	Parameter C_TARGET bound to: 2 - type: integer 
+INFO: [Synth 8-3491] module 'MB_BUFGCE_1' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:621' bound to instance 'BUFG_DRCK' of component 'MB_BUFGCE_1' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3945]
+	Parameter C_TARGET bound to: 2 - type: integer 
+INFO: [Synth 8-3491] module 'MB_BUFG' declared at 'c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:572' bound to instance 'BUFG_UPDATE' of component 'MB_BUFG' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3957]
+INFO: [Synth 8-638] synthesizing module 'MB_BUFG' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:585]
+	Parameter C_TARGET bound to: 2 - type: integer 
+INFO: [Synth 8-113] binding component instance 'Native' to cell 'BUFG' [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:595]
+INFO: [Synth 8-256] done synthesizing module 'MB_BUFG' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:585]
+WARNING: [Synth 8-3919] null assignment ignored [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:4323]
+INFO: [Synth 8-256] done synthesizing module 'JTAG_CONTROL' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:3507]
+INFO: [Synth 8-256] done synthesizing module 'MDM_Core' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:6815]
+INFO: [Synth 8-256] done synthesizing module 'MDM_RISCV' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ipshared/e2f7/hdl/mdm_riscv_v1_0_rfs.vhd:14381]
+INFO: [Synth 8-256] done synthesizing module 'design_1_mdm_1_1' (0#1) [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ip/design_1_mdm_1_1/synth/design_1_mdm_1_1.vhd:74]
+INFO: [Synth 8-7129] Port Clk in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Rst in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Read_RX_FIFO in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Reset_RX_FIFO in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Write_TX_FIFO in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Reset_TX_FIFO in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port TX_Data[0] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port TX_Data[1] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port TX_Data[2] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port TX_Data[3] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port TX_Data[4] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port TX_Data[5] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port TX_Data[6] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port TX_Data[7] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port M_AXI_ACLK in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port M_AXI_ARESETn in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_rd_idle in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_rd_resp[1] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_rd_resp[0] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_wr_idle in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_wr_resp[1] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_wr_resp[0] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[31] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[30] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[29] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[28] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[27] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[26] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[25] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[24] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[23] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[22] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[21] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[20] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[19] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[18] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[17] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[16] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[15] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[14] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[13] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[12] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[11] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[10] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[9] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[8] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[7] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[6] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[5] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[4] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[3] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[2] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[1] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_out[0] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_exists in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Master_data_empty in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_All_TDO in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[1] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[2] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[3] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[4] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[5] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[6] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[7] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[8] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[9] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[10] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[11] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[12] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[13] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[14] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[15] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[16] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[17] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[18] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[19] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[20] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[21] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[22] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[23] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[24] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[25] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[26] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[27] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[28] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[29] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[30] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_TDO_I[31] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_hart[1] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_hart[0] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_ext[7] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_ext[6] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_ext[5] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_ext[4] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_ext[3] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_ext[2] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_ext[1] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port DMCS2_group_ext[0] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_Trig_In_0[0] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Synth 8-7129] Port Dbg_Trig_In_0[1] in module JTAG_CONTROL is either unconnected or has no load
+INFO: [Common 17-14] Message 'Synth 8-7129' appears 100 times and further instances of the messages will be disabled. Use the Tcl command set_msg_config to change the current settings.
+---------------------------------------------------------------------------------
+Finished RTL Elaboration : Time (s): cpu = 00:00:14 ; elapsed = 00:00:17 . Memory (MB): peak = 1529.539 ; gain = 732.926
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:14 ; elapsed = 00:00:17 . Memory (MB): peak = 1529.539 ; gain = 732.926
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 1 : Time (s): cpu = 00:00:14 ; elapsed = 00:00:17 . Memory (MB): peak = 1529.539 ; gain = 732.926
+---------------------------------------------------------------------------------
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.047 . Memory (MB): peak = 1529.539 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 2 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+
+Processing XDC Constraints
+Initializing timing engine
+Parsing XDC File [C:/Users/projj/Vivado/MIIGTEST/MIIGTEST.runs/design_1_mdm_1_1_synth_1/dont_touch.xdc]
+Finished Parsing XDC File [C:/Users/projj/Vivado/MIIGTEST/MIIGTEST.runs/design_1_mdm_1_1_synth_1/dont_touch.xdc]
+Parsing XDC File [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ip/design_1_mdm_1_1/design_1_mdm_1_1_ooc_trace.xdc] for cell 'U0'
+Finished Parsing XDC File [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ip/design_1_mdm_1_1/design_1_mdm_1_1_ooc_trace.xdc] for cell 'U0'
+Parsing XDC File [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ip/design_1_mdm_1_1/design_1_mdm_1_1.xdc] for cell 'U0'
+Finished Parsing XDC File [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ip/design_1_mdm_1_1/design_1_mdm_1_1.xdc] for cell 'U0'
+INFO: [Project 1-236] Implementation specific constraints were found while reading constraint file [c:/Users/projj/Vivado/MIIGTEST/MIIGTEST.gen/sources_1/bd/design_1/ip/design_1_mdm_1_1/design_1_mdm_1_1.xdc]. These constraints will be ignored for synthesis but will be used in implementation. Impacted constraints are listed in the file [.Xil/design_1_mdm_1_1_propImpl.xdc].
+Resolution: To avoid this warning, move constraints listed in [.Xil/design_1_mdm_1_1_propImpl.xdc] to another XDC file and exclude this new file from synthesis with the used_in_synthesis property (File Properties dialog in GUI) and re-run elaboration/synthesis.
+Completed Processing XDC Constraints
+
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00 . Memory (MB): peak = 1607.504 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 2 instances were transformed.
+  BUFGCE_1 => BUFGCTRL: 2 instances
+
+Constraint Validation Runtime : Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.030 . Memory (MB): peak = 1607.781 ; gain = 0.000
+INFO: [Designutils 20-5008] Incremental synthesis strategy off
+---------------------------------------------------------------------------------
+Finished Constraint Validation : Time (s): cpu = 00:00:27 ; elapsed = 00:00:30 . Memory (MB): peak = 1607.781 ; gain = 811.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Loading Part and Timing Information
+---------------------------------------------------------------------------------
+Loading part: xc7a35ticsg324-1L
+---------------------------------------------------------------------------------
+Finished Loading Part and Timing Information : Time (s): cpu = 00:00:27 ; elapsed = 00:00:30 . Memory (MB): peak = 1607.781 ; gain = 811.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying 'set_property' XDC Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished applying 'set_property' XDC Constraints : Time (s): cpu = 00:00:27 ; elapsed = 00:00:30 . Memory (MB): peak = 1607.781 ; gain = 811.168
+---------------------------------------------------------------------------------
+INFO: [Synth 8-802] inferred FSM for state register 'Test_Access_Port.state_reg' in module 'JTAG_CONTROL'
+---------------------------------------------------------------------------------------------------
+                   State |                     New Encoding |                Previous Encoding 
+---------------------------------------------------------------------------------------------------
+                tl_reset |                 0000000000000001 |                             0000
+                    idle |                 0000000000000010 |                             0001
+               select_dr |                 0000000000000100 |                             0010
+               select_ir |                 0000000000001000 |                             1001
+              capture_ir |                 0000000000010000 |                             1010
+                shift_ir |                 0000000000100000 |                             1011
+                exit1_ir |                 0000000001000000 |                             1100
+                pause_ir |                 0000000010000000 |                             1101
+                exit2_ir |                 0000000100000000 |                             1110
+               update_ir |                 0000001000000000 |                             1111
+              capture_dr |                 0000010000000000 |                             0011
+                shift_dr |                 0000100000000000 |                             0100
+                exit1_dr |                 0001000000000000 |                             0101
+                pause_dr |                 0010000000000000 |                             0110
+                exit2_dr |                 0100000000000000 |                             0111
+               update_dr |                 1000000000000000 |                             1000
+---------------------------------------------------------------------------------------------------
+INFO: [Synth 8-3354] encoded FSM with state register 'Test_Access_Port.state_reg' using encoding 'one-hot' in module 'JTAG_CONTROL'
+---------------------------------------------------------------------------------
+Finished RTL Optimization Phase 2 : Time (s): cpu = 00:00:28 ; elapsed = 00:00:31 . Memory (MB): peak = 1607.781 ; gain = 811.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start RTL Component Statistics 
+---------------------------------------------------------------------------------
+Detailed RTL Component Info : 
++---Adders : 
+	   2 Input    8 Bit       Adders := 1     
+	   2 Input    5 Bit       Adders := 1     
+	   2 Input    2 Bit       Adders := 1     
++---Registers : 
+	               42 Bit    Registers := 1     
+	               32 Bit    Registers := 4     
+	                8 Bit    Registers := 3     
+	                5 Bit    Registers := 2     
+	                3 Bit    Registers := 1     
+	                2 Bit    Registers := 3     
+	                1 Bit    Registers := 29    
++---Muxes : 
+	   2 Input   32 Bit        Muxes := 3     
+	  16 Input   16 Bit        Muxes := 1     
+	   2 Input   16 Bit        Muxes := 16    
+	   2 Input    8 Bit        Muxes := 3     
+	  16 Input    5 Bit        Muxes := 1     
+	   2 Input    5 Bit        Muxes := 1     
+	   2 Input    3 Bit        Muxes := 1     
+	   2 Input    2 Bit        Muxes := 3     
+	   2 Input    1 Bit        Muxes := 21    
+	   4 Input    1 Bit        Muxes := 2     
+	  16 Input    1 Bit        Muxes := 10    
+---------------------------------------------------------------------------------
+Finished RTL Component Statistics 
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Part Resource Summary
+---------------------------------------------------------------------------------
+Part Resources:
+DSPs: 90 (col length:60)
+BRAMs: 100 (col length: RAMB18 60 RAMB36 30)
+---------------------------------------------------------------------------------
+Finished Part Resource Summary
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Cross Boundary and Area Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Cross Boundary and Area Optimization : Time (s): cpu = 00:00:31 ; elapsed = 00:00:34 . Memory (MB): peak = 1607.781 ; gain = 811.168
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Applying XDC Timing Constraints
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Applying XDC Timing Constraints : Time (s): cpu = 00:00:36 ; elapsed = 00:00:39 . Memory (MB): peak = 1722.172 ; gain = 925.559
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Timing Optimization
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Timing Optimization : Time (s): cpu = 00:00:36 ; elapsed = 00:00:39 . Memory (MB): peak = 1726.363 ; gain = 929.750
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Technology Mapping
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Technology Mapping : Time (s): cpu = 00:00:36 ; elapsed = 00:00:39 . Memory (MB): peak = 1745.430 ; gain = 948.816
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Flattening Before IO Insertion
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Final Netlist Cleanup
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished IO Insertion : Time (s): cpu = 00:00:41 ; elapsed = 00:00:44 . Memory (MB): peak = 2009.496 ; gain = 1212.883
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Instances
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Instances : Time (s): cpu = 00:00:41 ; elapsed = 00:00:44 . Memory (MB): peak = 2009.496 ; gain = 1212.883
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Rebuilding User Hierarchy
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Rebuilding User Hierarchy : Time (s): cpu = 00:00:41 ; elapsed = 00:00:44 . Memory (MB): peak = 2009.496 ; gain = 1212.883
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Ports
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Ports : Time (s): cpu = 00:00:41 ; elapsed = 00:00:44 . Memory (MB): peak = 2009.496 ; gain = 1212.883
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Handling Custom Attributes
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Handling Custom Attributes : Time (s): cpu = 00:00:41 ; elapsed = 00:00:44 . Memory (MB): peak = 2009.496 ; gain = 1212.883
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Renaming Generated Nets
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Finished Renaming Generated Nets : Time (s): cpu = 00:00:41 ; elapsed = 00:00:44 . Memory (MB): peak = 2009.496 ; gain = 1212.883
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+
+Static Shift Register Report:
++------------+----------------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
+|Module Name | RTL Name                               | Length | Width | Reset Signal | Pull out first Reg | Pull out last Reg | SRL16E | SRLC32E | 
++------------+----------------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
+|MDM_RISCV   | MDM_Core_I1/JTAG_CONTROL_I/dmi_reg[31] | 3      | 1     | NO           | NO                 | YES               | 1      | 0       | 
+|MDM_RISCV   | MDM_Core_I1/JTAG_CONTROL_I/dmi_reg[3]  | 28     | 1     | NO           | NO                 | YES               | 0      | 1       | 
+|MDM_RISCV   | Use_JTAG_BSCAN.bscanid_reg[27]         | 5      | 1     | YES          | NO                 | YES               | 1      | 0       | 
+|MDM_RISCV   | Use_JTAG_BSCAN.bscanid_reg[11]         | 9      | 1     | YES          | NO                 | YES               | 1      | 0       | 
+|MDM_RISCV   | Use_JTAG_BSCAN.bscanid_reg[1]          | 8      | 1     | YES          | NO                 | YES               | 1      | 0       | 
++------------+----------------------------------------+--------+-------+--------------+--------------------+-------------------+--------+---------+
+
+---------------------------------------------------------------------------------
+Finished ROM, RAM, DSP, Shift Register and Retiming Reporting
+---------------------------------------------------------------------------------
+---------------------------------------------------------------------------------
+Start Writing Synthesis Report
+---------------------------------------------------------------------------------
+
+Report BlackBoxes: 
++-+--------------+----------+
+| |BlackBox name |Instances |
++-+--------------+----------+
++-+--------------+----------+
+
+Report Cell Usage: 
++------+--------+------+
+|      |Cell    |Count |
++------+--------+------+
+|1     |BSCANE2 |     1|
+|2     |BUFG    |     1|
+|3     |BUFGCE  |     2|
+|4     |CARRY4  |     1|
+|5     |LUT1    |     2|
+|6     |LUT2    |   105|
+|7     |LUT3    |    26|
+|8     |LUT4    |    41|
+|9     |LUT5    |    15|
+|10    |LUT6    |    28|
+|11    |SRL16E  |     4|
+|12    |SRLC32E |     1|
+|13    |FDCE    |     2|
+|14    |FDRE    |   191|
+|15    |FDSE    |     6|
++------+--------+------+
+---------------------------------------------------------------------------------
+Finished Writing Synthesis Report : Time (s): cpu = 00:00:41 ; elapsed = 00:00:44 . Memory (MB): peak = 2009.496 ; gain = 1212.883
+---------------------------------------------------------------------------------
+Synthesis finished with 0 errors, 0 critical warnings and 0 warnings.
+Synthesis Optimization Runtime : Time (s): cpu = 00:00:24 ; elapsed = 00:00:41 . Memory (MB): peak = 2009.496 ; gain = 1134.641
+Synthesis Optimization Complete : Time (s): cpu = 00:00:41 ; elapsed = 00:00:44 . Memory (MB): peak = 2009.496 ; gain = 1212.883
+INFO: [Project 1-571] Translating synthesized netlist
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.014 . Memory (MB): peak = 2009.496 ; gain = 0.000
+INFO: [Netlist 29-17] Analyzing 3 Unisim elements for replacement
+INFO: [Netlist 29-28] Unisim Transformation completed in 0 CPU seconds
+INFO: [Project 1-570] Preparing netlist for logic optimization
+INFO: [Opt 31-138] Pushed 0 inverter(s) to 0 load pin(s).
+Netlist sorting complete. Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 2022.414 ; gain = 0.000
+INFO: [Project 1-111] Unisim Transformation Summary:
+  A total of 2 instances were transformed.
+  BUFGCE_1 => BUFGCTRL: 2 instances
+
+Synth Design complete | Checksum: e3a26617
+INFO: [Common 17-83] Releasing license: Vivado_Synthesis
+155 Infos, 3 Warnings, 0 Critical Warnings and 0 Errors encountered.
+synth_design completed successfully
+synth_design: Time (s): cpu = 00:00:48 ; elapsed = 00:00:52 . Memory (MB): peak = 2022.414 ; gain = 1411.410
+Write ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.002 . Memory (MB): peak = 2022.414 ; gain = 0.000
+INFO: [Common 17-1381] The checkpoint 'C:/Users/projj/Vivado/MIIGTEST/MIIGTEST.runs/design_1_mdm_1_1_synth_1/design_1_mdm_1_1.dcp' has been generated.
+INFO: [Ipptcl 7-1612] Added synthesis output to IP cache for IP design_1_mdm_1_1, cache-ID = f479448aadbe7579
+INFO: [Coretcl 2-1174] Renamed 8 cell refs.
+Write ShapeDB Complete: Time (s): cpu = 00:00:00 ; elapsed = 00:00:00.001 . Memory (MB): peak = 2022.414 ; gain = 0.000
+INFO: [Common 17-1381] The checkpoint 'C:/Users/projj/Vivado/MIIGTEST/MIIGTEST.runs/design_1_mdm_1_1_synth_1/design_1_mdm_1_1.dcp' has been generated.
+INFO: [Vivado 12-24828] Executing command : report_utilization -file design_1_mdm_1_1_utilization_synth.rpt -pb design_1_mdm_1_1_utilization_synth.pb
+INFO: [Common 17-206] Exiting Vivado at Tue Jul 28 15:46:50 2026...

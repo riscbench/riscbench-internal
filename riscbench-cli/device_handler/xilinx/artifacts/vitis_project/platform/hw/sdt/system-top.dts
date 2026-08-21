@@ -1,0 +1,46 @@
+/dts-v1/;
+#include "pl.dtsi"
+/ {
+	board = "arty-a7-35";
+	compatible = "xlnx,arty-a7-35-riscv" , "qemu,mbv" , "amd,mbv";
+	device_id = "7a35ti";
+	#address-cells = <1>;
+	variant = "artix7";
+	model = "ARTY-A7-35 AMD Microblaze RISCV 32bit";
+	#size-cells = <1>;
+	slrcount = <1>;
+	family = "microblaze_riscv";
+	speed_grade = "1L";
+	microblaze_riscv_0_local_memory_dlmb_bram_if_cntlr_memory: memory@0 {
+		ranges = <0 0x0 0x4000>;
+		compatible = "xlnx,lmb-bram-if-cntlr-4.0" , "mmio-sram";
+		#address-cells = <1>;
+		xlnx,ip-name = "lmb_bram_if_cntlr";
+		device_type = "memory";
+		#size-cells = <1>;
+		memory_type = "memory";
+		reg = <0x0 0x4000>;
+	};
+	mig_7series_0_memory: memory@80000000 {
+		compatible = "xlnx,mig-7series-4.2";
+		xlnx,ip-name = "mig_7series";
+		device_type = "memory";
+		memory_type = "memory";
+		reg = <0x80000000 0x10000000>;
+	};
+	chosen {
+		stdout-path = "serial0:9600n8";
+	};
+	aliases {
+		serial0 = &axi_uartlite_0;
+	};
+	cpus_microblaze_riscv_0: cpus_microblaze_riscv@0 {
+		address-map = <0x00000000 &microblaze_riscv_0_local_memory_dlmb_bram_if_cntlr_memory 0x00000000 0x4000>, 
+			      <0x00000000 &microblaze_riscv_0_local_memory_dlmb_bram_if_cntlr 0x00000000 0x4000>, 
+			      <0x80000000 &mig_7series_0_memory 0x80000000 0x10000000>, 
+			      <0x40600000 &axi_uartlite_0 0x40600000 0x10000>, 
+			      <0x44a00000 &CUSTOM_addsub1b_0 0x44a00000 0x10000>;
+		#ranges-address-cells = <0x1>;
+		#ranges-size-cells = <0x1>;
+	};
+};

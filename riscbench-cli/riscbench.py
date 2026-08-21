@@ -12,10 +12,15 @@ if __name__ == "__main__":
     ## Step 1: Generate UI for configuration handling 
     config = front_end_handler()
 
-    # Step 2: Load necessary environment variables and paths
+    ## Step 2: Load necessary environment variables and paths
     load_env("env.json", config) 
 
     ## Step 3: Device Handler
     device_handler(config)
 
+    ## Step 4: SIT
+    # NOTE : SIT Calculation is under construction
+
+    ## Step 5: Result handler and tools
+    
 

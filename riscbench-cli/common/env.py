@@ -70,6 +70,8 @@ def env_check(config):
             print("[Error] UART baud rate is missing, update env.json")
             err_flag = -1
 
+    
+
     if (err_flag == -1):
 
         print("")

@@ -23,7 +23,7 @@ def uart_logger(port, baudrate, csv_path, stop_event):
             
             # Write header if creating a new file
             if not file_exists:
-                writer.writerow(["timestamp", "raw_output"])
+                writer.writerow(["raw_output"])
                 csv_file.flush()
 
             print(f"[UART Logger] Listening on {port} @ {baudrate} baud...")
@@ -34,7 +34,7 @@ def uart_logger(port, baudrate, csv_path, stop_event):
                         line = ser.readline().decode('utf-8', errors='ignore').strip()
                         if line:
                             timestamp = datetime.now().isoformat()
-                            writer.writerow([timestamp, line])
+                            writer.writerow([line])
                             csv_file.flush()  # Instantly write to file
                             print(f"[UART Output] {line}")
                     except Exception as e:
