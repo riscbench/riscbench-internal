@@ -1,13 +1,8 @@
 # Device Handler Program
 
 from .xilinx import xilinx_handle
-
-def altera_handle():
-    pass
-
-def tenstorrent_handle():
-    pass
-
+from .altera import altera_handle
+from .tenstorrent import tenstorrent_handle
 
 def device_handler(config):
     
@@ -17,10 +12,10 @@ def device_handler(config):
         xilinx_handle(config)
         pass
     elif device_id == 1:
-        #altera_handle()
+        altera_handle()
         pass
     elif device_id == 2:
-        #tenstorrent_handle()
+        tenstorrent_handle()
         pass
     else:
         #out_of_scope_error()

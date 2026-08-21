@@ -49,7 +49,7 @@ def front_end_handler():
 
     ## Show only results
     if args.result:
-        print("Result option selected, displaying results...")
+        print("[Info] Result option selected, displaying results...")
         result_handler_ui()
         exit(0)
 
@@ -81,7 +81,7 @@ def front_end_handler():
     else:
         p_id = precision_list.index(precision_val.lower())
         if (p_id>2) and (d_id<2):
-            print("precision mismatch (Alpha doesnt allow FP on FPGA)...")
+            print("[Warning] Precision mismatch (Alpha doesnt allow FP on FPGA)...")
             precision_val, p_id = precision_selector(d_id)
 
     if not vectorsize_val or (vectorsize_val not in vectorsize_list):

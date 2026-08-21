@@ -48,21 +48,21 @@ def uart_logger(port, baudrate, csv_path, stop_event):
 def run_vivado_ila(settings_path="/path/to/Xilinx/Vivado/VERSION/settings64.sh", tcl_script="run_file.tcl", cwd=None):
     # Verify settings file exists
     if not os.path.exists(settings_path):
-        error_msg = f"Error: Vivado settings script not found at '{settings_path}'."
+        error_msg = f"[Error] Vivado settings script not found at '{settings_path}'."
         print(error_msg)
         return False, error_msg
 
     # Verify TCL script exists
     tcl_path = os.path.abspath(tcl_script) if cwd is None else os.path.join(cwd, tcl_script)
     if not os.path.exists(tcl_path):
-        error_msg = f"Error: TCL script not found at '{tcl_path}'."
+        error_msg = f"[Error] TCL script not found at '{tcl_path}'."
         print(error_msg)
         return False, error_msg
 
     # Combine sourcing Vivado and executing in batch mode
     command = f"source {settings_path} && vivado -mode batch -source {tcl_script}"
     
-    print(f"Running Vivado script:\n  Command: {command}")
+    print(f"[Info] Running Vivado script:\n  Command: {command}")
     if cwd:
         print(f"  Working Directory: {cwd}")
 
@@ -77,10 +77,10 @@ def run_vivado_ila(settings_path="/path/to/Xilinx/Vivado/VERSION/settings64.sh",
             stderr=subprocess.PIPE,
             text=True
         )
-        print("Vivado executed successfully!")
+        print("[Info] Vivado executed successfully!")
         return True, result.stdout
         
     except subprocess.CalledProcessError as e:
-        print(f"Error running Vivado (Exit Code {e.returncode}):")
-        print(f"Error output:\n{e.stderr}")
+        print(f"[Error] Error running Vivado (Exit Code {e.returncode}):")
+        print(f"[Error] Error output:\n{e.stderr}")
         return False, e.stderr
