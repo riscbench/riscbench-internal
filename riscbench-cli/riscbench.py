@@ -16,6 +16,6 @@ if __name__ == "__main__":
     load_env("env.json", config) 
 
     ## Step 3: Device Handler
-    #device_handler(config)
+    device_handler(config)
 
 

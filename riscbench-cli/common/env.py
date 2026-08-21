@@ -2,16 +2,21 @@
 import json
 import os
 import sys
+from datetime import datetime
 
 vivado_path = ""
 vitis_path = ""
 uart_port = ""
 uart_baud_rate = "9600" #default
+run_path = ""
 
 def load_env(env_file, config):
-    global vivado_path, vitis_path, uart_port, uart_baud_rate
+    global vivado_path, vitis_path, uart_port, uart_baud_rate, run_path
 
     print("[Info] Loading Environment Paths and Variables...")
+
+    current_time = datetime.now().strftime("%d-%m-%Y-%H-%M-%S")
+    run_path = (f"./runs/{current_time}-{config['d_id'][0]}")
 
     # Check if the file exists
     if not os.path.exists(env_file):
@@ -45,7 +50,7 @@ def load_env(env_file, config):
 
 
 def env_check(config):
-    global vivado_path, vitis_path, uart_port, uart_baud_rate
+    global vivado_path, vitis_path, uart_port, uart_baud_rate, run_path
 
     print("[Info] Checking for missing environment paths or variables...")
 
@@ -72,5 +77,9 @@ def env_check(config):
         print("[Error] Exiting RISCBench...")
 
         sys.exit()
+
+    if (err_flag == 0):
+        os.makedirs(run_path, exist_ok=True)
+        print(f"[Info] Runtime Folder created: {run_path}")
 
     return err_flag

@@ -4,6 +4,7 @@ import argparse
 import json
 import os
 import sys
+import glob
 
 from common.common import *
 from result_handler.result_handler import rh_ui as result_handler_ui
@@ -38,9 +39,13 @@ def parse_args():
     parser.add_argument("-w", "--workload", help="Workload to be profiled (name or index)")
     parser.add_argument("-p", "--precision", help="Workload precision (name or index)")
     parser.add_argument("-v", "--vectorsize", help="Workload size / vector size (name or index)")
-    parser.add_argument("-r", "--result", help="Show the results of the previous run (if available)", action='store_true')
+    parser.add_argument("-r", "--result", nargs="?", help="Show the results of the previous run (if available)", const='latest') #, action='store_true'
     return parser.parse_args()
 
+
+def most_recent_run(filter_name=None):
+    pattern = f"./runs/*{filter_name}*" if filter_name else "./runs/*"
+    return max(glob.glob(pattern), key=os.path.getmtime, default=None)
 
 
 def front_end_handler():
@@ -49,9 +54,27 @@ def front_end_handler():
 
     ## Show only results
     if args.result:
-        print("[Info] Result option selected, displaying results...")
-        result_handler_ui()
-        exit(0)
+        if args.result == "latest":
+            print("[Info] Result option selected, displaying results...")
+            print(f"[Info] Selecting the most recent run: {most_recent_run()}")
+            result_handler_ui()
+            exit(0)
+        elif args.result in device_list:
+            print("[Info] Result option selected, displaying results...")
+            print(f"[Info] Selecting the most recent {args.result} run")
+            if most_recent_run(args.result):
+                result_handler_ui()
+            else:
+                print(f"[Error] No previous {args.result} runs found")
+            exit(0)
+        elif os.path.exists(args.result):
+            print("[Info] Result option selected, displaying results...")
+            print(f"[Info] Selected {args.result} run")
+            result_handler_ui()
+            exit(0)
+        else:
+            print(f"[Error] No {args.result} runs found")
+            exit(0)
 
     ## Parse Config (if exists)
     config_data = config_flow(args)

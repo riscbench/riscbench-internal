@@ -1,8 +1,8 @@
 set bit_file    "./device_handler/xilinx/top_design.bit"
 set ltx_file    "./device_handler/xilinx/top_design.ltx"
 set elf_file    "./device_handler/xilinx/app.elf"
-set ila_out     "./result_handler/ila_captured_data.ila"
-set csv_out     "./result_handler/ila_captured_data.csv"
+set ila_out     "./runs/21-08-2026-06-09-31-xilinx/ila_captured_data.ila"
+set csv_out     "./runs/21-08-2026-06-09-31-xilinx/ila_captured_data.csv"
 set hw_host     "localhost"
 set hw_port     "3121"
 
