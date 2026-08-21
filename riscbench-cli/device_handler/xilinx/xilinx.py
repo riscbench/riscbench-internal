@@ -8,6 +8,12 @@ import serial
 
 from .xilinx_helper import run_vivado_ila, uart_logger
 
+def xil_compile_bit():
+    pass
+
+def xil_compile_elf():
+    pass
+
 def xil_run_script():
     # UPDATE METHOD
     VIVADO_SETTINGS = "settings64.sh"

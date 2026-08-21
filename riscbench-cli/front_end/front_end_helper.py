@@ -1,6 +1,13 @@
+import os
 import sys
-import termios
-import tty
+
+if sys.platform == "win32":
+    import msvcrt
+
+    os.system("")
+else:
+    import termios
+    import tty
 
 # ANSI Escape Sequences
 CLEAR_LINE = "\x1b[2K"
@@ -12,8 +19,8 @@ COLOR_GRAY = "\x1b[90m"
 COLOR_RESET = "\x1b[0m"
 BOLD = "\x1b[1m"
 
-# AIHF
-def get_key():
+
+def _get_key_posix():
     fd = sys.stdin.fileno()
     old_settings = termios.tcgetattr(fd)
     try:
@@ -24,6 +31,34 @@ def get_key():
     finally:
         termios.tcsetattr(fd, termios.TCSADRAIN, old_settings)
     return ch
+
+
+def _get_key_windows():
+    ch = msvcrt.getch()
+    if ch in (b"\x00", b"\xe0"):
+        ch2 = msvcrt.getch()
+        if ch2 == b"H":
+            return "\x1b[A"
+        elif ch2 == b"P":
+            return "\x1b[B"
+        return ""
+    elif ch in (b"\r", b"\n"):
+        return "\r"
+    elif ch == b"\x03":
+        return "\x03"
+    else:
+        try:
+            return ch.decode("utf-8")
+        except UnicodeDecodeError:
+            return ""
+
+
+# AIHF
+def get_key():
+    if sys.platform == "win32":
+        return _get_key_windows()
+    return _get_key_posix()
+
 
 # AIHF
 def select_menu(question, options, option_names=None):

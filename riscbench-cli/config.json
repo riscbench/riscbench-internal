@@ -1,0 +1,6 @@
+{
+    "device": "tenstorrent",
+    "workload": "vector_add",
+    "precision": "int32",
+    "vectorsize": "1024"
+}

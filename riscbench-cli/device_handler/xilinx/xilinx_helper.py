@@ -7,10 +7,6 @@ from datetime import datetime
 import serial
 
 def uart_logger(port, baudrate, csv_path, stop_event):
-    """
-    Background thread function that continuously reads lines from UART
-    and appends FLOPS/results with timestamps into a CSV file.
-    """
     # Ensure the directory for CSV exists
     csv_dir = os.path.dirname(csv_path)
     if csv_dir and not os.path.exists(csv_dir):
