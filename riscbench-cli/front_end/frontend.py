@@ -6,49 +6,30 @@ import os
 import sys
 import glob
 
-from common.common import *
+import common
 from result_handler.result_handler import rh_ui as result_handler_ui
 
-from .front_end_helper import select_menu, print_heading_cli
+from . import cli_handler
+from . import path_handler
 from .config_handler import config_flow
-
-
-def device_selector():
-    print_heading_cli("Device Selector CLI")
-    return select_menu("Select device to be profiled", device_list, device_names) 
-
-def workload_selector():
-    print_heading_cli("Workload Selector CLI")
-    return select_menu("Choose workload to be profiled", workload_list, workload_names)
-
-def precision_selector(d_id): 
-    print_heading_cli("Precision Selector CLI")
-    if (d_id < 2):
-        return select_menu("Choose workload precision", precision_list[:-3])
-    else:
-        return select_menu("Choose workload precision", precision_list)
-
-def vectorsize_selector():
-    print_heading_cli("Vector Size Selector CLI")
-    return select_menu("Choose workload size", vectorsize_list)
 
 def parse_args():
     parser = argparse.ArgumentParser(description="RiscBench Main Program")
     parser.add_argument("-c", "--config", help="Path to config file (JSON or key-value format)")
+    parser.add_argument("-v", "--vendor", help="Device Vendor Name")
     parser.add_argument("-d", "--device", help="Device to be profiled (name or index)")
     parser.add_argument("-w", "--workload", help="Workload to be profiled (name or index)")
     parser.add_argument("-p", "--precision", help="Workload precision (name or index)")
-    parser.add_argument("-v", "--vectorsize", help="Workload size / vector size (name or index)")
+    parser.add_argument("-s", "--size", help="Workload size / vector size (name or index)")
     parser.add_argument("-r", "--result", nargs="?", help="Show the results of the previous run (if available)", const='latest') #, action='store_true'
     return parser.parse_args()
-
 
 def most_recent_run(filter_name=None):
     pattern = f"./runs/*{filter_name}*" if filter_name else "./runs/*"
     return max(glob.glob(pattern), key=os.path.getmtime, default=None)
 
-
 def front_end_handler():
+
     ## Parse Arguments
     args = parse_args()
 
@@ -80,50 +61,63 @@ def front_end_handler():
     config_data = config_flow(args)
 
     ## Override config with extra parameters (if exists)
+    vendor_val = args.device if args.device is not None else config_data.get("vendor")
     device_val = args.device if args.device is not None else config_data.get("device")
     workload_val = args.workload if args.workload is not None else config_data.get("workload")
     precision_val = args.precision if args.precision is not None else config_data.get("precision")
-    vectorsize_val = args.vectorsize if args.vectorsize is not None else config_data.get("vectorsize")
+    size_val = args.size if args.size is not None else config_data.get("size")
 
     ## Interactive UI for empty values
     ## and
     ## Convert Device val to Device IDs
 
-    if (not device_val) or (device_val not in device_list):
-        device_val, d_id = device_selector()
+    ## Generate Vendors List
+    path_handler.gen_vend_list()
+
+    if (not vendor_val) or (vendor_val not in path_handler.vendor_list):
+        vendor_val, v_id = cli_handler.vendor_selector()
+    else:
+        v_id = vendor_list.index(vendor_val)
+
+    # Generate device list
+    path_handler.gen_dev_list(vendor_val)
+
+    if (not device_val) or (device_val not in path_handler.device_list):
+        device_val, d_id = cli_handler.device_selector()
     else:
         d_id = device_list.index(device_val)
 
-    if not workload_val or (workload_val not in workload_list):
-        workload_val, w_id = workload_selector()
+    # Generate workloads list from folders
+    path_handler.gen_workload_list(device_val)
+
+    if not workload_val or (workload_val not in path_handler.workload_list):
+        workload_val, w_id = cli_handler.workload_selector()
     else:
         w_id = workload_list.index(workload_val)
 
-    if not precision_val or (precision_val.lower() not in precision_list):
-        precision_val, p_id = precision_selector(d_id)
+    # Generate precision list from folders
+    path_handler.gen_precision_list(workload_val)
+
+    if not precision_val or (precision_val.lower() not in path_handler.precision_list):
+        precision_val, p_id = cli_handler.precision_selector(d_id)
     else:
         p_id = precision_list.index(precision_val.lower())
-        if (p_id>2) and (d_id<2):
-            print("[Warning] Precision mismatch (Alpha doesnt allow FP on FPGA)...")
-            precision_val, p_id = precision_selector(d_id)
 
-    if not vectorsize_val or (vectorsize_val not in vectorsize_list):
-        vectorsize_val, v_id = vectorsize_selector()
+    # Generate size list from folders
+    path_handler.gen_size_list(precision_val)
+
+    if not size_val or (size_val not in path_handler.size_list):
+        size_val, s_id = cli_handler.size_selector()
     else:
-        v_id = vectorsize_list.index(vectorsize_val)
+        s_id = size_list.index(size_val)
 
-    # print(f"d: {d_id} : {device_val}")
-    # print(f"w: {w_id} : {workload_val}")
-    # print(f"p: {p_id} : {precision_val}")
-    # print(f"v: {v_id} : {vectorsize_val}")
-    # print("")
-    # print("")
 
     return {
+        "v_id": [vendor_val, s_id],
         "d_id": [device_val, d_id],
         "w_id": [workload_val, w_id],
         "p_id": [precision_val, p_id],
-        "v_id": [vectorsize_val, v_id],
+        "s_id": [size_val, s_id],
     }
     
 if __name__ == "__main__":

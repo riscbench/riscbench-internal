@@ -1,6 +1,7 @@
 {
-    "device": "tenstorrent",
+    "vendor": "xilinx",
+    "device": "arty",
     "workload": "vector_add",
     "precision": "int32",
-    "vectorsize": "1024"
+    "size": "1024"
 }

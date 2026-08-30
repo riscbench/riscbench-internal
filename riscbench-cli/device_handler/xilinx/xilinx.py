@@ -21,7 +21,7 @@ def xil_compile_elf():
     elffile = f"{common.env.run_path}/placeholder.elf"
     return elffile
 
-def xil_update_tcl(tcl_path="./device_handler/xilinx/run_file.tcl"):
+def xil_update_tcl(tcl_path="./device_handler/xilinx/arty/run_file.tcl"):
     ila_out_path = f"{common.env.run_path}/ila_captured_data.ila"
     csv_out_path = f"{common.env.run_path}/ila_captured_data.csv"
 
@@ -44,7 +44,7 @@ def xil_update_tcl(tcl_path="./device_handler/xilinx/run_file.tcl"):
 def xil_run_script(config):
     # UPDATE METHOD
     VIVADO_SETTINGS = f"{common.env.vivado_path}/settings64.sh"
-    TCL_SCRIPT_PATH = "./device_handler/xilinx/run_file.tcl"
+    TCL_SCRIPT_PATH = "./device_handler/xilinx/arty/run_file.tcl"
     
     # UART & CSV configuration
     UART_PORT = common.env.uart_port  # Update this to match your serial device (e.g., /dev/ttyUSB1, /dev/ttyACM0)
