@@ -36,22 +36,24 @@ def front_end_handler():
     ## Show only results
     if args.result:
         if args.result == "latest":
+            recent_run_path = most_recent_run()
             print("[Info] Result option selected, displaying results...")
-            print(f"[Info] Selecting the most recent run: {most_recent_run()}")
-            result_handler_ui()
+            print(f"[Info] Selecting the most recent run: {recent_run_path}")
+            result_handler_ui(recent_run_path)
             exit(0)
         elif args.result in device_list:
             print("[Info] Result option selected, displaying results...")
             print(f"[Info] Selecting the most recent {args.result} run")
-            if most_recent_run(args.result):
-                result_handler_ui()
+            recent_run_path = most_recent_run(args.result)
+            if recent_run_path:
+                result_handler_ui(recent_run_path)
             else:
                 print(f"[Error] No previous {args.result} runs found")
             exit(0)
         elif os.path.exists(args.result):
             print("[Info] Result option selected, displaying results...")
             print(f"[Info] Selected {args.result} run")
-            result_handler_ui()
+            result_handler_ui(args.result)
             exit(0)
         else:
             print(f"[Error] No {args.result} runs found")
@@ -99,7 +101,7 @@ def front_end_handler():
     path_handler.gen_precision_list(workload_val)
 
     if not precision_val or (precision_val.lower() not in path_handler.precision_list):
-        precision_val, p_id = cli_handler.precision_selector(d_id)
+        precision_val, p_id = cli_handler.precision_selector()
     else:
         p_id = precision_list.index(precision_val.lower())
 

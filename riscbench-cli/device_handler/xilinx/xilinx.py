@@ -11,29 +11,43 @@ from .xilinx_helper import run_vivado_ila, uart_logger
 
 
 def xil_compile_bit():
-    pass
+    pass # Feature Will be introduced in Beta
     bitfile = f"{common.env.run_path}/placeholder.bit"
     ltxfile = f"{common.env.run_path}/placeholder.ltx"
     return(bitfile, ltxfile)
 
 def xil_compile_elf():
-    pass
+    pass # Feature Will be introduced in Beta
     elffile = f"{common.env.run_path}/placeholder.elf"
     return elffile
 
-def xil_update_tcl(tcl_path="./device_handler/xilinx/arty/run_file.tcl"):
+def xil_update_tcl(tcl_path=f"{common.vendor_path}/run_file.tcl"):
+
+    # Bit, Ltx and Elf Path Update
+    bit_path = f"{common.precision_path}/top_design.bit"
+    ltx_path = f"{common.precision_path}/top_design.ltx"
+    elf_path = f"{common.precision_path}/app.elf"
+
+    # ILA Results path update
     ila_out_path = f"{common.env.run_path}/ila_captured_data.ila"
     csv_out_path = f"{common.env.run_path}/ila_captured_data.csv"
 
+    print(tcl_path)
+    # Update TCL File with runtime paths
     with open(tcl_path, "r", encoding="utf-8") as f:
         lines = f.readlines()
-
     new_lines = []
     for line in lines:
-        if line.startswith("set ila_out"):
-            new_lines.append(f'set ila_out     "{ila_out_path}"\n')
+        if line.startswith("set bit_file"):
+            new_lines.append(f'set bit_file "{bit_path}"\n')
+        elif line.startswith("set ltx_file"):
+            new_lines.append(f'set ltx_file "{ltx_path}"\n')
+        elif line.startswith("set elf_file"):
+            new_lines.append(f'set elf_file "{elf_path}"\n')
+        elif line.startswith("set ila_out"):
+            new_lines.append(f'set ila_out "{ila_out_path}"\n')
         elif line.startswith("set csv_out"):
-            new_lines.append(f'set csv_out     "{csv_out_path}"\n')
+            new_lines.append(f'set csv_out "{csv_out_path}"\n')
         else:
             new_lines.append(line)
 
@@ -43,15 +57,16 @@ def xil_update_tcl(tcl_path="./device_handler/xilinx/arty/run_file.tcl"):
 
 def xil_run_script(config):
     # UPDATE METHOD
+
     VIVADO_SETTINGS = f"{common.env.vivado_path}/settings64.sh"
-    TCL_SCRIPT_PATH = "./device_handler/xilinx/arty/run_file.tcl"
-    
+    TCL_SCRIPT_PATH = f"{common.vendor_path}/run_file.tcl"
+
     # UART & CSV configuration
     UART_PORT = common.env.uart_port  # Update this to match your serial device (e.g., /dev/ttyUSB1, /dev/ttyACM0)
     BAUD_RATE = common.env.uart_baud_rate
     CSV_OUTPUT_PATH = f"{common.env.run_path}/UART_results.csv"
 
-    xil_update_tcl()
+    xil_update_tcl(TCL_SCRIPT_PATH)
 
     # Event flag to control the logging thread
     stop_logging = threading.Event()
@@ -71,8 +86,8 @@ def xil_run_script(config):
         # Run Vivado process (blocking main thread)
         success, output = run_vivado_ila(settings_path=VIVADO_SETTINGS, tcl_script=TCL_SCRIPT_PATH)
         if success:
-            print("[Info] Output logs:")
-            print(output)
+            print("[Info] Vivado Completed Programming and execution. Exiting Successfully...")
+            #print(output)
 
     finally:
         # Allow extra time for any residual UART bytes to transmit after Vivado finishes

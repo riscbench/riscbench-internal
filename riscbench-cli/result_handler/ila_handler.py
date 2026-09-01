@@ -2,23 +2,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import numpy as np
 
+import common
+
 def export_zoomed_waveforms(
     csv_file, 
     sample_ranges,
     clk_period_ns=10.0, 
     downsample_factor_overview=10
 ):
-    """
-    Parses a Vivado ILA CSV export, isolates probe waveforms, and exports standalone 1920x1080
-    PNG files for specified sample ranges. Measures both '1' and '0' state durations.
-
-    Parameters:
-        csv_file (str): Path to the Vivado ILA CSV file.
-        sample_ranges (list of tuples): List of (start_sample, num_samples) tuples to export.
-                                        Example: [(1000, 2000), (15000, 3000)]
-        clk_period_ns (float): Clock period in nanoseconds.
-        downsample_factor_overview (int): Downsampling factor for fast overview rendering of 32k points.
-    """
+    
     # -------------------------------------------------------------------------
     # 1. Parse Vivado ILA CSV Header & Data
     # -------------------------------------------------------------------------
@@ -70,7 +62,7 @@ def export_zoomed_waveforms(
     # -------------------------------------------------------------------------
     for range_idx, (start_sample, num_samples) in enumerate(sample_ranges, start=1):
         end_sample = min(start_sample + num_samples, total_samples)
-        output_filename = f"image{range_idx}.png"
+        output_filename = f"{common.env.run_path}/image{range_idx}.png"
 
         df_zoomed = df.iloc[start_sample:end_sample].copy()
         t_zoom = df_zoomed[sample_col].astype(int).values * clk_period_ns

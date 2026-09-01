@@ -56,7 +56,7 @@ def env_check(config):
 
     err_flag = 0
 
-    if (config["d_id"][1] == 0): #Xilinx
+    if (config["d_id"][0] == 'xilinx'): #Xilinx
         if (vivado_path == "") or (vivado_path == None):
             print("[Error] Vivado Path is missing, update env.json")
             err_flag = -1
@@ -71,6 +71,8 @@ def env_check(config):
             err_flag = -1
 
     
+    # ADD MORE ENV VARIABLES HERE. err_flag = -1 for error and err_flag = 0 for success
+
 
     if (err_flag == -1):
 

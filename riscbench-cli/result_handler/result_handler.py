@@ -2,8 +2,11 @@ import sys
 import os
 import re
 import matplotlib.pyplot as plt
+import common
 
 from .ila_handler import export_zoomed_waveforms
+
+RECENT_RUN_PATH = ""
 
 try:
     from PyQt5.QtWidgets import (QApplication, QWidget, QHBoxLayout, QVBoxLayout, 
@@ -232,7 +235,9 @@ class RiscBenchViewer(QWidget):
         self.load_image(idx)
         
     def load_image(self, idx):
-        base_dir = os.path.dirname(os.path.abspath(__file__))
+        global RECENT_RUN_PATH
+
+        base_dir = RECENT_RUN_PATH
         image_name = f"image{idx+1}.png"
         image_path = os.path.join(base_dir, image_name)
         
@@ -258,7 +263,11 @@ class RiscBenchViewer(QWidget):
                 }
             """)
 
-def rh_ui():
+def rh_ui(recent_run_path):
+    global RECENT_RUN_PATH
+
+    RECENT_RUN_PATH = recent_run_path
+
     # Enable High DPI scaling and high-resolution pixmaps before QApplication is created
     QApplication.setAttribute(Qt.AA_EnableHighDpiScaling, True)
     QApplication.setAttribute(Qt.AA_UseHighDpiPixmaps, True)
@@ -277,22 +286,16 @@ def rh_processor():
     ]
 
     export_zoomed_waveforms(
-        csv_file='ila_captured_data.csv', 
+        csv_file=f"{common.env.run_path}/ila_captured_data.csv", 
         sample_ranges=target_ranges,
         clk_period_ns=10.0  # 10ns clock period (100MHz)
     )
 
-    generate_uart_plot("./result_handler/UART_results.csv")
+    generate_uart_plot(f"{common.env.run_path}/UART_results.csv", f"{common.env.run_path}/image3.png")
     
 
-def generate_uart_plot(log_input, output_path="./result_handler/image3.png"):
-    """
-    Parses benchmark log data and generates a line graph of Vector Size vs. MOPS.
-    
-    Parameters:
-        log_input (str): File path to the log file or raw log string.
-        output_path (str): Destination path for the saved plot image.
-    """
+def generate_uart_plot(log_input, output_path=f"{common.env.run_path}/image3.png"):
+ 
     # Load lines either from file or raw string
     if os.path.isfile(log_input):
         with open(log_input, 'r', encoding='utf-8') as f:

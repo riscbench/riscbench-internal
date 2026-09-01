@@ -5,7 +5,6 @@ device_path = ""
 kernel_path = ""
 workload_path = ""
 precision_path = ""
-run_path = ""
 
 full_size_list = [
         "Sweep",

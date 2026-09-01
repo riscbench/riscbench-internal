@@ -45,6 +45,8 @@ def uart_logger(port, baudrate, csv_path, stop_event):
     except serial.SerialException as e:
         print(f"[UART Error] Could not open/access serial port '{port}': {e}")
 
+
+
 def run_vivado_ila(settings_path="/path/to/Xilinx/Vivado/VERSION/settings64.sh", tcl_script="run_file.tcl", cwd=None):
     # Verify settings file exists
     if not os.path.exists(settings_path):
@@ -60,7 +62,7 @@ def run_vivado_ila(settings_path="/path/to/Xilinx/Vivado/VERSION/settings64.sh",
         return False, error_msg
 
     # Combine sourcing Vivado and executing in batch mode
-    command = f"source {settings_path} && vivado -mode batch -source {tcl_script}"
+    command = f"source {settings_path} && vivado -mode batch -notrace -source {tcl_script}"
     
     print(f"[Info] Running Vivado script:\n  Command: {command}")
     if cwd:

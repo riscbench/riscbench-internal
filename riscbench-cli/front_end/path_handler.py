@@ -34,7 +34,6 @@ def gen_precision_list(workload_name):
     global precision_list
     common.workload_path = common.device_path + "/" + workload_name
     precision_list = get_folder_names(common.workload_path)
-    
 
 def gen_size_list(precision_name):
     global size_list

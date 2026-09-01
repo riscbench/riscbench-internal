@@ -1,2 +1,0 @@
-cflags: -march=rv32i_zicsr_zifencei -mabi=ilp32
-linkflags: -march=rv32i_zicsr_zifencei

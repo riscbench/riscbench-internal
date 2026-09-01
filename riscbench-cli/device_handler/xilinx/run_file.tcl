@@ -1,8 +1,8 @@
-set bit_file    "./device_handler/xilinx/top_design.bit"
-set ltx_file    "./device_handler/xilinx/top_design.ltx"
-set elf_file    "./device_handler/xilinx/app.elf"
-set ila_out     "./runs/21-08-2026-15-56-48-xilinx/ila_captured_data.ila"
-set csv_out     "./runs/21-08-2026-15-56-48-xilinx/ila_captured_data.csv"
+set bit_file "./device_handler/xilinx/arty/Vector_Add/Int32/top_design.bit"
+set ltx_file "./device_handler/xilinx/arty/Vector_Add/Int32/top_design.ltx"
+set elf_file "./device_handler/xilinx/arty/Vector_Add/Int32/app.elf"
+set ila_out "./runs/01-09-2026-16-11-36-arty/ila_captured_data.ila"
+set csv_out "./runs/01-09-2026-16-11-36-arty/ila_captured_data.csv"
 set hw_host     "localhost"
 set hw_port     "3121"
 

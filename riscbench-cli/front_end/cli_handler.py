@@ -151,7 +151,7 @@ def workload_selector():
     print_heading_cli("Workload Selector CLI")
     return select_menu("Choose workload to be profiled", path_handler.workload_list)
 
-def precision_selector(d_id): 
+def precision_selector(): 
     print_heading_cli("Precision Selector CLI")
     return select_menu("Choose workload precision", path_handler.precision_list)
 
