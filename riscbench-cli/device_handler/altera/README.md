@@ -1,5 +1,9 @@
 # RISCBench Altera / Nios V Backend
 
+> **Status: UNDER REVIEW**  
+> This Altera/Nios V backend is currently being evaluated before integration into the main RISCBench frontend/common flow.  
+> Altera-specific additions in shared frontend files are intentionally kept minimal and clearly marked for review.
+
 Self-contained Altera / Intel FPGA backend for the RISCBench benchmark framework.
 
 ## Overview

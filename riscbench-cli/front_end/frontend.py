@@ -61,7 +61,15 @@ def front_end_handler():
     config_data = config_flow(args)
 
     ## Override config with extra parameters (if exists)
-    vendor_val = args.vendor if args.vendor is not None else config_data.get("vendor")
+# ================================================================
+# ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# Added for current RISCBench Altera backend integration.
+# Keep isolated until reviewed/approved.
+# ================================================================
+    vendor_val = args.vendor if args.vendor is not None else (args.device if args.device is not None else config_data.get("vendor"))
+# ================================================================
+# END ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# ================================================================
     device_val = args.device if args.device is not None else config_data.get("device")
     workload_val = args.workload if args.workload is not None else config_data.get("workload")
     precision_val = args.precision if args.precision is not None else config_data.get("precision")
@@ -74,74 +82,112 @@ def front_end_handler():
     ## Generate Vendors List
     path_handler.gen_vend_list()
 
-    if vendor_val is not None:
-        vendor_matches = [v for v in path_handler.vendor_list if v.lower() == vendor_val.lower()]
-        if not vendor_matches:
-            print(f"[Error] Unsupported vendor '{vendor_val}'. Supported vendors: {', '.join(path_handler.vendor_list)}", file=sys.stderr)
-            sys.exit(1)
-        vendor_val = vendor_matches[0]
-        v_id = path_handler.vendor_list.index(vendor_val)
+    if (not vendor_val) or (vendor_val not in path_handler.vendor_list):
+# ================================================================
+# ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# Added for current RISCBench Altera backend integration.
+# Keep isolated until reviewed/approved.
+# ================================================================
+        vendor_matches = [v for v in path_handler.vendor_list if vendor_val and v.lower() == vendor_val.lower()]
+        if vendor_matches:
+            vendor_val = vendor_matches[0]
+            v_id = path_handler.vendor_list.index(vendor_val)
+        else:
+            vendor_val, v_id = cli_handler.vendor_selector()
+# ================================================================
+# END ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# ================================================================
     else:
-        vendor_val, v_id = cli_handler.vendor_selector()
+        v_id = path_handler.vendor_list.index(vendor_val)
 
     # Generate device list
     path_handler.gen_dev_list(vendor_val)
 
-    if device_val is not None:
-        device_matches = [d for d in path_handler.device_list if d.lower() == device_val.lower()]
-        if not device_matches:
-            print(f"[Error] Unsupported device '{device_val}'. Supported devices: {', '.join(path_handler.device_list)}", file=sys.stderr)
-            sys.exit(1)
-        device_val = device_matches[0]
-        d_id = path_handler.device_list.index(device_val)
+    if (not device_val) or (device_val not in path_handler.device_list):
+# ================================================================
+# ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# Added for current RISCBench Altera backend integration.
+# Keep isolated until reviewed/approved.
+# ================================================================
+        dev_matches = [d for d in path_handler.device_list if device_val and d.lower() == device_val.lower()]
+        if dev_matches:
+            device_val = dev_matches[0]
+            d_id = path_handler.device_list.index(device_val)
+        else:
+            device_val, d_id = cli_handler.device_selector()
+# ================================================================
+# END ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# ================================================================
     else:
-        device_val, d_id = cli_handler.device_selector()
+        d_id = path_handler.device_list.index(device_val)
 
     # Generate workloads list from folders
     path_handler.gen_workload_list(device_val)
 
-    if workload_val is not None:
-        workload_matches = [w for w in path_handler.workload_list if w.lower().replace("-", "_") == workload_val.lower().replace("-", "_")]
-        if not workload_matches:
-            print(f"[Error] Unsupported workload '{workload_val}'. Supported workloads: {', '.join(path_handler.workload_list)}", file=sys.stderr)
-            sys.exit(1)
-        workload_val = workload_matches[0]
-        w_id = path_handler.workload_list.index(workload_val)
+    if not workload_val or (workload_val not in path_handler.workload_list):
+# ================================================================
+# ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# Added for current RISCBench Altera backend integration.
+# Keep isolated until reviewed/approved.
+# ================================================================
+        wl_matches = [w for w in path_handler.workload_list if workload_val and w.lower().replace("-", "_") == workload_val.lower().replace("-", "_")]
+        if wl_matches:
+            workload_val = wl_matches[0]
+            w_id = path_handler.workload_list.index(workload_val)
+        else:
+            workload_val, w_id = cli_handler.workload_selector()
+# ================================================================
+# END ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# ================================================================
     else:
-        workload_val, w_id = cli_handler.workload_selector()
+        w_id = path_handler.workload_list.index(workload_val)
 
     # Generate precision list from folders
     path_handler.gen_precision_list(workload_val)
 
-    if precision_val is not None:
-        precision_matches = [p for p in path_handler.precision_list if p.lower() == precision_val.lower()]
-        if not precision_matches:
-            print(f"[Error] Unsupported precision '{precision_val}'. Supported precisions: {', '.join(path_handler.precision_list)}", file=sys.stderr)
-            sys.exit(1)
-        precision_val = precision_matches[0]
-        p_id = path_handler.precision_list.index(precision_val)
-    else:
+    if not precision_val or (precision_val.lower() not in [p.lower() for p in path_handler.precision_list]):
         precision_val, p_id = cli_handler.precision_selector()
+    else:
+# ================================================================
+# ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# Added for current RISCBench Altera backend integration.
+# Keep isolated until reviewed/approved.
+# ================================================================
+        prec_matches = [p for p in path_handler.precision_list if p.lower() == precision_val.lower()]
+        precision_val = prec_matches[0] if prec_matches else precision_val
+        p_id = path_handler.precision_list.index(precision_val)
+# ================================================================
+# END ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# ================================================================
 
     # Generate size list from folders
     path_handler.gen_size_list(precision_val)
 
-    if size_val is not None:
+    if not size_val or (size_val not in path_handler.size_list):
+# ================================================================
+# ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# Added for current RISCBench Altera backend integration.
+# Keep isolated until reviewed/approved.
+# ================================================================
         size_matches = [s for s in path_handler.size_list if str(s).lower() == str(size_val).lower()]
-        if not size_matches:
-            # Allow custom integer sizes directly
-            try:
-                int(size_val)
-                s_id = 0
-            except ValueError:
-                print(f"[Error] Invalid size '{size_val}'.", file=sys.stderr)
-                sys.exit(1)
-        else:
+        if size_matches:
             size_val = size_matches[0]
             s_id = path_handler.size_list.index(size_val)
+        elif str(size_val).isdigit():
+            s_id = 0
+        else:
+            size_val, s_id = cli_handler.size_selector()
+# ================================================================
+# END ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# ================================================================
     else:
-        size_val, s_id = cli_handler.size_selector()
+        s_id = path_handler.size_list.index(size_val)
 
+# ================================================================
+# ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# Added for current RISCBench Altera backend integration.
+# Keep isolated until reviewed/approved.
+# ================================================================
     return {
         "v_id": [vendor_val, v_id],
         "d_id": [device_val, d_id],
@@ -149,6 +195,9 @@ def front_end_handler():
         "p_id": [precision_val, p_id],
         "s_id": [size_val, s_id],
     }
+# ================================================================
+# END ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# ================================================================
     
 if __name__ == "__main__":
     pass

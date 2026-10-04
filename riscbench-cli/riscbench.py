@@ -20,10 +20,18 @@ if __name__ == "__main__":
     device_handler(config)
 
     ## Step 4: SIT
-    if config["v_id"][0] == "altera":
+# ================================================================
+# ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# Added for current RISCBench Altera backend integration.
+# Keep isolated until reviewed/approved.
+# ================================================================
+    if config.get("v_id") and config["v_id"][0] == "altera":
         print("[Info] Altera UART results saved; result visualization is not enabled for this backend yet.")
     else:
         rh_processor()
+# ================================================================
+# END ALTERA / NIOS V EXTENSION — UNDER REVIEW
+# ================================================================
 
     ## Step 5: Result handler and tools
     
