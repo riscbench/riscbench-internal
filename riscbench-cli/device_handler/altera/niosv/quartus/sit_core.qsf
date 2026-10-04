@@ -1,0 +1,280 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2026  Altera Corporation. All rights reserved.
+# Your use of Altera Corporation's design tools, logic functions 
+# and other software and tools, and any partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Altera Program License 
+# Subscription Agreement, the Altera Quartus Prime License Agreement,
+# the Altera IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Altera and sold by Altera or its authorized distributors.  Please
+# refer to the Altera Software License Subscription Agreements 
+# on the Quartus Prime software download page.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 26.1.0 Build 110 03/26/2026 SC Pro Edition
+# Date created = 17:26:17  October 04, 2026
+#
+# -------------------------------------------------------------------------- #
+
+# --------------------------------------------------------------------------
+# Quartus Prime Project Settings
+# --------------------------------------------------------------------------
+
+set_global_assignment -name TOP_LEVEL_ENTITY sit_engine_top
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 26.1.0
+set_global_assignment -name LAST_QUARTUS_VERSION "26.1.0 Pro Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+
+set_global_assignment -name DEVICE A5ED013BB32AE4SR1
+set_global_assignment -name FAMILY "Agilex 5"
+set_global_assignment -name BOARD default
+
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 100
+
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+set_global_assignment -name PWRMGT_VOLTAGE_OUTPUT_FORMAT "LINEAR FORMAT"
+set_global_assignment -name PWRMGT_LINEAR_FORMAT_N "-12"
+set_global_assignment -name POWER_APPLY_THERMAL_MARGIN ADDITIONAL
+
+set_global_assignment -name DEVICE_INITIALIZATION_CLOCK OSC_CLK_1_125MHZ
+
+# --------------------------------------------------------------------------
+# Platform Designer / IP files
+# --------------------------------------------------------------------------
+
+set_global_assignment -name SDC_FILE sit_core.sdc
+set_global_assignment -name SYSTEMVERILOG_FILE sit_engine_top.sv
+
+set_global_assignment -name QIP_FILE qsys_files/niosv_bringup/niosv_bringup.qip
+set_global_assignment -name QIP_FILE qsys_files/ip/niosv_bringup/niosv_bringup_intel_onchip_memory_0/niosv_bringup_intel_onchip_memory_0.qip
+
+set_global_assignment -name IP_FILE qsys_files/ip/niosv_bringup/niosv_bringup_clock_in.ip
+set_global_assignment -name IP_FILE qsys_files/ip/niosv_bringup/niosv_bringup_reset_in.ip
+set_global_assignment -name IP_FILE qsys_files/ip/niosv_bringup/niosv_bringup_reset_bridge_0.ip
+set_global_assignment -name IP_FILE qsys_files/ip/niosv_bringup/niosv_bringup_intel_niosv_m_0.ip
+set_global_assignment -name IP_FILE qsys_files/ip/niosv_bringup/niosv_bringup_jtag_uart_0.ip
+set_global_assignment -name IP_FILE qsys_files/ip/niosv_bringup/niosv_bringup_emif_io96b_ddr4comp_0.ip
+set_global_assignment -name IP_FILE qsys_files/ip/niosv_bringup/niosv_bringup_sit_0.ip
+
+set_global_assignment -name IP_FILE hardware/ip/native_int/riscbench_int64_add.ip
+set_global_assignment -name IP_FILE hardware/ip/native_int/riscbench_int8_add.ip
+set_global_assignment -name IP_FILE hardware/ip/native_int/riscbench_int8_mul.ip
+
+# --------------------------------------------------------------------------
+# Custom SIT RTL files (packages compiled first)
+# --------------------------------------------------------------------------
+
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/memory/data_mover_pkg.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl_optional/monitoring/perf_monitor.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/fp32_add_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/fp32_mul_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/int16_add_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/int16_mul_wide_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/int16_mul_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/int64_add_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/int8_add_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/int8_mul_wide_wrapper.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/arithmetic/int8_mul_wrapper.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/compute/compute_datapath.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/control/sit_csr.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/control/workload_controller.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/matrix/matmul_engine_fp32.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/matrix/matmul_engine_int16.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/matrix/matmul_engine_int8.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/memory/data_mover.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/memory/ddr_reader.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/memory/ddr_writer.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/memory/local_buffer.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/top/sit_engine.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/top/sit_engine_pd.sv
+
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/dot_engine_fp32.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/dot_engine_int16.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/dot_engine_int8.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/saxpy_engine_fp32.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/saxpy_engine_int16.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/saxpy_engine_int8.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/vecadd_engine_fp32.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/vecadd_engine_int16.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/vecadd_engine_int8.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/vecmul_engine_fp32.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/vecmul_engine_int16.sv
+set_global_assignment -name SYSTEMVERILOG_FILE refactored_code/hardware/rtl/vector/vecmul_engine_int8.sv
+
+# Custom Platform Designer component catalog
+set_global_assignment -name IP_SEARCH_PATHS "qsys_files/components/**/*;$"
+
+# ==========================================================================
+# 50 MHz CLOCK
+# ==========================================================================
+
+set_location_assignment PIN_D8 -to CLK_50
+set_instance_assignment -name IO_STANDARD "1.8-V LVCMOS" -to CLK_50 -entity sit_engine_top
+
+# ==========================================================================
+# RESET
+# ==========================================================================
+
+set_location_assignment PIN_B101 -to RESET
+set_instance_assignment -name IO_STANDARD "1.2 V" -to RESET
+
+# ==========================================================================
+# OPTIONAL DDR READY DEBUG OUTPUT
+# ==========================================================================
+
+set_location_assignment PIN_A97 -to DDR4_CTRL_READY
+set_instance_assignment -name IO_STANDARD "1.2 V" -to DDR4_CTRL_READY -entity sit_engine_top
+
+# ==========================================================================
+# DDR4 REFERENCE CLOCK
+# DE25 manual: DDR4_REFCLK_P = PIN_AB117, 150 MHz
+# ==========================================================================
+
+set_location_assignment PIN_AB117 -to DDR4_REFCLK_P
+set_instance_assignment -name IO_STANDARD "1.2-V TRUE DIFFERENTIAL SIGNALING" -to DDR4_REFCLK_P
+
+# ==========================================================================
+# DDR4 ADDRESS
+# ==========================================================================
+
+set_location_assignment PIN_T114  -to DDR4_A[0]
+set_location_assignment PIN_P114  -to DDR4_A[1]
+set_location_assignment PIN_V117  -to DDR4_A[2]
+set_location_assignment PIN_T117  -to DDR4_A[3]
+set_location_assignment PIN_M114  -to DDR4_A[4]
+set_location_assignment PIN_K114  -to DDR4_A[5]
+set_location_assignment PIN_V108  -to DDR4_A[6]
+set_location_assignment PIN_T108  -to DDR4_A[7]
+set_location_assignment PIN_T105  -to DDR4_A[8]
+set_location_assignment PIN_P105  -to DDR4_A[9]
+set_location_assignment PIN_M105  -to DDR4_A[10]
+set_location_assignment PIN_K105  -to DDR4_A[11]
+set_location_assignment PIN_AG111 -to DDR4_A[12]
+set_location_assignment PIN_Y114  -to DDR4_A[13]
+set_location_assignment PIN_AB114 -to DDR4_A[14]
+set_location_assignment PIN_AK107 -to DDR4_A[15]
+set_location_assignment PIN_AK104 -to DDR4_A[16]
+
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to {DDR4_A[*]}
+
+# ==========================================================================
+# DDR4 BANK ADDRESS / BANK GROUP
+# ==========================================================================
+
+set_location_assignment PIN_AB108 -to DDR4_BA[0]
+set_location_assignment PIN_Y105  -to DDR4_BA[1]
+set_location_assignment PIN_AB105 -to DDR4_BG
+
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to {DDR4_BA[*]}
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to DDR4_BG
+
+# ==========================================================================
+# DDR4 COMMAND / CONTROL
+# ==========================================================================
+
+set_location_assignment PIN_F105 -to DDR4_CKE
+set_location_assignment PIN_K117 -to DDR4_CS_N
+set_location_assignment PIN_F114 -to DDR4_ODT
+set_location_assignment PIN_K108 -to DDR4_PAR
+set_location_assignment PIN_H117 -to DDR4_RESET_N
+set_location_assignment PIN_M117 -to DDR4_ACT_N
+set_location_assignment PIN_Y108 -to DDR4_ALERT_N
+
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to DDR4_CKE
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to DDR4_CS_N
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to DDR4_ODT
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to DDR4_PAR
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to DDR4_RESET_N -entity sit_engine_top
+set_instance_assignment -name IO_STANDARD "SSTL-12" -to DDR4_ACT_N
+
+set_instance_assignment -name IO_STANDARD "1.2 V" -to DDR4_ALERT_N
+
+# ==========================================================================
+# DDR4 DIFFERENTIAL CLOCK
+# ==========================================================================
+
+set_location_assignment PIN_H108 -to DDR4_CK_P
+set_location_assignment PIN_F108 -to DDR4_CK_N
+
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to DDR4_CK_P
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V SSTL" -to DDR4_CK_N
+
+# ==========================================================================
+# DDR4 DATA DQ[31:0]
+# ==========================================================================
+
+set_location_assignment PIN_B128  -to DDR4_DQ[0]
+set_location_assignment PIN_A116  -to DDR4_DQ[1]
+set_location_assignment PIN_A128  -to DDR4_DQ[2]
+set_location_assignment PIN_B116  -to DDR4_DQ[3]
+set_location_assignment PIN_B130  -to DDR4_DQ[4]
+set_location_assignment PIN_B113  -to DDR4_DQ[5]
+set_location_assignment PIN_A130  -to DDR4_DQ[6]
+set_location_assignment PIN_A113  -to DDR4_DQ[7]
+
+set_location_assignment PIN_AG100 -to DDR4_DQ[8]
+set_location_assignment PIN_Y98   -to DDR4_DQ[9]
+set_location_assignment PIN_AG104 -to DDR4_DQ[10]
+set_location_assignment PIN_Y95   -to DDR4_DQ[11]
+set_location_assignment PIN_AC96  -to DDR4_DQ[12]
+set_location_assignment PIN_Y87   -to DDR4_DQ[13]
+set_location_assignment PIN_AC100 -to DDR4_DQ[14]
+set_location_assignment PIN_Y84   -to DDR4_DQ[15]
+
+set_location_assignment PIN_T95 -to DDR4_DQ[16]
+set_location_assignment PIN_K84 -to DDR4_DQ[17]
+set_location_assignment PIN_P95 -to DDR4_DQ[18]
+set_location_assignment PIN_M84 -to DDR4_DQ[19]
+set_location_assignment PIN_T98 -to DDR4_DQ[20]
+set_location_assignment PIN_V98 -to DDR4_DQ[21]
+set_location_assignment PIN_T84 -to DDR4_DQ[22]
+set_location_assignment PIN_P84 -to DDR4_DQ[23]
+
+set_location_assignment PIN_M98 -to DDR4_DQ[24]
+set_location_assignment PIN_D84 -to DDR4_DQ[25]
+set_location_assignment PIN_K98 -to DDR4_DQ[26]
+set_location_assignment PIN_K87 -to DDR4_DQ[27]
+set_location_assignment PIN_F98 -to DDR4_DQ[28]
+set_location_assignment PIN_F84 -to DDR4_DQ[29]
+set_location_assignment PIN_H98 -to DDR4_DQ[30]
+set_location_assignment PIN_M87 -to DDR4_DQ[31]
+
+set_instance_assignment -name IO_STANDARD "1.2-V POD" -to {DDR4_DQ[*]}
+
+# ==========================================================================
+# DDR4 DQS
+# ==========================================================================
+
+set_location_assignment PIN_B122 -to DDR4_DQS_P[0]
+set_location_assignment PIN_AG90 -to DDR4_DQS_P[1]
+set_location_assignment PIN_K95  -to DDR4_DQS_P[2]
+set_location_assignment PIN_F95  -to DDR4_DQS_P[3]
+
+set_location_assignment PIN_A125 -to DDR4_DQS_N[0]
+set_location_assignment PIN_AG93 -to DDR4_DQS_N[1]
+set_location_assignment PIN_M95  -to DDR4_DQS_N[2]
+set_location_assignment PIN_D95  -to DDR4_DQS_N[3]
+
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to {DDR4_DQS_P[*]}
+set_instance_assignment -name IO_STANDARD "DIFFERENTIAL 1.2-V POD" -to {DDR4_DQS_N[*]}
+
+# ==========================================================================
+# DDR4 OCT / RZQ
+# ==========================================================================
+
+set_location_assignment PIN_AK111 -to DDR4_RZQ
+set_instance_assignment -name IO_STANDARD "1.2 V" -to DDR4_RZQ

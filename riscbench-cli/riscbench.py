@@ -20,7 +20,10 @@ if __name__ == "__main__":
     device_handler(config)
 
     ## Step 4: SIT
-    rh_processor()
+    if config["v_id"][0] == "altera":
+        print("[Info] Altera UART results saved; result visualization is not enabled for this backend yet.")
+    else:
+        rh_processor()
 
     ## Step 5: Result handler and tools
     
